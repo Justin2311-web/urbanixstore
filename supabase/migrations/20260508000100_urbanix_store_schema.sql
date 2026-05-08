@@ -500,6 +500,7 @@ insert into public.payment_settings (
 values (
   true,
   true,
+  true,
   'Urbanix Store',
   'Urbanix Store',
   '1234 5678 9012',
