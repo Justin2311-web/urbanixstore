@@ -1,0 +1,15 @@
+{
+  "name": "@ecommerce/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./store": "./src/store.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ecommerce/database": "*",
+    "@supabase/supabase-js": "^2.105.3"
+  }
+}
