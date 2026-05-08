@@ -731,16 +731,14 @@ export async function upsertOrder(order: UrbanixOrder) {
       shipping_fee: order.totals.shipping,
       subtotal: order.totals.subtotal,
       total_amount: order.totals.total,
-    })
-    .select("id")
-    .single();
+    });
 
   if (insertOrder.error) {
     throw insertOrder.error;
   }
 
   const orderItems = order.items.map((item) => ({
-    order_id: insertOrder.data.id,
+    order_id: order.id,
     product_id: null,
     product_name: item.product.name,
     product_sku: item.product.sku,
