@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Backpack, Car, Fan, Lamp } from "lucide-react";
 import type { ProductCategory } from "@ecommerce/shared";
+import { LocalizedText } from "@/components/i18n/localized-text";
 import { cn } from "@/lib/utils";
 
 const toneStyles: Record<ProductCategory["tone"], string> = {
@@ -8,6 +9,11 @@ const toneStyles: Record<ProductCategory["tone"], string> = {
   mint: "bg-[#e4f6ee] text-primary",
   peach: "bg-[#fff0df] text-[#9f4b2f]",
   lilac: "bg-[#f0eaf8] text-[#4f3b6d]",
+  sky: "bg-[#e8f3ff] text-[#245f9f]",
+  rose: "bg-[#ffe8ee] text-[#9f2f55]",
+  amber: "bg-[#fff5d8] text-[#8a5a00]",
+  slate: "bg-[#e8edf2] text-[#263442]",
+  lime: "bg-[#ebf9dc] text-[#3f6f1b]",
 };
 
 const icons = {
@@ -30,13 +36,13 @@ export function CategoryCard({ category }: { category: ProductCategory }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-bold">{category.name}</h3>
+          <h3 className="text-sm font-bold"><LocalizedText fallback={category.name} k={`category.${category.name}`} /></h3>
           <p className="mt-1 text-xs opacity-75">{category.description}</p>
         </div>
         <Icon className="size-9 opacity-90" />
       </div>
       <span className="flex items-center gap-1 text-xs font-bold">
-        Shop now <ArrowRight className="size-3 transition group-hover:translate-x-1" />
+        <LocalizedText fallback="Shop now" k="common.shopNow" /> <ArrowRight className="size-3 transition group-hover:translate-x-1" />
       </span>
     </Link>
   );

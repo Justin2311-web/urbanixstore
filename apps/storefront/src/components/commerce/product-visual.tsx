@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 type ProductVisualProps = {
   tone: UrbanixProduct["imageTone"];
   className?: string;
+  imageUrl?: string;
+  alt?: string;
 };
 
 const toneStyles: Record<UrbanixProduct["imageTone"], string> = {
@@ -16,8 +18,21 @@ const toneStyles: Record<UrbanixProduct["imageTone"], string> = {
   cable: "from-[#f6f0e7] via-[#ffffff] to-[#e7ded1] text-[#1f2937]",
 };
 
-export function ProductVisual({ className, tone }: ProductVisualProps) {
+export function ProductVisual({ alt = "Product image", className, imageUrl, tone }: ProductVisualProps) {
   const Icon = tone === "car" ? Smartphone : tone === "perfume" ? Gem : tone === "cable" ? Cable : Fan;
+
+  if (imageUrl) {
+    return (
+      <div
+        className={cn(
+          "relative aspect-square overflow-hidden rounded-2xl bg-white",
+          className
+        )}
+      >
+        <img alt={alt} className="size-full object-cover" src={imageUrl} />
+      </div>
+    );
+  }
 
   return (
     <div

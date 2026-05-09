@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  updateCategories,
   updateHomepage,
   updateOrderStatuses,
   updatePaymentSettings,
   updateStoreSettings,
+  replaceCategories,
+  uploadUrbanixAsset,
+  upsertPromotionBanners,
   upsertProduct,
   readUrbanixStoreDataAsync,
 } from "@ecommerce/shared/store";
@@ -16,6 +18,7 @@ import {
   type HomepageContent,
   type PaymentSettings,
   type ProductCategory,
+  type PromotionBanner,
   type UrbanixOrder,
   type UrbanixProduct,
   type StoreSettings,
@@ -40,28 +43,103 @@ function lines(formData: FormData, key: string) {
     .filter(Boolean);
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function jsonStringArray(formData: FormData, key: string) {
+  try {
+    const value = JSON.parse(text(formData, key));
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function fileValues(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .filter((value): value is File => value instanceof File && value.size > 0);
+}
+
+async function getProductImageUrls(formData: FormData, slug: string, existingImages: string[]) {
+  const files = fileValues(formData, "productImageFiles");
+  const tokens = jsonStringArray(formData, "productImageOrder");
+  const uploadedByIndex = new Map<number, string>();
+  const uploadFileAt = async (index: number) => {
+    if (!uploadedByIndex.has(index) && files[index]) {
+      uploadedByIndex.set(index, await uploadUrbanixAsset(files[index], "product-images", slug));
+    }
+
+    return uploadedByIndex.get(index) ?? "";
+  };
+
+  if (tokens.length === 0) {
+    const uploaded = await Promise.all(files.slice(0, Math.max(0, 9 - existingImages.length)).map((file) =>
+      uploadUrbanixAsset(file, "product-images", slug)
+    ));
+
+    return [...existingImages, ...uploaded].filter(Boolean).slice(0, 9);
+  }
+
+  const urls: string[] = [];
+
+  for (const token of tokens) {
+    if (urls.length >= 9) {
+      break;
+    }
+
+    if (token.startsWith("existing:")) {
+      const url = token.slice("existing:".length);
+
+      if (existingImages.includes(url)) {
+        urls.push(url);
+      }
+    }
+
+    if (token.startsWith("file:")) {
+      const uploaded = await uploadFileAt(Number(token.slice("file:".length)));
+
+      if (uploaded) {
+        urls.push(uploaded);
+      }
+    }
+  }
+
+  return urls;
+}
+
 export async function saveProduct(formData: FormData) {
   const name = text(formData, "name");
-  const slug = text(formData, "slug") || getCategoryIdByName(name);
-  const existingProduct = (await readUrbanixStoreDataAsync()).products.find((product) => product.id === text(formData, "id"));
+  const slug = text(formData, "slug") || slugify(name) || getCategoryIdByName(name);
+  const data = await readUrbanixStoreDataAsync();
+  const existingProduct = data.products.find((product) => product.id === text(formData, "id"));
   const normalPrice = numberValue(formData, "normalPrice");
   const promotionPrice = numberValue(formData, "promotionPrice");
   const stockQuantity = numberValue(formData, "stockQuantity");
-  const category = text(formData, "category");
+  const categoryId = text(formData, "categoryId") || existingProduct?.categoryId || data.categories[0]?.id || "";
+  const category = data.categories.find((item) => item.id === categoryId || item.slug === categoryId)?.name ?? existingProduct?.category ?? "Lifestyle";
+  const existingImages = jsonStringArray(formData, "existingProductImages");
+  const productImageUrls = await getProductImageUrls(formData, slug, existingImages);
+  const mainImageUrl = productImageUrls[0] ?? existingProduct?.image ?? "";
   const product: UrbanixProduct = {
     category,
-    categoryId: text(formData, "categoryId") || text(formData, "relatedCategory") || getCategoryIdByName(category),
+    categoryId,
     description: text(formData, "fullDescription"),
     featured: boolValue(formData, "featured"),
     fullDescription: text(formData, "fullDescription"),
-    galleryImages: lines(formData, "galleryImages"),
+    galleryImages: productImageUrls,
     highlights: lines(formData, "highlights"),
     id: text(formData, "id") || slug,
-    image: text(formData, "image"),
-    imageTone: (text(formData, "imageTone") || "fan-green") as UrbanixProduct["imageTone"],
+    image: mainImageUrl,
+    imageTone: existingProduct?.imageTone ?? "fan-green",
     isActive: text(formData, "status") !== "inactive",
     isFeatured: boolValue(formData, "featured"),
-    mainImageUrl: text(formData, "image"),
+    mainImageUrl,
     name,
     normalPrice,
     originalPrice: promotionPrice > 0 && promotionPrice < normalPrice ? normalPrice : undefined,
@@ -72,7 +150,7 @@ export async function saveProduct(formData: FormData) {
     promotionStartDate: text(formData, "promotionStartDate"),
     promotionStartAt: text(formData, "promotionStartDate"),
     rating: numberValue(formData, "rating") || existingProduct?.rating || 4.7,
-    relatedCategory: text(formData, "relatedCategory") || getCategoryIdByName(category),
+    relatedCategory: categoryId,
     returnNote: text(formData, "returnNote") || "Returns accepted within 30 days for unused items in original packaging.",
     shippingInfo: text(formData, "shippingInfo") || "Free shipping applies for eligible orders.",
     shortDescription: text(formData, "shortDescription"),
@@ -91,24 +169,37 @@ export async function saveProduct(formData: FormData) {
 }
 
 export async function saveCategories(formData: FormData) {
-  const names = ["Portable Fans", "Car Accessories", "Home Picks", "Lifestyle"];
-  const categories: ProductCategory[] = names.map((name) => {
-    const id = getCategoryIdByName(name);
+  const keys = jsonStringArray(formData, "categoryKeys");
+  const deletedSlugs: string[] = [];
+  const categories = keys
+    .map((key, index): ProductCategory | null => {
+      const name = text(formData, `${key}-name`);
+      const slug = text(formData, `${key}-slug`) || slugify(name);
 
-    return {
-      active: formData.get(`${id}-active`) === "on",
-      description: text(formData, `${id}-description`),
-      href: `/categories?category=${id}`,
-      id,
-      isActive: formData.get(`${id}-active`) === "on",
-      name,
-      slug: id,
-      sortOrder: names.indexOf(name) + 1,
-      tone: (text(formData, `${id}-tone`) || "mint") as ProductCategory["tone"],
-    };
-  });
+      if (!name || !slug) {
+        return null;
+      }
 
-  await updateCategories(categories);
+      if (formData.get(`${key}-delete`) === "on") {
+        deletedSlugs.push(slug);
+        return null;
+      }
+
+      return {
+        active: formData.get(`${key}-active`) === "on",
+        description: text(formData, `${key}-description`),
+        href: `/categories?category=${slug}`,
+        id: slug,
+        isActive: formData.get(`${key}-active`) === "on",
+        name,
+        slug,
+        sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
+        tone: (text(formData, `${key}-tone`) || "mint") as ProductCategory["tone"],
+      };
+    })
+    .filter((category): category is ProductCategory => Boolean(category));
+
+  await replaceCategories(categories, deletedSlugs);
   revalidatePath("/", "layout");
 }
 
@@ -172,6 +263,54 @@ export async function savePaymentSettings(formData: FormData) {
   };
 
   await updatePaymentSettings(payments);
+  revalidatePath("/", "layout");
+}
+
+export async function savePromotionBanners(formData: FormData) {
+  const keys = jsonStringArray(formData, "bannerKeys");
+  const deletedIds: string[] = [];
+  const banners: PromotionBanner[] = [];
+
+  for (const [index, key] of keys.entries()) {
+    const id = text(formData, `${key}-id`);
+    const title = text(formData, `${key}-title`);
+
+    if (!title && !id) {
+      continue;
+    }
+
+    if (formData.get(`${key}-delete`) === "on") {
+      if (id) {
+        deletedIds.push(id);
+      }
+
+      continue;
+    }
+
+    const desktopFile = fileValues(formData, `${key}-desktopFile`)[0];
+    const mobileFile = fileValues(formData, `${key}-mobileFile`)[0];
+    const folder = id || slugify(title) || `banner-${index + 1}`;
+    const desktopImageUrl = desktopFile
+      ? await uploadUrbanixAsset(desktopFile, "banners", folder)
+      : text(formData, `${key}-desktopImageUrl`);
+    const mobileImageUrl = mobileFile
+      ? await uploadUrbanixAsset(mobileFile, "banners", folder)
+      : text(formData, `${key}-mobileImageUrl`);
+
+    banners.push({
+      ctaText: text(formData, `${key}-ctaText`) || "Shop Now",
+      desktopImageUrl,
+      id,
+      isActive: formData.get(`${key}-isActive`) === "on",
+      mobileImageUrl,
+      sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
+      subtitle: text(formData, `${key}-subtitle`),
+      targetUrl: text(formData, `${key}-targetUrl`) || "/products",
+      title,
+    });
+  }
+
+  await upsertPromotionBanners(banners, deletedIds);
   revalidatePath("/", "layout");
 }
 

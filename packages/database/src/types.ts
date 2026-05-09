@@ -294,6 +294,35 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["payment_settings"]["Insert"]>;
       };
+      promotion_banners: {
+        Row: {
+          created_at: string;
+          cta_text: string | null;
+          desktop_image_url: string | null;
+          id: string;
+          is_active: boolean;
+          mobile_image_url: string | null;
+          sort_order: number;
+          subtitle: string | null;
+          target_url: string | null;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          cta_text?: string | null;
+          desktop_image_url?: string | null;
+          id?: string;
+          is_active?: boolean;
+          mobile_image_url?: string | null;
+          sort_order?: number;
+          subtitle?: string | null;
+          target_url?: string | null;
+          title: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["promotion_banners"]["Insert"]>;
+      };
     };
     Views: Record<string, never>;
     Functions: {

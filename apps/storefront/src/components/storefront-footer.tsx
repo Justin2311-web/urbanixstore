@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AtSign, CirclePlay, MessageCircle, Music2, Send } from "lucide-react";
 import { listStorefrontCategories, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { BrandLogo } from "@/components/brand-logo";
+import { LocalizedText } from "@/components/i18n/localized-text";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -18,12 +19,12 @@ export async function StorefrontFooter() {
   const categories = listStorefrontCategories(data);
 
   return (
-    <footer className="mt-8 bg-primary text-primary-foreground">
+    <footer className="mt-8 bg-primary pb-[calc(14rem+env(safe-area-inset-bottom))] text-primary-foreground md:pb-0">
       <div className="urbanix-container grid gap-8 py-8 md:grid-cols-[1.3fr_2fr_1.3fr]">
         <div className="flex flex-col gap-4">
           <BrandLogo inverse />
           <p className="max-w-xs text-sm text-white/75">
-            {settings.storeTagline} Curated essentials for small everyday wins.
+            {settings.storeTagline} <LocalizedText fallback="Curated essentials for small everyday wins." k="footer.taglineExtra" />
           </p>
           <div className="flex gap-2 text-white/80">
             {socialLinks.map(({ icon: Icon, label }) => (
@@ -44,29 +45,32 @@ export async function StorefrontFooter() {
               href: category.href,
               label: category.name,
             }))}
+            titleKey="footer.shop"
             title="Shop"
           />
           <FooterGroup
             links={[
-              { href: "/cart", label: "Shipping" },
-              { href: "/cart", label: "Returns" },
-              { href: "/cart", label: "Contact Us" },
+              { href: "/cart", label: "Shipping", key: "footer.shipping" },
+              { href: "/cart", label: "Returns", key: "footer.returns" },
+              { href: "/cart", label: "Contact Us", key: "footer.contactUs" },
             ]}
+            titleKey="footer.help"
             title="Help"
           />
           <FooterGroup
             links={[
-              { href: "/", label: "Our Story" },
-              { href: "/", label: "Blog" },
-              { href: "/", label: "Privacy Policy" },
+              { href: "/", label: "Our Story", key: "footer.ourStory" },
+              { href: "/", label: "Blog", key: "footer.blog" },
+              { href: "/", label: "Privacy Policy", key: "footer.privacy" },
             ]}
+            titleKey="footer.about"
             title="About"
           />
         </div>
 
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold uppercase text-white">Contact</h2>
-          <p className="text-sm text-white/75">Need help choosing? Talk to us directly.</p>
+          <h2 className="text-sm font-bold uppercase text-white"><LocalizedText fallback="Contact" k="footer.contact" /></h2>
+          <p className="text-sm text-white/75"><LocalizedText fallback="Need help choosing? Talk to us directly." k="footer.needHelp" /></p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link
               className={buttonVariants({
@@ -75,7 +79,7 @@ export async function StorefrontFooter() {
               href={`https://wa.me/${settings.whatsappNumber}`}
             >
               <MessageCircle />
-              WhatsApp
+              <LocalizedText fallback="WhatsApp" k="common.whatsapp" />
             </Link>
           </div>
           <div className="mt-2 flex gap-2">
@@ -84,7 +88,7 @@ export async function StorefrontFooter() {
               placeholder="Enter your email"
             />
             <Link className={buttonVariants({ variant: "secondary" })} href="/">
-              Subscribe
+              <LocalizedText fallback="Subscribe" k="common.subscribe" />
             </Link>
           </div>
         </div>
@@ -96,16 +100,18 @@ export async function StorefrontFooter() {
 function FooterGroup({
   links,
   title,
+  titleKey,
 }: {
   title: string;
-  links: Array<{ href: string; label: string }>;
+  titleKey?: string;
+  links: Array<{ href: string; label: string; key?: string }>;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-bold uppercase text-white">{title}</h2>
+      <h2 className="text-sm font-bold uppercase text-white"><LocalizedText fallback={title} k={titleKey ?? title} /></h2>
       {links.map((link) => (
         <Link className="text-xs text-white/75 hover:text-white" href={link.href} key={link.label}>
-          {link.label}
+          <LocalizedText fallback={link.label} k={link.key ?? `category.${link.label}`} />
         </Link>
       ))}
     </div>

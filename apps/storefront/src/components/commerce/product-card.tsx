@@ -18,7 +18,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <PromotionBadge percent={product.promotionPercent} />
       </div>
       <Link href={`/products/${product.slug}`}>
-        <ProductVisual tone={product.imageTone} />
+        <ProductVisual alt={product.name} imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]} tone={product.imageTone} />
       </Link>
       <div className="flex flex-col gap-2 px-1 py-3">
         {product.stockStatus !== "in_stock" ? (

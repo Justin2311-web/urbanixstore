@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Poppins } from "next/font/google";
 import { AppHeader } from "@/components/app-header";
 import { CartProvider } from "@/components/cart/cart-provider";
+import { LanguageProvider } from "@/components/i18n/language-provider";
 import { StorefrontFooter } from "@/components/storefront-footer";
 import "./globals.css";
 
@@ -36,11 +37,13 @@ export default function RootLayout({
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background text-foreground">
-        <CartProvider>
-          <AppHeader />
-          {children}
-          <StorefrontFooter />
-        </CartProvider>
+        <LanguageProvider>
+          <CartProvider>
+            <AppHeader />
+            {children}
+            <StorefrontFooter />
+          </CartProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

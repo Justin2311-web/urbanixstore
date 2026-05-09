@@ -3,6 +3,7 @@ import type { ProductCategory, ProductFilter, ProductSort } from "@ecommerce/sha
 import { urbanixCategories } from "@ecommerce/shared";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { LocalizedText } from "@/components/i18n/localized-text";
 
 const filters: Array<{ id: ProductFilter; label: string }> = [
   { id: "all", label: "All" },
@@ -28,10 +29,11 @@ export function CategoryTabs({
   query?: string;
   categories?: ProductCategory[];
 }) {
-  const items: Array<{ id?: string; label: string }> = [
-    { label: "All" },
+  const items: Array<{ id?: string; label: string; key?: string }> = [
+    { label: "All", key: "filters.all" },
     ...categories.map((category) => ({
       id: category.id,
+      key: `category.${category.name}`,
       label: category.name,
     })),
   ];
@@ -47,7 +49,7 @@ export function CategoryTabs({
           href={buildHref(basePath, { category: item.id, q: query })}
           key={item.label}
         >
-          {item.label}
+          <LocalizedText fallback={item.label} k={item.key ?? item.label} />
         </Link>
       ))}
     </div>
@@ -69,7 +71,7 @@ export function CollectionFilters({
 }) {
   return (
     <aside className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-      <h2 className="mb-3 text-sm font-extrabold text-primary">Filter by</h2>
+      <h2 className="mb-3 text-sm font-extrabold text-primary"><LocalizedText fallback="Filter by" k="filters.filterBy" /></h2>
       <div className="flex flex-wrap gap-2 md:flex-col">
         {filters.map((filter) => (
           <Link
@@ -86,11 +88,11 @@ export function CollectionFilters({
             })}
             key={filter.id}
           >
-            {filter.label}
+            <LocalizedText fallback={filter.label} k={`filters.${filter.id}`} />
           </Link>
         ))}
       </div>
-      <h2 className="mb-3 mt-5 text-sm font-extrabold text-primary">Sort by</h2>
+      <h2 className="mb-3 mt-5 text-sm font-extrabold text-primary"><LocalizedText fallback="Sort by" k="filters.sortBy" /></h2>
       <div className="flex flex-wrap gap-2 md:flex-col">
         {sorts.map((sort) => (
           <Link
@@ -107,7 +109,7 @@ export function CollectionFilters({
             })}
             key={sort.id}
           >
-            {sort.label}
+            <LocalizedText fallback={sort.label} k={`products.${sort.id}`} />
           </Link>
         ))}
       </div>

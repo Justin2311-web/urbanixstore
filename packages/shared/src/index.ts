@@ -18,6 +18,7 @@ export const adminNavItems: AppNavItem[] = [
   { label: "Add Product", href: "/products/new" },
   { label: "Categories", href: "/categories" },
   { label: "Homepage", href: "/homepage" },
+  { label: "Promotions", href: "/promotions" },
   { label: "Orders", href: "/orders" },
   { label: "Store Settings", href: "/settings" },
   { label: "Payment Settings", href: "/payments" },
@@ -83,6 +84,20 @@ export type HomepageContent = {
   isActive?: boolean;
 };
 
+export type PromotionBanner = {
+  id: string;
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  targetUrl: string;
+  desktopImageUrl: string;
+  mobileImageUrl: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export function formatCurrency(amount: number, currency = platformConfig.currency) {
   return new Intl.NumberFormat("en-MY", {
     style: "currency",
@@ -97,7 +112,7 @@ export type ProductCategory = {
   href: string;
   description: string;
   imageUrl?: string;
-  tone: "teal" | "mint" | "peach" | "lilac";
+  tone: "teal" | "mint" | "peach" | "lilac" | "sky" | "rose" | "amber" | "slate" | "lime";
   active?: boolean;
   isActive?: boolean;
   sortOrder?: number;
@@ -473,6 +488,7 @@ export type UrbanixStoreData = {
   products: UrbanixProduct[];
   categories: ProductCategory[];
   homepage: HomepageContent;
+  promotionBanners: PromotionBanner[];
   settings: StoreSettings;
   payments: PaymentSettings;
   orders: UrbanixOrder[];
@@ -483,6 +499,7 @@ export const defaultUrbanixStoreData: UrbanixStoreData = {
   homepage: defaultHomepageContent,
   orders: [],
   payments: defaultPaymentSettings,
+  promotionBanners: [],
   products: urbanixProducts,
   settings: defaultStoreSettings,
 };

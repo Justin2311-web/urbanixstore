@@ -10,6 +10,7 @@ import {
   type HomepageContent,
   type PaymentSettings,
   type ProductCategory,
+  type PromotionBanner,
   type UrbanixOrder,
   type UrbanixProduct,
   type UrbanixStoreData,
@@ -48,6 +49,7 @@ function mergeStoreData(data: Partial<UrbanixStoreData>): UrbanixStoreData {
     homepage: { ...defaultUrbanixStoreData.homepage, ...data.homepage },
     orders: data.orders ?? defaultUrbanixStoreData.orders,
     payments: { ...defaultUrbanixStoreData.payments, ...data.payments },
+    promotionBanners: data.promotionBanners ?? defaultUrbanixStoreData.promotionBanners,
     products: data.products ?? defaultUrbanixStoreData.products,
     settings: {
       ...defaultUrbanixStoreData.settings,
@@ -83,7 +85,7 @@ function getPublicSupabaseKey() {
 
 function createSupabaseStoreClient({ admin = false } = {}) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = admin ? process.env.SUPABASE_SERVICE_ROLE_KEY : getPublicSupabaseKey();
+  const supabaseKey = admin ? process.env.SUPABASE_SERVICE_ROLE_KEY ?? getPublicSupabaseKey() : getPublicSupabaseKey();
 
   if (!supabaseUrl || !supabaseKey) {
     return null;
@@ -248,6 +250,22 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
   };
 }
 
+function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners"]["Row"]): PromotionBanner {
+  return {
+    createdAt: row.created_at,
+    ctaText: row.cta_text ?? "Shop Now",
+    desktopImageUrl: row.desktop_image_url ?? "",
+    id: row.id,
+    isActive: row.is_active,
+    mobileImageUrl: row.mobile_image_url ?? "",
+    sortOrder: row.sort_order,
+    subtitle: row.subtitle ?? "",
+    targetUrl: row.target_url ?? "/products",
+    title: row.title,
+    updatedAt: row.updated_at,
+  };
+}
+
 function mapPaymentSettings(row?: Database["public"]["Tables"]["payment_settings"]["Row"] | null): PaymentSettings {
   if (!row) {
     return defaultUrbanixStoreData.payments;
@@ -349,6 +367,7 @@ export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
       settingsResult,
       bannersResult,
       paymentsResult,
+      promotionBannersResult,
       ordersResult,
       orderItemsResult,
     ] = await Promise.all([
@@ -358,6 +377,7 @@ export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
       supabase.from("store_settings").select("*").eq("id", true).maybeSingle(),
       supabase.from("banners").select("*").eq("id", true).maybeSingle(),
       supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
+      supabase.from("promotion_banners").select("*").order("sort_order", { ascending: true }),
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.from("order_items").select("*").order("created_at", { ascending: true }),
     ]);
@@ -369,6 +389,7 @@ export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
       settingsResult.error,
       bannersResult.error,
       paymentsResult.error,
+      promotionBannersResult.error,
       ordersResult.error,
       orderItemsResult.error,
     ].find(Boolean);
@@ -410,6 +431,7 @@ export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
       homepage: mapHomepage(bannersResult.data),
       orders,
       payments: mapPaymentSettings(paymentsResult.data),
+      promotionBanners: (promotionBannersResult.data ?? []).map(mapPromotionBanner),
       products,
       settings: mapStoreSettings(settingsResult.data),
     });
@@ -448,6 +470,12 @@ export function listStorefrontProducts(data = readUrbanixStoreData()) {
 export function listStorefrontCategories(data = readUrbanixStoreData()) {
   return data.categories
     .filter((category) => category.active !== false && category.isActive !== false)
+    .toSorted((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));
+}
+
+export function listActivePromotionBanners(data = readUrbanixStoreData()) {
+  return data.promotionBanners
+    .filter((banner) => banner.isActive)
     .toSorted((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));
 }
 
@@ -596,6 +624,36 @@ export async function updateCategories(categories: ProductCategory[]) {
   }
 }
 
+export async function replaceCategories(categories: ProductCategory[], deletedSlugs: string[] = []) {
+  const normalizedCategories = categories.map((category, index) => ({
+    ...category,
+    active: category.active ?? category.isActive ?? true,
+    href: category.href || `/categories?category=${category.slug ?? category.id}`,
+    id: category.slug ?? category.id,
+    isActive: category.isActive ?? category.active ?? true,
+    slug: category.slug ?? category.id,
+    sortOrder: category.sortOrder ?? index + 1,
+  }));
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.categories = normalizedCategories.filter((category) => !deletedSlugs.includes(category.slug ?? category.id));
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  if (deletedSlugs.length > 0) {
+    const deleteResult = await supabase.from("categories").delete().in("slug", deletedSlugs);
+
+    if (deleteResult.error) {
+      throw deleteResult.error;
+    }
+  }
+
+  await updateCategories(normalizedCategories);
+}
+
 export async function updateHomepage(homepage: HomepageContent) {
   const supabase = createSupabaseStoreClient({ admin: true });
 
@@ -700,6 +758,78 @@ export async function updatePaymentSettings(payments: PaymentSettings) {
   if (result.error) {
     throw result.error;
   }
+}
+
+export async function upsertPromotionBanners(banners: PromotionBanner[], deletedIds: string[] = []) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.promotionBanners = banners
+      .filter((banner) => !deletedIds.includes(banner.id))
+      .toSorted((first, second) => first.sortOrder - second.sortOrder);
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  if (deletedIds.length > 0) {
+    const deleteResult = await supabase.from("promotion_banners").delete().in("id", deletedIds);
+
+    if (deleteResult.error) {
+      throw deleteResult.error;
+    }
+  }
+
+  if (banners.length === 0) {
+    return;
+  }
+
+  const result = await supabase.from("promotion_banners").upsert(
+    banners.map((banner, index) => ({
+      cta_text: banner.ctaText,
+      desktop_image_url: banner.desktopImageUrl || null,
+      id: banner.id || undefined,
+      is_active: banner.isActive,
+      mobile_image_url: banner.mobileImageUrl || null,
+      sort_order: banner.sortOrder || index + 1,
+      subtitle: banner.subtitle,
+      target_url: banner.targetUrl || "/products",
+      title: banner.title,
+    })),
+    { onConflict: "id" }
+  );
+
+  if (result.error) {
+    throw result.error;
+  }
+}
+
+export async function uploadUrbanixAsset(file: File, bucket: "product-images" | "banners" | "logos", folder: string) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    throw new Error("Supabase Storage upload requires server-side Supabase credentials.");
+  }
+
+  if (file.size === 0) {
+    return "";
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "webp";
+  const safeFolder = folder.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const filePath = `${safeFolder}/${crypto.randomUUID()}.${extension}`;
+  const uploadResult = await supabase.storage.from(bucket).upload(filePath, file, {
+    cacheControl: "31536000",
+    contentType: file.type || undefined,
+    upsert: false,
+  });
+
+  if (uploadResult.error) {
+    throw uploadResult.error;
+  }
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(uploadResult.data.path);
+  return data.publicUrl;
 }
 
 export async function upsertOrder(order: UrbanixOrder) {

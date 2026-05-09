@@ -17,7 +17,9 @@ const galleryTones: Record<UrbanixProduct["imageTone"], UrbanixProduct["imageTon
 
 export function ProductGallery({ product }: { product: UrbanixProduct }) {
   const tones = galleryTones[product.imageTone];
+  const imageUrls = product.galleryImages?.length ? product.galleryImages : product.image ? [product.image] : [];
   const [activeIndex, setActiveIndex] = useState(0);
+  const activeImage = imageUrls[activeIndex];
 
   return (
     <section className="relative">
@@ -25,22 +27,29 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
         <PromotionBadge percent={product.promotionPercent} />
       </div>
       <ProductVisual
+        alt={product.name}
         className="min-h-[350px] shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:min-h-[460px]"
-        tone={tones[activeIndex]}
+        imageUrl={activeImage}
+        tone={tones[activeIndex] ?? product.imageTone}
       />
       <div className="mt-3 grid grid-cols-4 gap-2">
-        {tones.map((tone, index) => (
+        {(imageUrls.length > 0 ? imageUrls : tones).map((item, index) => (
           <button
             aria-label={`View product image ${index + 1}`}
             className={cn(
               "rounded-2xl border bg-card p-1 transition",
               activeIndex === index ? "border-primary ring-2 ring-primary/15" : "border-border"
             )}
-            key={`${tone}-${index}`}
+            key={`${item}-${index}`}
             onClick={() => setActiveIndex(index)}
             type="button"
           >
-            <ProductVisual className="rounded-xl" tone={tone} />
+            <ProductVisual
+              alt={`${product.name} thumbnail ${index + 1}`}
+              className="rounded-xl"
+              imageUrl={imageUrls.length > 0 ? item : undefined}
+              tone={imageUrls.length > 0 ? product.imageTone : (item as UrbanixProduct["imageTone"])}
+            />
           </button>
         ))}
       </div>

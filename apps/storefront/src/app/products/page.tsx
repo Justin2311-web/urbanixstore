@@ -7,6 +7,7 @@ import { CollectionFilters, CategoryTabs } from "@/components/commerce/collectio
 import { CollectionHero } from "@/components/commerce/collection-hero";
 import { ProductGrid } from "@/components/commerce/product-grid";
 import { SearchBar } from "@/components/commerce/search-bar";
+import { LocalizedText } from "@/components/i18n/localized-text";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,7 +32,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   return (
     <main className="urbanix-container urbanix-section pb-24">
-      <CollectionHero category={category} title="All Products" />
+      <CollectionHero category={category} title="All Products" titleKey="products.allProducts" />
 
       <div className="mb-4">
         <SearchBar placeholder="Search Urbanix products..." />
@@ -50,9 +51,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         />
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
-            <p className="text-sm font-bold">{products.length} Products</p>
+            <p className="text-sm font-bold">{products.length} <LocalizedText fallback="Products" k="products.count" /></p>
             <p className="text-xs font-semibold text-muted-foreground">
-              Sort: {activeSort === "price" ? "Price" : activeSort === "newest" ? "Newest" : "Featured"}
+              <LocalizedText fallback="Sort" k="products.sort" />: <LocalizedText fallback={activeSort === "price" ? "Price" : activeSort === "newest" ? "Newest" : "Featured"} k={activeSort === "price" ? "products.price" : activeSort === "newest" ? "products.newest" : "products.featured"} />
             </p>
           </div>
           <ProductGrid products={products} />
