@@ -20,7 +20,7 @@ export function CollectionHero({
   category?: ProductCategory;
 }) {
   const subtitle = category
-    ? copyByCategory[category.id]
+    ? category.description || copyByCategory[category.id]
     : "Curated essentials for smart urban living.";
 
   return (

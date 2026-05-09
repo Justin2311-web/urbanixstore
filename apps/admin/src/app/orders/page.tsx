@@ -13,7 +13,7 @@ export default async function OrdersPage({
   searchParams: Promise<{ q?: string; paymentStatus?: string; orderStatus?: string }>;
 }) {
   const params = await searchParams;
-  const { orders, settings } = await readUrbanixStoreDataAsync();
+  const { orders, settings } = await readUrbanixStoreDataAsync({ includeOrders: true });
   const query = (params.q ?? "").trim().toLowerCase();
   const visibleOrders = orders.filter((order) => {
     const searchMatches =

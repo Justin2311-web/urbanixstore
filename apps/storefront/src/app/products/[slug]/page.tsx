@@ -14,7 +14,6 @@ import {
 import {
   formatCurrency,
   getCategoryIdByName,
-  trustBadges,
 } from "@ecommerce/shared";
 import { listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { PriceDisplay } from "@/components/commerce/price-display";
@@ -49,6 +48,10 @@ export default async function ProductDetailPage({
       ? product.originalPrice - product.price
       : 0;
   const isPortableFan = getCategoryIdByName(product.category) === "portable-fans";
+  const trustBadges = data.homepage.trustBadgeText.map((title) => ({
+    description: title === "Free Shipping" ? `Orders over RM${data.settings.freeShippingMinimumAmount}` : "",
+    title,
+  }));
   const highlightItems = isPortableFan
     ? [
         { icon: Wind, title: "Strong Airflow", text: "Quick cooling wherever you are." },

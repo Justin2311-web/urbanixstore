@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function Home() {
-  const data = await readUrbanixStoreDataAsync();
+  const data = await readUrbanixStoreDataAsync({ includeOrders: true });
   const stats = [
     { label: "Products", value: String(data.products.length), icon: Package },
     { label: "Orders", value: String(data.orders.length), icon: ShoppingBag },

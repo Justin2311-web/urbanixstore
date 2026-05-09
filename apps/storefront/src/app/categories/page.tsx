@@ -20,10 +20,10 @@ type CategoriesPageProps = {
 export default async function CategoriesPage({ searchParams }: CategoriesPageProps) {
   const params = await searchParams;
   const data = await readUrbanixStoreDataAsync();
-  const activeCategory = params.category ?? "portable-fans";
+  const categories = listStorefrontCategories(data);
+  const activeCategory = params.category ?? categories[0]?.id;
   const activeFilter = params.filter ?? "all";
   const activeSort = params.sort ?? "featured";
-  const categories = listStorefrontCategories(data);
   const category = categories.find((item) => item.id === activeCategory);
   const products = listStorefrontProducts(data).filter((product) => getCategoryIdByName(product.category) === activeCategory || product.relatedCategory === activeCategory);
 

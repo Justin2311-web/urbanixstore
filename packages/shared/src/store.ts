@@ -18,6 +18,9 @@ import {
 } from "./index";
 
 type SupabaseStoreClient = SupabaseClient;
+type StoreReadOptions = {
+  includeOrders?: boolean;
+};
 
 function findWorkspaceRoot() {
   let current = process.cwd();
@@ -96,6 +99,17 @@ function createSupabaseStoreClient({ admin = false } = {}) {
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          cache: "no-store",
+          next: { revalidate: 0 },
+        } as RequestInit & { next?: { revalidate: number } }),
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
   });
 }
 
@@ -139,21 +153,20 @@ function mapProduct({
   categoriesById: Map<string, ProductCategory>;
   imagesByProductId: Map<string, Database["public"]["Tables"]["product_images"]["Row"][]>;
 }): UrbanixProduct {
-  const fallback = defaultUrbanixStoreData.products.find((product) => product.slug === row.slug);
   const category = row.category_id ? categoriesById.get(row.category_id) : undefined;
   const galleryImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
   const product: UrbanixProduct = {
-    category: category?.name ?? fallback?.category ?? "Lifestyle",
-    categoryId: category?.id ?? fallback?.categoryId ?? fallback?.relatedCategory,
+    category: category?.name ?? "Uncategorized",
+    categoryId: category?.id,
     createdAt: row.created_at,
-    description: row.description ?? fallback?.description ?? "",
+    description: row.description ?? "",
     featured: row.is_featured,
-    fullDescription: row.description ?? fallback?.fullDescription ?? fallback?.description ?? "",
+    fullDescription: row.description ?? "",
     galleryImages,
     highlights: asStringArray(row.highlights),
     id: row.slug,
-    image: row.main_image_url ?? fallback?.image ?? "",
-    imageTone: (row.image_tone as UrbanixProduct["imageTone"] | null) ?? fallback?.imageTone ?? "fan-green",
+    image: row.main_image_url ?? galleryImages[0] ?? "",
+    imageTone: (row.image_tone as UrbanixProduct["imageTone"] | null) ?? "fan-green",
     isActive: row.is_active,
     isFeatured: row.is_featured,
     mainImageUrl: row.main_image_url ?? "",
@@ -171,14 +184,14 @@ function mapProduct({
     promotionPrice: row.promotion_price === null ? undefined : Number(row.promotion_price),
     promotionStartDate: row.promotion_start_at ?? "",
     promotionStartAt: row.promotion_start_at ?? "",
-    rating: Number(row.rating ?? fallback?.rating ?? 4.7),
-    relatedCategory: category?.id ?? fallback?.relatedCategory,
-    returnNote: row.return_note ?? fallback?.returnNote ?? "",
-    shippingInfo: row.shipping_info ?? fallback?.shippingInfo ?? "",
+    rating: Number(row.rating ?? 0),
+    relatedCategory: category?.id,
+    returnNote: row.return_note ?? "",
+    shippingInfo: row.shipping_info ?? "",
     shortDescription: row.short_description ?? "",
     sku: row.sku,
     slug: row.slug,
-    sold: row.sold ?? fallback?.sold ?? 0,
+    sold: row.sold ?? 0,
     specifications: asStringArray(row.specifications),
     status: row.is_active ? "active" : "inactive",
     stockQuantity: row.stock_quantity,
@@ -352,57 +365,76 @@ function mapOrder({
   };
 }
 
-export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
+export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}): Promise<UrbanixStoreData> {
   const supabase = createSupabaseStoreClient();
 
   if (!supabase) {
+    if (process.env.VERCEL) {
+      throw new Error("Missing Supabase environment variables for live Urbanix data.");
+    }
+
     return readUrbanixStoreData();
   }
 
-  try {
-    const [
-      categoriesResult,
-      productsResult,
-      imagesResult,
-      settingsResult,
-      bannersResult,
-      paymentsResult,
-      promotionBannersResult,
-      ordersResult,
-      orderItemsResult,
-    ] = await Promise.all([
-      supabase.from("categories").select("*").order("sort_order", { ascending: true }),
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
-      supabase.from("product_images").select("*").order("sort_order", { ascending: true }),
-      supabase.from("store_settings").select("*").eq("id", true).maybeSingle(),
-      supabase.from("banners").select("*").eq("id", true).maybeSingle(),
-      supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
-      supabase.from("promotion_banners").select("*").order("sort_order", { ascending: true }),
+  const [
+    categoriesResult,
+    productsResult,
+    imagesResult,
+    settingsResult,
+    bannersResult,
+    paymentsResult,
+    promotionBannersResult,
+  ] = await Promise.all([
+    supabase.from("categories").select("*").order("sort_order", { ascending: true }),
+    supabase.from("products").select("*").order("created_at", { ascending: false }),
+    supabase.from("product_images").select("*").order("sort_order", { ascending: true }),
+    supabase.from("store_settings").select("*").eq("id", true).maybeSingle(),
+    supabase.from("banners").select("*").eq("id", true).maybeSingle(),
+    supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
+    supabase.from("promotion_banners").select("*").order("sort_order", { ascending: true }),
+  ]);
+
+  const publicError = [
+    categoriesResult.error,
+    productsResult.error,
+    imagesResult.error,
+    settingsResult.error,
+    bannersResult.error,
+    paymentsResult.error,
+    promotionBannersResult.error,
+  ].find(Boolean);
+
+  if (publicError) {
+    throw publicError;
+  }
+
+  const categoriesByUuid = new Map((categoriesResult.data ?? []).map((row) => [row.id, mapCategory(row)]));
+  const imagesByProductId = new Map<string, Database["public"]["Tables"]["product_images"]["Row"][]>();
+
+  for (const image of imagesResult.data ?? []) {
+    imagesByProductId.set(image.product_id, [...(imagesByProductId.get(image.product_id) ?? []), image]);
+  }
+
+  const categories = (categoriesResult.data ?? []).map(mapCategory);
+  const products = (productsResult.data ?? []).map((row) =>
+    mapProduct({
+      categoriesById: categoriesByUuid,
+      imagesByProductId,
+      row,
+    })
+  );
+
+  let orders: UrbanixOrder[] = [];
+
+  if (options.includeOrders) {
+    const [ordersResult, orderItemsResult] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.from("order_items").select("*").order("created_at", { ascending: true }),
     ]);
+    const ordersError = ordersResult.error ?? orderItemsResult.error;
 
-    const error = [
-      categoriesResult.error,
-      productsResult.error,
-      imagesResult.error,
-      settingsResult.error,
-      bannersResult.error,
-      paymentsResult.error,
-      promotionBannersResult.error,
-      ordersResult.error,
-      orderItemsResult.error,
-    ].find(Boolean);
-
-    if (error) {
-      throw error;
-    }
-
-    const categoriesByUuid = new Map((categoriesResult.data ?? []).map((row) => [row.id, mapCategory(row)]));
-    const imagesByProductId = new Map<string, Database["public"]["Tables"]["product_images"]["Row"][]>();
-
-    for (const image of imagesResult.data ?? []) {
-      imagesByProductId.set(image.product_id, [...(imagesByProductId.get(image.product_id) ?? []), image]);
+    if (ordersError) {
+      throw ordersError;
     }
 
     const itemsByOrderId = new Map<string, Database["public"]["Tables"]["order_items"]["Row"][]>();
@@ -411,34 +443,23 @@ export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
       itemsByOrderId.set(item.order_id, [...(itemsByOrderId.get(item.order_id) ?? []), item]);
     }
 
-    const categories = (categoriesResult.data ?? []).map(mapCategory);
-    const products = (productsResult.data ?? []).map((row) =>
-      mapProduct({
-        categoriesById: categoriesByUuid,
-        imagesByProductId,
-        row,
-      })
-    );
-    const orders = (ordersResult.data ?? []).map((row) =>
+    orders = (ordersResult.data ?? []).map((row) =>
       mapOrder({
         items: itemsByOrderId.get(row.id) ?? [],
         row,
       })
     );
-
-    return mergeStoreData({
-      categories,
-      homepage: mapHomepage(bannersResult.data),
-      orders,
-      payments: mapPaymentSettings(paymentsResult.data),
-      promotionBanners: (promotionBannersResult.data ?? []).map(mapPromotionBanner),
-      products,
-      settings: mapStoreSettings(settingsResult.data),
-    });
-  } catch (error) {
-    console.error("Falling back to local Urbanix data after Supabase read failed.", error);
-    return readUrbanixStoreData();
   }
+
+  return mergeStoreData({
+    categories,
+    homepage: mapHomepage(bannersResult.data),
+    orders,
+    payments: mapPaymentSettings(paymentsResult.data),
+    promotionBanners: (promotionBannersResult.data ?? []).map(mapPromotionBanner),
+    products,
+    settings: mapStoreSettings(settingsResult.data),
+  });
 }
 
 export function listStorefrontProducts(data = readUrbanixStoreData()) {
@@ -522,6 +543,10 @@ export async function upsertProduct(product: UrbanixProduct) {
     throw categoryResult.error;
   }
 
+  if (!categoryResult.data?.id) {
+    throw new Error(`Product category "${categorySlug}" was not found in Supabase.`);
+  }
+
   const upsertResult = await supabase
     .from("products")
     .upsert(
@@ -546,7 +571,7 @@ export async function upsertProduct(product: UrbanixProduct) {
         sold: product.sold,
         specifications: toJsonArray(product.specifications),
         stock_quantity: product.stockQuantity ?? 0,
-        category_id: categoryResult.data?.id ?? null,
+        category_id: categoryResult.data.id,
       },
       { onConflict: "slug" }
     )

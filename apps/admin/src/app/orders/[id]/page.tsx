@@ -12,7 +12,7 @@ export default async function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { orders } = await readUrbanixStoreDataAsync();
+  const { orders } = await readUrbanixStoreDataAsync({ includeOrders: true });
   const order = orders.find((item) => item.id === id);
 
   if (!order) {

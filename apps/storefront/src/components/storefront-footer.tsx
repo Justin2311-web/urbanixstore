@@ -6,13 +6,6 @@ import { LocalizedText } from "@/components/i18n/localized-text";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
 
-const socialLinks = [
-  { icon: AtSign, label: "Email" },
-  { icon: Send, label: "Telegram" },
-  { icon: Music2, label: "TikTok" },
-  { icon: CirclePlay, label: "Video" },
-];
-
 export async function StorefrontFooter() {
   const data = await readUrbanixStoreDataAsync();
   const { settings } = data;
@@ -22,19 +15,25 @@ export async function StorefrontFooter() {
     <footer className="mt-8 bg-primary pb-[calc(14rem+env(safe-area-inset-bottom))] text-primary-foreground md:pb-0">
       <div className="urbanix-container grid gap-8 py-8 md:grid-cols-[1.3fr_2fr_1.3fr]">
         <div className="flex flex-col gap-4">
-          <BrandLogo inverse />
+          <BrandLogo inverse logoUrl={settings.logoUrl} storeName={settings.storeName} />
           <p className="max-w-xs text-sm text-white/75">
             {settings.storeTagline} <LocalizedText fallback="Curated essentials for small everyday wins." k="footer.taglineExtra" />
           </p>
           <div className="flex gap-2 text-white/80">
-            {socialLinks.map(({ icon: Icon, label }) => (
-              <span
+            {[
+              { href: settings.contactEmail ? `mailto:${settings.contactEmail}` : "", icon: AtSign, label: "Email" },
+              { href: settings.socialLinks.facebook, icon: Send, label: "Facebook" },
+              { href: settings.socialLinks.tiktok, icon: Music2, label: "TikTok" },
+              { href: settings.socialLinks.instagram, icon: CirclePlay, label: "Instagram" },
+            ].filter((item) => item.href).map(({ href, icon: Icon, label }) => (
+              <Link
                 className="flex size-8 items-center justify-center rounded-full bg-white/10"
+                href={href}
                 key={label}
               >
                 <span className="sr-only">{label}</span>
                 <Icon className="size-4" />
-              </span>
+              </Link>
             ))}
           </div>
         </div>
@@ -71,6 +70,10 @@ export async function StorefrontFooter() {
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-bold uppercase text-white"><LocalizedText fallback="Contact" k="footer.contact" /></h2>
           <p className="text-sm text-white/75"><LocalizedText fallback="Need help choosing? Talk to us directly." k="footer.needHelp" /></p>
+          <div className="grid gap-1 text-xs font-semibold text-white/75">
+            {settings.contactEmail ? <a href={`mailto:${settings.contactEmail}`}>{settings.contactEmail}</a> : null}
+            {settings.contactPhone ? <a href={`tel:${settings.contactPhone}`}>{settings.contactPhone}</a> : null}
+          </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link
               className={buttonVariants({

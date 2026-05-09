@@ -20,7 +20,7 @@ export async function AppHeader() {
       <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur">
         <div className="urbanix-container flex h-16 items-center justify-between gap-4">
           <Link className="shrink-0" href="/">
-            <BrandLogo />
+            <BrandLogo logoUrl={settings.logoUrl} storeName={settings.storeName} />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {storefrontNavItems.slice(1, 5).map((item) => (

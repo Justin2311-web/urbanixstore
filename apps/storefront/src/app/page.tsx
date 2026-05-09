@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Truck } from "lucide-react";
-import { trustBadges } from "@ecommerce/shared";
 import { listActivePromotionBanners, listStorefrontCategories, listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { CategoryCard } from "@/components/commerce/category-card";
 import { ProductCard } from "@/components/commerce/product-card";
@@ -19,6 +18,10 @@ export default async function Home() {
   const featuredProducts = products.filter((product) => product.featured).slice(0, 4);
   const featuredCategories = categories.filter((category) => data.homepage.featuredCategoryCards.includes(category.id));
   const promotionBanners = listActivePromotionBanners(data);
+  const trustBadges = data.homepage.trustBadgeText.map((title) => ({
+    description: title === "Free Shipping" ? `Orders over RM${data.settings.freeShippingMinimumAmount}` : "",
+    title,
+  }));
 
   return (
     <main className="pb-20 md:pb-0">
