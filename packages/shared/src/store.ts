@@ -476,6 +476,10 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     logo: row.logo_url ?? defaultUrbanixStoreData.settings.logo,
     logoUrl: row.logo_url ?? "",
     maintenanceMessage: row.maintenance_message ?? undefined,
+    platformLinks: {
+      lazada: typeof socialLinks.lazada === "string" ? socialLinks.lazada : defaultUrbanixStoreData.settings.platformLinks?.lazada ?? "",
+      shopee: typeof socialLinks.shopee === "string" ? socialLinks.shopee : defaultUrbanixStoreData.settings.platformLinks?.shopee ?? "",
+    },
     shippingFee: Number(row.shipping_fee),
     socialLinks: {
       facebook: typeof socialLinks.facebook === "string" ? socialLinks.facebook : "",
@@ -486,7 +490,7 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     isStoreActive: row.is_store_active,
     storeName: row.store_name,
     storeTagline: row.store_tagline,
-    whatsappNumber: row.whatsapp_number ?? "",
+    whatsappNumber: row.whatsapp_number || defaultUrbanixStoreData.settings.whatsappNumber,
   };
 }
 

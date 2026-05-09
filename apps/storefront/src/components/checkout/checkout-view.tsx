@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createOrderNumber, saveOrder } from "@/lib/order-storage";
+import { createWhatsAppHref, getWhatsAppNumber } from "@/lib/order-links";
 
 const initialCustomer: CheckoutCustomer = {
   addressLine1: "",
@@ -65,7 +66,7 @@ export function CheckoutView({
     [customer, lines, paymentMethod, totals]
   );
 
-  const whatsappHref = `https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(createWhatsAppOrderMessage(previewOrder))}`;
+  const whatsappHref = createWhatsAppHref(getWhatsAppNumber(settings), createWhatsAppOrderMessage(previewOrder));
 
   if (lines.length === 0) {
     return (

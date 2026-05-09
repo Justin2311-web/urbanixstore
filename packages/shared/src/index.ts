@@ -25,7 +25,7 @@ export const platformConfig = {
   storefrontName: "Urbanix Store",
   tagline: "Smart picks. Urban life.",
   currency: "MYR",
-  whatsappNumber: "60123456789",
+  whatsappNumber: "60198993269",
   freeShippingThreshold: 50,
 } as const;
 
@@ -466,7 +466,7 @@ export const defaultStoreSettings: StoreSettings = {
   favicon: "/favicon.ico",
   logoUrl: "",
   faviconUrl: "/favicon.ico",
-  whatsappNumber: "60123456789",
+  whatsappNumber: "60198993269",
   contactEmail: "hello@urbanix.store",
   contactPhone: "+60 12-345 6789",
   shippingFee: 6,
@@ -477,6 +477,10 @@ export const defaultStoreSettings: StoreSettings = {
     facebook: "",
     instagram: "",
     tiktok: "",
+  },
+  platformLinks: {
+    shopee: "",
+    lazada: "",
   },
   storeActive: true,
   isStoreActive: true,

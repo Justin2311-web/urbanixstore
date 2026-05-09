@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
 import { buttonVariants } from "@/components/ui/button";
 import { getLatestOrder } from "@/lib/order-storage";
+import { createWhatsAppHref, getWhatsAppNumber } from "@/lib/order-links";
 
 export function OrderSuccessView({ whatsappNumber }: { whatsappNumber: string }) {
   const [order, setOrder] = useState<UrbanixOrder | null>(null);
@@ -41,7 +42,7 @@ export function OrderSuccessView({ whatsappNumber }: { whatsappNumber: string })
     );
   }
 
-  const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(createWhatsAppOrderMessage(order))}`;
+  const whatsappHref = createWhatsAppHref(getWhatsAppNumber({ whatsappNumber }), createWhatsAppOrderMessage(order));
 
   return (
     <main className="urbanix-container urbanix-section flex justify-center pb-24">

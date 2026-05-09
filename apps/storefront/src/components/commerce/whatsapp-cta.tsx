@@ -1,5 +1,6 @@
 import { MessageCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { getWhatsAppNumber } from "@/lib/order-links";
 
 export function WhatsAppCta({
   message,
@@ -8,7 +9,7 @@ export function WhatsAppCta({
   message?: string;
   whatsappNumber: string;
 }) {
-  const href = `https://wa.me/${whatsappNumber}${
+  const href = `https://wa.me/${getWhatsAppNumber({ whatsappNumber })}${
     message ? `?text=${encodeURIComponent(message)}` : ""
   }`;
 

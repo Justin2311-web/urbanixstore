@@ -41,7 +41,7 @@ export default async function Home() {
         <SectionHeader action="/products" title="Featured Picks" titleKey="home.featuredPicks" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.id} product={product} settings={data.settings} />
           ))}
         </div>
       </section>

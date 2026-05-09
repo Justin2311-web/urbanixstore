@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { MessageCircle, ShieldCheck } from "lucide-react";
 import {
   calculateOrderTotals,
   getCartLines,
@@ -12,7 +12,13 @@ import { useCart } from "@/components/cart/cart-provider";
 import { CartItemCard } from "@/components/commerce/cart-item-card";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  createCartWhatsAppMessage,
+  createWhatsAppHref,
+  getWhatsAppNumber,
+} from "@/lib/order-links";
 
 export function CartView({
   products,
@@ -22,8 +28,13 @@ export function CartView({
   settings: StoreSettings;
 }) {
   const { count, items } = useCart();
+  const { language } = useLanguage();
   const lines = getCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
+  const whatsappHref = createWhatsAppHref(
+    getWhatsAppNumber(settings),
+    createCartWhatsAppMessage({ language, lines, settings })
+  );
 
   if (lines.length === 0) {
     return (
@@ -55,6 +66,18 @@ export function CartView({
 
         <aside className="flex flex-col gap-4">
           <OrderSummaryCard lines={lines} totals={totals} />
+          <a
+            className={buttonVariants({
+              className: "w-full bg-success text-white hover:bg-success/90",
+              size: "lg",
+            })}
+            href={whatsappHref}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <MessageCircle />
+            Order via WhatsApp
+          </a>
           <Link
             className={buttonVariants({
               className: "w-full",

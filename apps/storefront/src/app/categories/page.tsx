@@ -53,7 +53,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
               Collection: {category?.name ?? "All"}
             </p>
           </div>
-          <ProductGrid products={products} />
+          <ProductGrid products={products} settings={data.settings} />
         </section>
       </div>
     </main>

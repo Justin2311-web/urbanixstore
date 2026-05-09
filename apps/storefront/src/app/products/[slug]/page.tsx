@@ -122,7 +122,7 @@ export default async function ProductDetailPage({
             ) : null}
           </div>
 
-          <ProductPurchasePanel product={product} />
+          <ProductPurchasePanel product={product} settings={data.settings} />
 
           <div className="grid grid-cols-2 gap-3">
             {highlightItems.map((item) => (
@@ -177,7 +177,7 @@ export default async function ProductDetailPage({
               More curated picks from {product.category}.
             </p>
           </div>
-          <ProductGrid products={relatedProducts} />
+          <ProductGrid products={relatedProducts} settings={data.settings} />
         </section>
       ) : null}
     </main>

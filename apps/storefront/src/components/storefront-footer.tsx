@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { AtSign, CirclePlay, MessageCircle, Music2, Send } from "lucide-react";
+import { AtSign, CirclePlay, MessageCircle, Music2, Send, ShoppingBag, Store } from "lucide-react";
 import { listStorefrontCategories, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
+import { getWhatsAppNumber } from "@/lib/order-links";
 
 export async function StorefrontFooter() {
   const data = await readUrbanixStoreDataAsync();
@@ -25,12 +26,15 @@ export async function StorefrontFooter() {
             {[
               { href: settings.contactEmail ? `mailto:${settings.contactEmail}` : "", icon: AtSign, label: "Email" },
               { href: settings.socialLinks.facebook, icon: Send, label: "Facebook" },
-              { href: settings.socialLinks.tiktok, icon: Music2, label: "TikTok" },
               { href: settings.socialLinks.instagram, icon: CirclePlay, label: "Instagram" },
-            ].filter((item) => item.href).map(({ href, icon: Icon, label }) => (
+              { href: settings.socialLinks.tiktok, icon: Music2, label: "TikTok" },
+              { href: settings.platformLinks?.shopee ?? "", icon: ShoppingBag, label: "Shopee" },
+              { href: settings.platformLinks?.lazada ?? "", icon: Store, label: "Lazada" },
+            ].map(({ href, icon: Icon, label }) => (
               <Link
-                className="flex size-8 items-center justify-center rounded-full bg-white/10"
-                href={href}
+                aria-disabled={!href}
+                className={`flex size-8 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 ${href ? "" : "pointer-events-none opacity-45"}`}
+                href={href || "#"}
                 key={label}
               >
                 <span className="sr-only">{label}</span>
@@ -89,7 +93,7 @@ export async function StorefrontFooter() {
               className={buttonVariants({
                 className: "bg-success text-white hover:bg-success/90",
               })}
-              href={`https://wa.me/${settings.whatsappNumber}`}
+              href={`https://wa.me/${getWhatsAppNumber(settings)}`}
             >
               <MessageCircle />
               <LocalizedText fallback="WhatsApp" k="common.whatsapp" />
