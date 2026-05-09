@@ -1,150 +1,69 @@
-# Urbanix Store E-Commerce Platform
+# Urbanix Store
 
-Urbanix Store is a two-app e-commerce monorepo:
-
-- `apps/storefront`: customer storefront
-- `apps/admin`: store owner admin dashboard
-- `packages/shared`: shared commerce types, seed data, pricing helpers, and local JSON store helpers
-- `packages/database`: shared Supabase database types
-- `supabase/migrations`: database schema and seed migrations
-
-Both apps are Next.js App Router projects using TypeScript, Tailwind CSS, shadcn/ui, and Supabase client helpers.
+Urbanix Store is now a storefront-only ecommerce website. The previous admin dashboard has been removed from the monorepo so the project can focus on the customer shopping experience, WhatsApp ordering, and future lightweight content integrations.
 
 ## Project Structure
 
-```txt
-.
-├─ apps/
-│  ├─ storefront/   # Vercel project: urbanix-storefront
-│  └─ admin/        # Vercel project: urbanix-admin
-├─ packages/
-│  ├─ shared/
-│  └─ database/
-├─ supabase/
-│  └─ migrations/
-├─ data/
-│  └─ urbanix-store.json
-├─ package.json
-└─ package-lock.json
+```text
+apps/
+  storefront/       # Customer storefront, Vercel project: urbanix-storefront
+packages/
+  database/         # Supabase generated types for optional read-only data
+  shared/           # Storefront data models, default data, and commerce helpers
+supabase/
+  migrations/       # Optional read-only storefront schema/history
 ```
-
-This is a monorepo. Deploy the Storefront and Admin as two separate Vercel projects from the same GitHub repository.
-
-## Prerequisites
-
-- Node.js 20+
-- npm 10+
-- Git
-- A Supabase project for production data
-- A Vercel account connected to GitHub
-
-## Local Setup
-
-Install dependencies from the repository root:
-
-```bash
-npm install
-```
-
-Create local environment files:
-
-```bash
-cp apps/storefront/.env.example apps/storefront/.env.local
-cp apps/admin/.env.example apps/admin/.env.local
-```
-
-Fill in Supabase and app URL values in each `.env.local`.
 
 ## Local Development
 
-Run the storefront:
-
 ```bash
-npm run dev:storefront
+npm install
+npm run dev
 ```
 
-Run the admin dashboard:
+The storefront runs at [http://localhost:3000](http://localhost:3000).
+
+## Quality Checks
 
 ```bash
-npm run dev:admin
-```
-
-Default local URLs:
-
-- Storefront: `http://localhost:3000`
-- Admin: `http://localhost:3001`
-
-## Checks
-
-Run from the repository root:
-
-```bash
-npm run lint
 npm run typecheck
+npm run lint
 npm run build
 ```
 
-Individual builds:
+## Storefront Environment
 
-```bash
-npm run build:storefront
-npm run build:admin
-```
-
-## Environment Variables
-
-Storefront only:
+`apps/storefront/.env.example` contains the storefront-only environment shape:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_SITE_URL=
-NEXT_PUBLIC_ADMIN_URL=
+NEXT_PUBLIC_GOOGLE_SHEET_CMS_URL=
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_SHOPEE_STORE_URL=
+NEXT_PUBLIC_LAZADA_STORE_URL=
 ```
 
-Admin only:
+Supabase is currently used only as an optional public read source for storefront catalog/settings data. If Supabase env vars are not configured locally, the storefront falls back to `data/urbanix-store.json` and the default shared data.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_PUBLIC_SITE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-```
+## Ordering
 
-Never add `SUPABASE_SERVICE_ROLE_KEY` to the Storefront project. Never prefix the service role key with `NEXT_PUBLIC_`.
+Checkout stores the latest order in the browser and prepares a WhatsApp message for the customer. No admin dashboard or order-management backend is included.
 
-## Supabase
+## Future CMS/Image/Marketplace Integrations
 
-Apply migrations from:
+The storefront is prepared for:
 
-```txt
-supabase/migrations
-```
+- Google Sheet CMS via `NEXT_PUBLIC_GOOGLE_SHEET_CMS_URL`
+- Cloudinary-hosted images via `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
+- Shopee and Lazada outbound links via `NEXT_PUBLIC_SHOPEE_STORE_URL` and `NEXT_PUBLIC_LAZADA_STORE_URL`
 
-The current schema migration creates Urbanix Store tables for categories, products, product images, orders, order items, store settings, homepage banners, and payment settings.
+## Deployment
 
-## Vercel Deployment
-
-Create two Vercel projects from this same GitHub repository:
-
-### Storefront
+Deploy only the storefront Vercel project:
 
 - Project name: `urbanix-storefront`
 - Root Directory: `apps/storefront`
-- Framework: Next.js
 - Install Command: `cd ../.. && npm install`
 - Build Command: `cd ../.. && npm run build:storefront`
-- Output Directory: leave default
-- Env vars: use only the Storefront variables above
-
-### Admin
-
-- Project name: `urbanix-admin`
-- Root Directory: `apps/admin`
-- Framework: Next.js
-- Install Command: `cd ../.. && npm install`
-- Build Command: `cd ../.. && npm run build:admin`
-- Output Directory: leave default
-- Env vars: use only the Admin variables above
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full GitHub and Vercel checklist.

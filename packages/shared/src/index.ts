@@ -12,22 +12,9 @@ export const storefrontNavItems: AppNavItem[] = [
   { label: "Cart", href: "/cart" },
 ];
 
-export const adminNavItems: AppNavItem[] = [
-  { label: "Dashboard", href: "/" },
-  { label: "Products", href: "/products" },
-  { label: "Add Product", href: "/products/new" },
-  { label: "Categories", href: "/categories" },
-  { label: "Homepage", href: "/homepage" },
-  { label: "Promotions", href: "/promotions" },
-  { label: "Orders", href: "/orders" },
-  { label: "Store Settings", href: "/settings" },
-  { label: "Payment Settings", href: "/payments" },
-];
-
 export const platformConfig = {
   name: "Urbanix Store",
   storefrontName: "Urbanix Store",
-  adminName: "Urbanix Admin",
   tagline: "Smart picks. Urban life.",
   currency: "MYR",
   whatsappNumber: "60123456789",

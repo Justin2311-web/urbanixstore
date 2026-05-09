@@ -9,13 +9,6 @@ export function saveOrder(order: UrbanixOrder) {
 
   window.localStorage.setItem(latestOrderKey, JSON.stringify(order));
   window.localStorage.setItem(ordersKey, JSON.stringify(orders));
-  fetch("/api/orders", {
-    body: JSON.stringify(order),
-    headers: { "Content-Type": "application/json" },
-    method: "POST",
-  }).catch(() => {
-    window.localStorage.setItem("urbanix-order-sync-pending", JSON.stringify(order));
-  });
 }
 
 export function getLatestOrder() {
