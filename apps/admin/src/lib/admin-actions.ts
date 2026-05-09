@@ -24,6 +24,32 @@ import {
   type StoreSettings,
 } from "@ecommerce/shared";
 
+async function revalidateStorefront() {
+  const storefrontUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+
+  if (!storefrontUrl || !secret) {
+    try {
+      await fetch(`http://localhost:3000/api/revalidate?secret=${secret ?? "dev"}`, {
+        method: "POST",
+        cache: "no-store",
+      });
+    } catch {
+      // local storefront may not be running, ignore
+    }
+    return;
+  }
+
+  try {
+    await fetch(`${storefrontUrl}/api/revalidate?secret=${secret}`, {
+      method: "POST",
+      cache: "no-store",
+    });
+  } catch (error) {
+    console.error("[Admin] Failed to revalidate storefront:", error);
+  }
+}
+
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -164,6 +190,7 @@ export async function saveProduct(formData: FormData) {
   };
 
   await upsertProduct(product);
+  await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/products?saved=1");
 }
@@ -200,6 +227,7 @@ export async function saveCategories(formData: FormData) {
     .filter((category): category is ProductCategory => Boolean(category));
 
   await replaceCategories(categories, deletedSlugs);
+  await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/categories?saved=1");
 }
@@ -220,6 +248,7 @@ export async function saveHomepage(formData: FormData) {
   };
 
   await updateHomepage(homepage);
+  await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/homepage?saved=1");
 }
@@ -248,6 +277,7 @@ export async function saveStoreSettings(formData: FormData) {
   };
 
   await updateStoreSettings(settings);
+  await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/settings?saved=1");
 }
@@ -266,6 +296,7 @@ export async function savePaymentSettings(formData: FormData) {
   };
 
   await updatePaymentSettings(payments);
+  await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/payments?saved=1");
 }
@@ -315,6 +346,7 @@ export async function savePromotionBanners(formData: FormData) {
   }
 
   await upsertPromotionBanners(banners, deletedIds);
+  await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/promotions?saved=1");
 }
