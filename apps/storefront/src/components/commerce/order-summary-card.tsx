@@ -2,6 +2,7 @@ import type { CartLine, OrderTotals } from "@ecommerce/shared";
 import { formatCurrency } from "@ecommerce/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductVisual } from "@/components/commerce/product-visual";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 
 export function OrderSummaryCard({
   lines = [],
@@ -22,9 +23,15 @@ export function OrderSummaryCard({
           <div className="mb-2 flex flex-col gap-3">
             {lines.map((line) => (
               <div className="flex items-center gap-3" key={line.product.id}>
-                <ProductVisual className="size-14 rounded-xl" tone={line.product.imageTone} />
+                <ProductVisual
+                  className="size-14 rounded-xl"
+                  imageUrl={line.product.image || line.product.mainImageUrl || line.product.galleryImages?.[0]}
+                  tone={line.product.imageTone}
+                />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-xs font-bold">{line.product.name}</div>
+                  <div className="truncate text-xs font-bold">
+                    <LocalizedValue fallback={line.product.name} value={line.product.localizedName} />
+                  </div>
                   <div className="text-xs text-muted-foreground">x{line.quantity}</div>
                 </div>
                 <div className="text-xs font-bold">{formatCurrency(line.lineTotal)}</div>

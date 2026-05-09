@@ -2,6 +2,7 @@ import { BatteryFull, Fan, Feather } from "lucide-react";
 import type { ProductCategory } from "@ecommerce/shared";
 import { ProductVisual } from "@/components/commerce/product-visual";
 import { LocalizedText } from "@/components/i18n/localized-text";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 
 const copyByCategory: Record<string, string> = {
   "portable-fans": "Powerful. Portable. Stay cool anywhere.",
@@ -29,7 +30,11 @@ export function CollectionHero({
         <div className="flex flex-col justify-center gap-5 p-6 sm:p-8">
           <div>
             <h1 className="text-3xl font-extrabold text-white sm:text-4xl">
-              <LocalizedText fallback={category?.name ?? title} k={category ? `category.${category.name}` : titleKey ?? title} />
+              {category?.localizedName ? (
+                <LocalizedValue fallback={category.name} value={category.localizedName} />
+              ) : (
+                <LocalizedText fallback={category?.name ?? title} k={category ? `category.${category.name}` : titleKey ?? title} />
+              )}
             </h1>
             <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/85">
               {subtitle}

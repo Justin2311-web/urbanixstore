@@ -7,6 +7,7 @@ import { CartCountBadge } from "@/components/cart/cart-count-badge";
 import { SearchBar } from "@/components/commerce/search-bar";
 import { LanguageSelector } from "@/components/i18n/language-selector";
 import { LocalizedText } from "@/components/i18n/localized-text";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 
 export async function AppHeader() {
@@ -15,7 +16,7 @@ export async function AppHeader() {
   return (
     <>
       <div className="hidden bg-primary py-2 text-center text-xs font-semibold text-white md:block">
-        {homepage.promotionStripText} &nbsp; - &nbsp; WhatsApp {settings.whatsappNumber}
+        <LocalizedValue fallback={homepage.promotionStripText} value={settings.freeShippingText} /> &nbsp; - &nbsp; WhatsApp {settings.whatsappNumber}
       </div>
       <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur">
         <div className="urbanix-container flex h-16 items-center justify-between gap-4">

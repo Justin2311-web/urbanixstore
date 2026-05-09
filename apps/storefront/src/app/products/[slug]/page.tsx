@@ -22,6 +22,7 @@ import { ProductGrid } from "@/components/commerce/product-grid";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { StockBadge } from "@/components/commerce/stock-badge";
 import { TrustBadge } from "@/components/commerce/trust-badge";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -90,9 +91,11 @@ export default async function ProductDetailPage({
               </span>
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold sm:text-4xl">{product.name}</h1>
+              <h1 className="text-3xl font-extrabold sm:text-4xl">
+                <LocalizedValue fallback={product.name} value={product.localizedName} />
+              </h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {product.shortDescription}
+                <LocalizedValue fallback={product.shortDescription} value={product.localizedDescription} />
               </p>
             </div>
           </div>
@@ -143,7 +146,9 @@ export default async function ProductDetailPage({
       <section className="urbanix-section">
         <div className="grid gap-4 lg:grid-cols-3">
           <InfoPanel title="Description">
-            <p>{product.description}</p>
+            <p>
+              <LocalizedValue fallback={product.description} value={product.localizedDescription} />
+            </p>
           </InfoPanel>
           <InfoPanel title="Specifications">
             <ul className="flex flex-col gap-2">

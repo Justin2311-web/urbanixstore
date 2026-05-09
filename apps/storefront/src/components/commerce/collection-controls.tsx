@@ -4,6 +4,7 @@ import { urbanixCategories } from "@ecommerce/shared";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { LocalizedText } from "@/components/i18n/localized-text";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 
 const filters: Array<{ id: ProductFilter; label: string }> = [
   { id: "all", label: "All" },
@@ -29,12 +30,13 @@ export function CategoryTabs({
   query?: string;
   categories?: ProductCategory[];
 }) {
-  const items: Array<{ id?: string; label: string; key?: string }> = [
+  const items: Array<{ id?: string; label: string; key?: string; localizedLabel?: ProductCategory["localizedName"] }> = [
     { label: "All", key: "filters.all" },
     ...categories.map((category) => ({
       id: category.id,
       key: `category.${category.name}`,
       label: category.name,
+      localizedLabel: category.localizedName,
     })),
   ];
 
@@ -49,7 +51,11 @@ export function CategoryTabs({
           href={buildHref(basePath, { category: item.id, q: query })}
           key={item.label}
         >
-          <LocalizedText fallback={item.label} k={item.key ?? item.label} />
+          {item.localizedLabel ? (
+            <LocalizedValue fallback={item.label} value={item.localizedLabel} />
+          ) : (
+            <LocalizedText fallback={item.label} k={item.key ?? item.label} />
+          )}
         </Link>
       ))}
     </div>

@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/commerce/product-card";
 import { PromotionBannerCarousel } from "@/components/commerce/promotion-banner-carousel";
 import { TrustBadge } from "@/components/commerce/trust-badge";
 import { LocalizedText } from "@/components/i18n/localized-text";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,9 @@ export default async function Home() {
             <Truck className="size-8" />
           </div>
           <div>
-            <h2 className="text-2xl font-extrabold text-white"><LocalizedText fallback={data.homepage.promotionStripText} k={`promo.${data.homepage.promotionStripText}`} /></h2>
+            <h2 className="text-2xl font-extrabold text-white">
+              <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
+            </h2>
             <p className="text-sm font-semibold text-white/85">For orders over RM{data.settings.freeShippingMinimumAmount}</p>
           </div>
           <Link

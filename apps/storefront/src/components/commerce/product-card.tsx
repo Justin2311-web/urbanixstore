@@ -6,6 +6,7 @@ import { ProductVisual } from "@/components/commerce/product-visual";
 import { PriceDisplay } from "@/components/commerce/price-display";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
 import { StockBadge } from "@/components/commerce/stock-badge";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 
 type ProductCardProps = {
   product: UrbanixProduct;
@@ -30,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
           className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-foreground hover:text-primary"
           href={`/products/${product.slug}`}
         >
-          {product.name}
+          <LocalizedValue fallback={product.name} value={product.localizedName} />
         </Link>
         <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
         <div className="flex items-center justify-between gap-2">

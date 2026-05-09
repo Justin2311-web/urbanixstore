@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Backpack, Car, Fan, Lamp } from "lucide-react";
 import type { ProductCategory } from "@ecommerce/shared";
 import { LocalizedText } from "@/components/i18n/localized-text";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 import { cn } from "@/lib/utils";
 
 const toneStyles: Record<ProductCategory["tone"], string> = {
@@ -14,9 +15,19 @@ const toneStyles: Record<ProductCategory["tone"], string> = {
   amber: "bg-[#fff5d8] text-[#8a5a00]",
   slate: "bg-[#e8edf2] text-[#263442]",
   lime: "bg-[#ebf9dc] text-[#3f6f1b]",
+  violet: "bg-[#eee9ff] text-[#493783]",
+  sand: "bg-[#f4ead9] text-[#66451f]",
+  dark: "bg-[#1f2937] text-white",
+  "fan-green": "bg-[#dff3ea] text-primary",
+  "fan-orange": "bg-[#ffe6d8] text-[#9f4b2f]",
 };
 
 const icons = {
+  backpack: Backpack,
+  car: Car,
+  fan: Fan,
+  home: Lamp,
+  lamp: Lamp,
   "Portable Fans": Fan,
   "Car Accessories": Car,
   "Home Picks": Lamp,
@@ -24,7 +35,7 @@ const icons = {
 };
 
 export function CategoryCard({ category }: { category: ProductCategory }) {
-  const Icon = icons[category.name as keyof typeof icons] ?? Fan;
+  const Icon = icons[(category.icon || category.name) as keyof typeof icons] ?? Fan;
 
   return (
     <Link
@@ -36,7 +47,9 @@ export function CategoryCard({ category }: { category: ProductCategory }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-bold"><LocalizedText fallback={category.name} k={`category.${category.name}`} /></h3>
+          <h3 className="text-sm font-bold">
+            <LocalizedValue fallback={category.name} value={category.localizedName} />
+          </h3>
           <p className="mt-1 text-xs opacity-75">{category.description}</p>
         </div>
         <Icon className="size-9 opacity-90" />

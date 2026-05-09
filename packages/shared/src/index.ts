@@ -3,6 +3,14 @@ export type AppNavItem = {
   href: string;
 };
 
+export type LanguageCode = "en" | "zh" | "ms";
+
+export type LocalizedTextValue = {
+  en: string;
+  zh?: string;
+  ms?: string;
+};
+
 export const storefrontNavItems: AppNavItem[] = [
   { label: "Home", href: "/" },
   { label: "Shop", href: "/products" },
@@ -40,6 +48,11 @@ export type StoreSettings = {
     instagram: string;
     tiktok: string;
   };
+  platformLinks?: {
+    shopee: string;
+    lazada: string;
+  };
+  freeShippingText?: LocalizedTextValue;
   storeActive: boolean;
   isStoreActive?: boolean;
   maintenanceMessage?: string;
@@ -74,8 +87,11 @@ export type HomepageContent = {
 export type PromotionBanner = {
   id: string;
   title: string;
+  localizedTitle?: LocalizedTextValue;
   subtitle: string;
+  localizedSubtitle?: LocalizedTextValue;
   ctaText: string;
+  localizedCtaText?: LocalizedTextValue;
   targetUrl: string;
   desktopImageUrl: string;
   mobileImageUrl: string;
@@ -95,11 +111,13 @@ export function formatCurrency(amount: number, currency = platformConfig.currenc
 export type ProductCategory = {
   id: string;
   name: string;
+  localizedName?: LocalizedTextValue;
   slug?: string;
   href: string;
   description: string;
   imageUrl?: string;
-  tone: "teal" | "mint" | "peach" | "lilac" | "sky" | "rose" | "amber" | "slate" | "lime";
+  icon?: string;
+  tone: "teal" | "mint" | "peach" | "lilac" | "sky" | "rose" | "amber" | "slate" | "lime" | "violet" | "sand" | "dark" | "fan-green" | "fan-orange";
   active?: boolean;
   isActive?: boolean;
   sortOrder?: number;
@@ -108,12 +126,14 @@ export type ProductCategory = {
 export type UrbanixProduct = {
   id: string;
   name: string;
+  localizedName?: LocalizedTextValue;
   slug: string;
   categoryId?: string;
   category: string;
   sku: string;
   shortDescription: string;
   description: string;
+  localizedDescription?: LocalizedTextValue;
   specifications: string[];
   shippingInfo: string;
   returnNote: string;
@@ -144,6 +164,8 @@ export type UrbanixProduct = {
   featured?: boolean;
   isFeatured?: boolean;
   mainImageUrl?: string;
+  shopeeUrl?: string;
+  lazadaUrl?: string;
   fullDescription?: string;
   highlights?: string[];
   productHighlights?: string[];
@@ -151,6 +173,8 @@ export type UrbanixProduct = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type FooterContent = Record<string, LocalizedTextValue>;
 
 export type ProductSort = "featured" | "price" | "newest";
 export type ProductFilter = "all" | "best-sellers" | "new-arrivals" | "on-sale";
@@ -478,6 +502,7 @@ export type UrbanixStoreData = {
   promotionBanners: PromotionBanner[];
   settings: StoreSettings;
   payments: PaymentSettings;
+  footer: FooterContent;
   orders: UrbanixOrder[];
 };
 
@@ -486,6 +511,7 @@ export const defaultUrbanixStoreData: UrbanixStoreData = {
   homepage: defaultHomepageContent,
   orders: [],
   payments: defaultPaymentSettings,
+  footer: {},
   promotionBanners: [],
   products: urbanixProducts,
   settings: defaultStoreSettings,

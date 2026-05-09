@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HomepageContent, PromotionBanner } from "@ecommerce/shared";
 import { ProductVisual } from "@/components/commerce/product-visual";
 import { LocalizedText } from "@/components/i18n/localized-text";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -66,10 +67,10 @@ export function PromotionBannerCarousel({
         <div className="relative grid min-h-[430px] gap-4 md:min-h-[390px] md:grid-cols-[1fr_0.95fr]">
           <div className="flex flex-col justify-center gap-5 p-6 sm:p-10 lg:p-14">
             <h1 className="max-w-xl text-4xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">
-              <LocalizedText fallback={activeSlide.title} k={`hero.${activeSlide.title}`} />
+              <LocalizedValue fallback={activeSlide.title} value={activeSlide.localizedTitle} />
             </h1>
             <p className="max-w-sm text-base font-medium leading-7 text-white/86 sm:text-lg">
-              <LocalizedText fallback={activeSlide.subtitle} k={`hero.${activeSlide.subtitle}`} />
+              <LocalizedValue fallback={activeSlide.subtitle} value={activeSlide.localizedSubtitle} />
             </p>
             <span
               className={buttonVariants({
@@ -77,7 +78,11 @@ export function PromotionBannerCarousel({
                 size: "lg",
               })}
             >
-              <LocalizedText fallback={activeSlide.ctaText} k={activeSlide.ctaText === "Shop Now" ? "common.shopNow" : `hero.${activeSlide.ctaText}`} />
+              {activeSlide.localizedCtaText ? (
+                <LocalizedValue fallback={activeSlide.ctaText} value={activeSlide.localizedCtaText} />
+              ) : (
+                <LocalizedText fallback={activeSlide.ctaText} k={activeSlide.ctaText === "Shop Now" ? "common.shopNow" : `hero.${activeSlide.ctaText}`} />
+              )}
             </span>
           </div>
           {!activeSlide.desktopImageUrl && !activeSlide.mobileImageUrl ? (
