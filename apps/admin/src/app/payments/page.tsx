@@ -1,10 +1,16 @@
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { savePaymentSettings } from "@/lib/admin-actions";
 import { CheckField, Field, SaveButton, TextArea } from "@/components/admin-form";
+import { SaveNotice } from "@/components/save-notice";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default async function PaymentSettingsPage() {
+export default async function PaymentSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const params = await searchParams;
   const { payments } = await readUrbanixStoreDataAsync();
 
   return (
@@ -13,6 +19,7 @@ export default async function PaymentSettingsPage() {
         <h1 className="text-3xl font-extrabold">Payment Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">Configure manual payment, WhatsApp order, and future gateway notes.</p>
       </div>
+      <SaveNotice saved={params.saved} />
       <form action={savePaymentSettings}>
         <Card>
           <CardHeader>

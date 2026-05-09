@@ -1,10 +1,16 @@
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { saveStoreSettings } from "@/lib/admin-actions";
 import { CheckField, Field, SaveButton } from "@/components/admin-form";
+import { SaveNotice } from "@/components/save-notice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const params = await searchParams;
   const { settings } = await readUrbanixStoreDataAsync();
 
   return (
@@ -15,6 +21,7 @@ export default async function SettingsPage() {
           Configure public store identity and operational defaults.
         </p>
       </div>
+      <SaveNotice saved={params.saved} />
       <form action={saveStoreSettings}>
         <Card>
           <CardHeader>

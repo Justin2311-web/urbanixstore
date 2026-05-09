@@ -165,7 +165,7 @@ export async function saveProduct(formData: FormData) {
 
   await upsertProduct(product);
   revalidatePath("/", "layout");
-  redirect("/products");
+  redirect("/products?saved=1");
 }
 
 export async function saveCategories(formData: FormData) {
@@ -201,6 +201,7 @@ export async function saveCategories(formData: FormData) {
 
   await replaceCategories(categories, deletedSlugs);
   revalidatePath("/", "layout");
+  redirect("/categories?saved=1");
 }
 
 export async function saveHomepage(formData: FormData) {
@@ -220,6 +221,7 @@ export async function saveHomepage(formData: FormData) {
 
   await updateHomepage(homepage);
   revalidatePath("/", "layout");
+  redirect("/homepage?saved=1");
 }
 
 export async function saveStoreSettings(formData: FormData) {
@@ -247,6 +249,7 @@ export async function saveStoreSettings(formData: FormData) {
 
   await updateStoreSettings(settings);
   revalidatePath("/", "layout");
+  redirect("/settings?saved=1");
 }
 
 export async function savePaymentSettings(formData: FormData) {
@@ -264,6 +267,7 @@ export async function savePaymentSettings(formData: FormData) {
 
   await updatePaymentSettings(payments);
   revalidatePath("/", "layout");
+  redirect("/payments?saved=1");
 }
 
 export async function savePromotionBanners(formData: FormData) {
@@ -312,6 +316,7 @@ export async function savePromotionBanners(formData: FormData) {
 
   await upsertPromotionBanners(banners, deletedIds);
   revalidatePath("/", "layout");
+  redirect("/promotions?saved=1");
 }
 
 export async function saveOrderStatuses(formData: FormData) {

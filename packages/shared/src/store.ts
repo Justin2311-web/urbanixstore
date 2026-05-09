@@ -125,6 +125,10 @@ function dateOrNull(value?: string) {
   return value ? value : null;
 }
 
+function isAssetUrl(value?: string) {
+  return Boolean(value && (/^https?:\/\//.test(value) || value.startsWith("/")));
+}
+
 function localCategoryTone(slug: string): ProductCategory["tone"] {
   return defaultUrbanixStoreData.categories.find((category) => category.id === slug)?.tone ?? "mint";
 }
@@ -707,6 +711,38 @@ export async function updateHomepage(homepage: HomepageContent) {
 
   if (result.error) {
     throw result.error;
+  }
+
+  const primaryBannerResult = await supabase
+    .from("promotion_banners")
+    .select("id, desktop_image_url, mobile_image_url")
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (primaryBannerResult.error) {
+    throw primaryBannerResult.error;
+  }
+
+  const bannerPayload = {
+    cta_text: homepage.heroButtonText || "Shop Now",
+    desktop_image_url: isAssetUrl(homepage.heroImage)
+      ? homepage.heroImage
+      : primaryBannerResult.data?.desktop_image_url ?? null,
+    is_active: homepage.isActive ?? true,
+    mobile_image_url: primaryBannerResult.data?.mobile_image_url ?? null,
+    sort_order: 1,
+    subtitle: homepage.heroSubtitle,
+    target_url: homepage.heroButtonLink || "/products",
+    title: homepage.heroTitle,
+  };
+
+  const promotionResult = primaryBannerResult.data?.id
+    ? await supabase.from("promotion_banners").update(bannerPayload).eq("id", primaryBannerResult.data.id)
+    : await supabase.from("promotion_banners").insert(bannerPayload);
+
+  if (promotionResult.error) {
+    throw promotionResult.error;
   }
 }
 

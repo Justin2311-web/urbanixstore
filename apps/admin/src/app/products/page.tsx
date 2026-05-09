@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { formatCurrency } from "@ecommerce/shared";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
+import { SaveNotice } from "@/components/save-notice";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const params = await searchParams;
   const { products } = await readUrbanixStoreDataAsync();
 
   return (
@@ -20,6 +26,7 @@ export default async function ProductsPage() {
         </div>
         <Link className={buttonVariants({ variant: "secondary" })} href="/products/new">New Product</Link>
       </div>
+      <SaveNotice saved={params.saved} />
       <Card>
         <CardHeader>
           <CardTitle>Product Catalog</CardTitle>

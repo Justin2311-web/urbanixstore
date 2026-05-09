@@ -52,7 +52,16 @@ export default async function ProductDetailPage({
     description: title === "Free Shipping" ? `Orders over RM${data.settings.freeShippingMinimumAmount}` : "",
     title,
   }));
-  const highlightItems = isPortableFan
+  const savedHighlightIcons = [Sparkles, Truck, LockKeyhole, ShieldCheck];
+  const savedHighlightItems = (product.highlights ?? [])
+    .filter(Boolean)
+    .slice(0, 4)
+    .map((text, index) => ({
+      icon: savedHighlightIcons[index] ?? Sparkles,
+      text,
+      title: text,
+    }));
+  const fallbackHighlightItems = isPortableFan
     ? [
         { icon: Wind, title: "Strong Airflow", text: "Quick cooling wherever you are." },
         { icon: Feather, title: "Portable Size", text: "Easy to carry in your bag." },
@@ -65,6 +74,7 @@ export default async function ProductDetailPage({
         { icon: LockKeyhole, title: "Secure Checkout", text: "Safe order experience." },
         { icon: ShieldCheck, title: "Quality Product", text: "Curated by Urbanix Store." },
       ];
+  const highlightItems = savedHighlightItems.length > 0 ? savedHighlightItems : fallbackHighlightItems;
 
   return (
     <main className="urbanix-container urbanix-section pb-24">
