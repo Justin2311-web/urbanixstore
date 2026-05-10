@@ -158,6 +158,14 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function isUsableAssetUrl(value: string | null | undefined) {
+  return Boolean(value && (/^(https?:)?\/\//.test(value) || value.startsWith("/")));
+}
+
+function withoutReturnBadges(values: string[]) {
+  return values.filter((value) => !value.toLowerCase().includes("return"));
+}
+
 function parseGoogleVisualizationJson(text: string): Record<string, string>[] {
   const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?$/);
   const payload = JSON.parse(match?.[1] ?? text) as {
@@ -433,8 +441,8 @@ function mapProduct({
     promotionStartAt: row.promotion_start_at ?? "",
     rating: Number(row.rating ?? 0),
     relatedCategory: category?.id,
-    returnNote: row.return_note ?? "",
-    shippingInfo: row.shipping_info ?? "",
+    returnNote: "",
+    shippingInfo: "Free shipping applies for orders above RM40. Delivery details are confirmed during order chat.",
     shortDescription: row.short_description ?? "",
     sku: row.sku,
     slug: row.slug,
@@ -474,8 +482,8 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     freeShippingMinimumAmount: 40,
     freeShippingMinAmount: 40,
     freeShippingText: defaultUrbanixStoreData.settings.freeShippingText,
-    logo: row.logo_url ?? defaultUrbanixStoreData.settings.logo,
-    logoUrl: row.logo_url || defaultUrbanixStoreData.settings.logoUrl,
+    logo: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logo,
+    logoUrl: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logoUrl,
     maintenanceMessage: row.maintenance_message ?? undefined,
     platformLinks: {
       lazada: typeof socialLinks.lazada === "string" ? socialLinks.lazada : defaultUrbanixStoreData.settings.platformLinks?.lazada ?? "",
@@ -509,9 +517,9 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
     heroSubtitle: row.hero_subtitle ?? "",
     heroTitle: row.hero_title,
     isActive: row.is_active,
-    promotionStripText: row.promo_strip_text ?? "",
-    promoStripText: row.promo_strip_text ?? "",
-    trustBadgeText: asStringArray(row.trust_badge_text),
+    promotionStripText: defaultUrbanixStoreData.homepage.promotionStripText,
+    promoStripText: defaultUrbanixStoreData.homepage.promoStripText,
+    trustBadgeText: withoutReturnBadges(asStringArray(row.trust_badge_text)),
   };
 }
 
