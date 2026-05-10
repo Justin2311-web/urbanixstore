@@ -8,6 +8,7 @@ import {
   type StoreSettings,
   type UrbanixProduct,
 } from "@ecommerce/shared";
+import { WhatsAppOrderAction } from "@/components/account/whatsapp-order-action";
 import { useCart } from "@/components/cart/cart-provider";
 import { CartItemCard } from "@/components/commerce/cart-item-card";
 import { EmptyState } from "@/components/commerce/empty-state";
@@ -17,8 +18,6 @@ import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 import {
   createCartWhatsAppMessage,
-  createWhatsAppHref,
-  getWhatsAppNumber,
 } from "@/lib/order-links";
 
 export function CartView({
@@ -32,10 +31,6 @@ export function CartView({
   const { language } = useLanguage();
   const lines = getCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
-  const whatsappHref = createWhatsAppHref(
-    getWhatsAppNumber(settings),
-    createCartWhatsAppMessage({ language, lines, settings })
-  );
 
   if (lines.length === 0) {
     return (
@@ -70,18 +65,18 @@ export function CartView({
             <LocalizedValue fallback="Free shipping for orders above RM40" value={settings.freeShippingText} />
           </div>
           <OrderSummaryCard lines={lines} totals={totals} />
-          <a
+          <WhatsAppOrderAction
             className={buttonVariants({
               className: "w-full bg-success text-white hover:bg-success/90",
               size: "lg",
             })}
-            href={whatsappHref}
-            rel="noreferrer"
-            target="_blank"
+            lastOrderProduct={lines.map((line) => line.product.name).join(", ")}
+            makeMessage={(customer) => createCartWhatsAppMessage({ customer, language, lines, settings })}
+            settings={settings}
           >
             <MessageCircle />
             Order via WhatsApp
-          </a>
+          </WhatsAppOrderAction>
           <Link
             className={buttonVariants({
               className: "w-full",

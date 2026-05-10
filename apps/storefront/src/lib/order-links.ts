@@ -2,6 +2,12 @@ import type { CartLine, LanguageCode, StoreSettings, UrbanixProduct } from "@eco
 
 const defaultWhatsAppNumber = "60198993269";
 
+export type OrderCustomerInfo = {
+  customerAddress: string;
+  customerName: string;
+  customerPhone: string;
+};
+
 export function getWhatsAppNumber(settings?: Pick<StoreSettings, "whatsappNumber">) {
   const number = settings?.whatsappNumber || defaultWhatsAppNumber;
   const digitsOnly = number.replace(/\D/g, "");
@@ -26,11 +32,13 @@ export function formatOrderPrice(price: number) {
 }
 
 export function createProductWhatsAppMessage({
+  customer,
   language,
   product,
   quantity = 1,
   settings,
 }: {
+  customer?: OrderCustomerInfo | null;
   language: LanguageCode;
   product: UrbanixProduct;
   quantity?: number;
@@ -45,18 +53,18 @@ export function createProductWhatsAppMessage({
     `Quantity: ${quantity}`,
     `Product Link: ${getProductUrl(product)}`,
     "",
-    "Name:",
-    "Phone:",
-    "Address:",
+    ...customerInfoLines(customer),
     "Payment Method:",
   ].join("\n");
 }
 
 export function createCartWhatsAppMessage({
+  customer,
   language,
   lines,
   settings,
 }: {
+  customer?: OrderCustomerInfo | null;
   language: LanguageCode;
   lines: CartLine[];
   settings: Pick<StoreSettings, "storeName">;
@@ -77,13 +85,21 @@ export function createCartWhatsAppMessage({
     "",
     `Total: ${formatOrderPrice(total)}`,
     "",
-    "Name:",
-    "Phone:",
-    "Address:",
+    ...customerInfoLines(customer),
     "Payment Method:",
   ].join("\n");
 }
 
 export function createWhatsAppHref(whatsappNumber: string, message: string) {
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+}
+
+function customerInfoLines(customer?: OrderCustomerInfo | null) {
+  return [
+    "Customer Information:",
+    `Name: ${customer?.customerName ?? ""}`,
+    `Phone: ${customer?.customerPhone ?? ""}`,
+    `Address: ${customer?.customerAddress ?? ""}`,
+    "",
+  ];
 }

@@ -64,7 +64,7 @@ export async function AppHeader() {
             <Link
               aria-label="Account"
               className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
-              href="/"
+              href="/account"
             >
               <UserRound />
             </Link>
@@ -90,7 +90,7 @@ function MobileBottomNav() {
     { href: "/products", label: "Shop", icon: ShoppingCart },
     { href: "/search", label: "Search", icon: Search },
     { href: "/cart", label: "Cart", icon: ShoppingCart },
-    { href: "/", label: "Account", icon: UserRound },
+    { href: "/account", label: "Account", icon: UserRound },
   ];
 
   return (

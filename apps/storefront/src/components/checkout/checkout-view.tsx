@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Landmark, MessageCircle, ShieldCheck } from "lucide-react";
 import type { CheckoutCustomer, PaymentMethod, PaymentSettings, StoreSettings, UrbanixOrder, UrbanixProduct } from "@ecommerce/shared";
@@ -19,6 +19,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createOrderNumber, saveOrder } from "@/lib/order-storage";
 import { createWhatsAppHref, getWhatsAppNumber } from "@/lib/order-links";
+import {
+  loadCustomerProfile,
+  profileToCheckoutCustomer,
+  saveCustomerProfileLocally,
+  syncCustomerProfile,
+} from "@/lib/customer-profile";
 
 const initialCustomer: CheckoutCustomer = {
   addressLine1: "",
@@ -51,6 +57,21 @@ export function CheckoutView({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const lines = getCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const storedProfile = loadCustomerProfile();
+
+      if (storedProfile) {
+        setCustomer((current) => ({
+          ...current,
+          ...profileToCheckoutCustomer(storedProfile),
+        }));
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const previewOrder = useMemo<UrbanixOrder>(
     () => ({
@@ -95,7 +116,6 @@ export function CheckoutView({
 
     if (!customer.fullName.trim()) nextErrors.fullName = "Full name is required.";
     if (!customer.phone.trim()) nextErrors.phone = "Phone number is required.";
-    if (!customer.email.trim()) nextErrors.email = "Email is required.";
     if (customer.email && !customer.email.includes("@")) nextErrors.email = "Enter a valid email.";
     if (!customer.addressLine1.trim()) nextErrors.addressLine1 = "Address line 1 is required.";
     if (!customer.city.trim()) nextErrors.city = "City is required.";
@@ -126,6 +146,29 @@ export function CheckoutView({
       totals,
     };
 
+    const savedProfile = saveCustomerProfileLocally({
+      createdAt: "",
+      customerAddress: [
+        customer.addressLine1,
+        customer.addressLine2,
+        customer.postcode,
+        customer.city,
+        customer.state,
+        customer.country,
+      ].filter(Boolean).join(", "),
+      customerEmail: customer.email,
+      customerName: customer.fullName,
+      customerPhone: customer.phone,
+      updatedAt: "",
+      userId: "",
+    });
+    void syncCustomerProfile({
+      ...savedProfile,
+      lastOrderDate: order.createdAt,
+      lastOrderProduct: lines.map((line) => line.product.name).join(", "),
+    }).catch((error) => {
+      console.error("[Urbanix] Unable to sync customer profile.", error);
+    });
     saveOrder(order);
     clearCart();
     router.push("/checkout/success");
