@@ -74,14 +74,18 @@ Rules:
 Columns:
 
 ```csv
-status,banner_id,title_en,title_zh,title_ms,subtitle_en,subtitle_zh,subtitle_ms,button_text_en,button_text_zh,button_text_ms,desktop_image_url,mobile_image_url,target_url,sort_order
+status,banner_id,desktop_image_url,mobile_image_url,button_enabled,button_text_en,button_text_zh,button_text_ms,button_url,image_click_url,sort_order
 ```
 
 Rules:
 
 - `status` must be `active` to appear.
-- `desktop_image_url` and `mobile_image_url` should be Cloudinary URLs.
-- `target_url` can be an internal path like `/products/example` or an external URL.
+- `desktop_image_url` and `mobile_image_url` should be Cloudinary HTTPS URLs.
+- `button_enabled` accepts `TRUE` or `FALSE`.
+- `button_text_en`, `button_text_zh`, and `button_text_ms` are used only when `button_enabled` is `TRUE`.
+- `button_url` controls the optional banner button click.
+- `image_click_url` controls the banner image click separately from the button URL.
+- `button_url` and `image_click_url` can be internal paths like `/products/example` or external URLs.
 
 ## StoreSettings
 

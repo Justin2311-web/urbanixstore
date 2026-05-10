@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HomepageContent, LocalizedTextValue, PromotionBanner } from "@ecommerce/shared";
-import { ProductVisual } from "@/components/commerce/product-visual";
-import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,19 +21,43 @@ export function PromotionBannerCarousel({
   const slides = banners.length > 0
     ? banners
     : [{
+        buttonEnabled: true,
+        buttonUrl: fallback.heroButtonLink,
         ctaText: fallback.heroButtonText,
-        desktopImageUrl: "",
+        desktopImageUrl: fallback.heroImageUrl || "",
         id: "fallback",
+        imageClickUrl: fallback.heroButtonLink,
         isActive: true,
-        localizedTitle: freeShippingText,
-        mobileImageUrl: "",
+        localizedCtaText: {
+          en: fallback.heroButtonText,
+          ms: fallback.heroButtonText,
+          zh: fallback.heroButtonText,
+        },
+        localizedSubtitle: {
+          en: "",
+          ms: "",
+          zh: "",
+        },
+        localizedTitle: {
+          en: "",
+          ms: "",
+          zh: "",
+        },
+        mobileImageUrl: fallback.heroImageUrl || "",
         sortOrder: 1,
-        subtitle: fallback.heroSubtitle,
+        subtitle: "",
         targetUrl: fallback.heroButtonLink,
-        title: freeShippingText?.en ?? fallback.heroTitle,
+        title: "",
       }];
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slides[activeIndex];
+  const imageHref = activeSlide.imageClickUrl || activeSlide.targetUrl || "/products";
+  const buttonHref = activeSlide.buttonUrl || imageHref;
+  const buttonText = activeSlide.localizedCtaText ? (
+    <LocalizedValue fallback={activeSlide.ctaText} value={activeSlide.localizedCtaText} />
+  ) : activeSlide.ctaText;
+  const hasImage = Boolean(activeSlide.desktopImageUrl || activeSlide.mobileImageUrl);
+  const showButton = activeSlide.buttonEnabled && Boolean(activeSlide.ctaText && buttonHref);
 
   useEffect(() => {
     if (slides.length <= 1) {
@@ -49,59 +72,60 @@ export function PromotionBannerCarousel({
   }, [slides.length]);
 
   return (
-    <section className="urbanix-container pt-5 sm:pt-8 lg:pt-10">
-      <div className="relative overflow-hidden rounded-[1.25rem] bg-primary text-white shadow-[0_24px_70px_rgba(11,107,99,0.22)]">
-        <Link aria-label={activeSlide.title} className="absolute inset-0 z-10" href={activeSlide.targetUrl || "/products"} />
-        {activeSlide.desktopImageUrl || activeSlide.mobileImageUrl ? (
-          <>
-            {activeSlide.desktopImageUrl ? (
-              <img alt="" className="hidden min-h-[430px] w-full object-cover md:block md:min-h-[390px]" src={activeSlide.desktopImageUrl} />
-            ) : null}
-            <img
-              alt=""
-              className="min-h-[430px] w-full object-cover md:hidden"
-              src={activeSlide.mobileImageUrl || activeSlide.desktopImageUrl}
-            />
-            <div className="absolute inset-0 bg-linear-to-r from-primary/90 via-primary/58 to-primary/10" />
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-linear-to-br from-primary via-[#0d8073] to-[#103b39]" />
-        )}
-        <div className="relative grid min-h-[390px] gap-4 md:min-h-[380px] md:grid-cols-[1fr_0.95fr]">
-          <div className="flex flex-col justify-center gap-5 p-6 sm:p-10 lg:p-12">
-            <div className="w-fit rounded-full bg-white/12 px-3 py-1 text-xs font-bold tracking-wide text-white ring-1 ring-white/20">
-              {freeShippingText ? <LocalizedValue fallback={freeShippingText.en} value={freeShippingText} /> : "Urbanix Deal"}
-            </div>
-            <h1 className="max-w-xl text-3xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">
-              <LocalizedValue fallback={activeSlide.title} value={activeSlide.localizedTitle} />
-            </h1>
-            <p className="max-w-sm text-base font-medium leading-7 text-white/86 sm:text-lg">
-              <LocalizedValue fallback={activeSlide.subtitle} value={activeSlide.localizedSubtitle} />
-            </p>
-            <span
-              className={buttonVariants({
-                className: "w-fit bg-accent text-white hover:bg-accent/90",
-                size: "lg",
-              })}
-            >
-              {activeSlide.localizedCtaText ? (
-                <LocalizedValue fallback={activeSlide.ctaText} value={activeSlide.localizedCtaText} />
-              ) : (
-                <LocalizedText fallback={activeSlide.ctaText} k={activeSlide.ctaText === "Shop Now" ? "common.shopNow" : `hero.${activeSlide.ctaText}`} />
-              )}
-            </span>
+    <section className="urbanix-container pt-4 sm:pt-7 lg:pt-9">
+      <div
+        className="relative overflow-hidden rounded-[1.25rem] bg-white shadow-[0_18px_55px_rgba(12,36,68,0.16)] ring-1 ring-primary/10"
+        data-banner-carousel
+      >
+        <Link
+          aria-label={`Open promotion banner ${activeIndex + 1}`}
+          className="block"
+          data-banner-image-link
+          href={imageHref}
+        >
+          <div
+            className="relative aspect-[4/3] w-full overflow-hidden bg-linear-to-br from-[#f4f8ff] via-white to-[#e7f6ff] sm:aspect-[16/7] lg:aspect-[21/8]"
+            key={activeSlide.id}
+          >
+            {hasImage ? (
+              <>
+                <img
+                  alt=""
+                  className="hidden size-full object-cover transition duration-500 md:block"
+                  data-banner-desktop-image
+                  src={activeSlide.desktopImageUrl || activeSlide.mobileImageUrl}
+                />
+                <img
+                  alt=""
+                  className="size-full object-cover transition duration-500 md:hidden"
+                  data-banner-mobile-image
+                  src={activeSlide.mobileImageUrl || activeSlide.desktopImageUrl}
+                />
+              </>
+            ) : (
+              <div className="flex size-full items-center justify-center bg-linear-to-br from-[#0b4faf] via-[#1687f2] to-[#42c5ff] p-6 text-center">
+                <span className="max-w-md text-2xl font-extrabold leading-tight text-white sm:text-4xl">
+                  {freeShippingText ? <LocalizedValue fallback={freeShippingText.en} value={freeShippingText} /> : fallback.heroTitle}
+                </span>
+              </div>
+            )}
           </div>
-          {!activeSlide.desktopImageUrl && !activeSlide.mobileImageUrl ? (
-            <div className="relative flex items-end justify-center px-8 pb-8 md:items-center md:p-10">
-              <ProductVisual
-                className="w-full max-w-[280px] border border-white/15 bg-white/10 shadow-[0_24px_70px_rgba(0,0,0,0.16)] sm:max-w-[330px]"
-                tone={(fallback.heroImage || "fan-green") as never}
-              />
-            </div>
-          ) : null}
-        </div>
+        </Link>
+        {showButton ? (
+          <Link
+            className={buttonVariants({
+              className:
+                "absolute bottom-4 left-4 z-20 rounded-full bg-[#0d63ce] px-5 text-white shadow-[0_12px_28px_rgba(13,99,206,0.3)] hover:bg-[#084fa8] sm:bottom-6 sm:left-6",
+              size: "lg",
+            })}
+            data-banner-button
+            href={buttonHref}
+          >
+            {buttonText}
+          </Link>
+        ) : null}
         {slides.length > 1 ? (
-          <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+          <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-black/18 p-1 backdrop-blur-md sm:bottom-6 sm:right-6">
             <CarouselButton label="Previous banner" onClick={() => setActiveIndex((index) => (index - 1 + slides.length) % slides.length)}>
               <ChevronLeft className="size-4" />
             </CarouselButton>
@@ -131,14 +155,14 @@ function CarouselButton({
   label,
   onClick,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   label: string;
   onClick: () => void;
 }) {
   return (
     <button
       aria-label={label}
-      className="relative z-30 flex size-9 items-center justify-center rounded-full bg-white/18 text-white backdrop-blur transition hover:bg-white/28"
+      className="relative z-30 flex size-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur transition hover:bg-white/34"
       onClick={onClick}
       type="button"
     >

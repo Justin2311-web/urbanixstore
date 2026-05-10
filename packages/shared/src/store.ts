@@ -144,6 +144,16 @@ function numberCell(row: Record<string, string>, key: string, fallback = 0) {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function booleanCell(row: Record<string, string>, key: string, fallback = false) {
+  const value = cell(row, key).toLowerCase();
+
+  if (!value) {
+    return fallback;
+  }
+
+  return ["1", "true", "yes", "y", "on"].includes(value);
+}
+
 function isActive(row: Record<string, string>) {
   return cell(row, "status").toLowerCase() === "active";
 }
@@ -312,20 +322,29 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
   const promotionBanners = bannerRows
     .filter(isActive)
     .sort(sortRows)
-    .map((row): PromotionBanner => ({
-      ctaText: cell(row, "button_text_en"),
-      desktopImageUrl: cell(row, "desktop_image_url"),
-      id: cell(row, "banner_id"),
-      isActive: true,
-      localizedCtaText: localized(cell(row, "button_text_en"), cell(row, "button_text_zh"), cell(row, "button_text_ms")),
-      localizedSubtitle: localized(cell(row, "subtitle_en"), cell(row, "subtitle_zh"), cell(row, "subtitle_ms")),
-      localizedTitle: localized(cell(row, "title_en"), cell(row, "title_zh"), cell(row, "title_ms")),
-      mobileImageUrl: cell(row, "mobile_image_url"),
-      sortOrder: numberCell(row, "sort_order"),
-      subtitle: cell(row, "subtitle_en"),
-      targetUrl: cell(row, "target_url") || "/products",
-      title: cell(row, "title_en"),
-    }));
+    .map((row): PromotionBanner => {
+      const buttonUrl = cell(row, "button_url") || cell(row, "target_url") || "";
+      const imageClickUrl = cell(row, "image_click_url") || cell(row, "target_url") || buttonUrl || "/products";
+      const buttonText = cell(row, "button_text_en");
+
+      return {
+        buttonEnabled: booleanCell(row, "button_enabled", Boolean(buttonText && buttonUrl)),
+        buttonUrl,
+        ctaText: buttonText,
+        desktopImageUrl: cell(row, "desktop_image_url"),
+        id: cell(row, "banner_id"),
+        imageClickUrl,
+        isActive: true,
+        localizedCtaText: localized(buttonText, cell(row, "button_text_zh"), cell(row, "button_text_ms")),
+        localizedSubtitle: localized("", "", ""),
+        localizedTitle: localized("", "", ""),
+        mobileImageUrl: cell(row, "mobile_image_url"),
+        sortOrder: numberCell(row, "sort_order"),
+        subtitle: "",
+        targetUrl: imageClickUrl,
+        title: "",
+      };
+    });
   const settingsMap = new Map(settingRows.map((row) => [cell(row, "key"), cell(row, "value")]));
   const footer = Object.fromEntries(footerRows.map((row) => [
     cell(row, "key"),
@@ -373,10 +392,10 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
   const homepage: HomepageContent = {
     ...defaultUrbanixStoreData.homepage,
     featuredCategoryCards: categories.map((category) => category.id),
-    heroButtonLink: promotionBanners[0]?.targetUrl ?? "/products",
+    heroButtonLink: promotionBanners[0]?.buttonUrl || promotionBanners[0]?.imageClickUrl || "/products",
     heroButtonText: promotionBanners[0]?.ctaText ?? defaultUrbanixStoreData.homepage.heroButtonText,
-    heroSubtitle: promotionBanners[0]?.subtitle ?? defaultUrbanixStoreData.homepage.heroSubtitle,
-    heroTitle: promotionBanners[0]?.title ?? defaultUrbanixStoreData.homepage.heroTitle,
+    heroSubtitle: defaultUrbanixStoreData.homepage.heroSubtitle,
+    heroTitle: freeShippingText.en,
     promotionStripText: freeShippingText.en,
     promoStripText: freeShippingText.en,
   };
@@ -540,16 +559,21 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
 }
 
 function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners"]["Row"]): PromotionBanner {
+  const targetUrl = row.target_url ?? "/products";
+
   return {
+    buttonEnabled: Boolean(row.cta_text && targetUrl),
+    buttonUrl: targetUrl,
     createdAt: row.created_at,
     ctaText: row.cta_text ?? "Shop Now",
     desktopImageUrl: row.desktop_image_url ?? "",
     id: row.id,
+    imageClickUrl: targetUrl,
     isActive: row.is_active,
     mobileImageUrl: row.mobile_image_url ?? "",
     sortOrder: row.sort_order,
     subtitle: row.subtitle ?? "",
-    targetUrl: row.target_url ?? "/products",
+    targetUrl,
     title: row.title,
     updatedAt: row.updated_at,
   };

@@ -93,6 +93,9 @@ export type PromotionBanner = {
   ctaText: string;
   localizedCtaText?: LocalizedTextValue;
   targetUrl: string;
+  buttonEnabled: boolean;
+  buttonUrl: string;
+  imageClickUrl: string;
   desktopImageUrl: string;
   mobileImageUrl: string;
   isActive: boolean;
