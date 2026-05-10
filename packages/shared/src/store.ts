@@ -12,6 +12,8 @@ import {
   type LocalizedTextValue,
   type PaymentSettings,
   type ProductCategory,
+  type ProductVariantGroup,
+  type ProductVariantOption,
   type PromotionBanner,
   type StoreSettings,
   type StorefrontPage,
@@ -170,6 +172,31 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function groupProductVariants(options: ProductVariantOption[]): ProductVariantGroup[] {
+  const groups = new Map<string, ProductVariantGroup>();
+
+  for (const option of options.toSorted((first, second) => first.sortOrder - second.sortOrder)) {
+    const groupId = slugify(option.optionName);
+    const existing = groups.get(groupId);
+
+    if (existing) {
+      existing.options.push(option);
+      existing.sortOrder = Math.min(existing.sortOrder, option.sortOrder);
+      continue;
+    }
+
+    groups.set(groupId, {
+      id: groupId,
+      localizedOptionName: option.localizedOptionName,
+      optionName: option.optionName,
+      options: [option],
+      sortOrder: option.sortOrder,
+    });
+  }
+
+  return [...groups.values()].toSorted((first, second) => first.sortOrder - second.sortOrder);
+}
+
 function isUsableAssetUrl(value: string | null | undefined) {
   return Boolean(value && (/^(https?:)?\/\//.test(value) || value.startsWith("/")));
 }
@@ -232,11 +259,44 @@ async function fetchSheetRows(tab: string): Promise<Record<string, string>[]> {
   return parseGoogleVisualizationJson(await response.text());
 }
 
+async function fetchOptionalSheetRows(tab: string): Promise<Record<string, string>[]> {
+  try {
+    return await fetchSheetRows(tab);
+  } catch (error) {
+    console.warn(`[Urbanix] Optional Google Sheet tab "${tab}" unavailable.`, error);
+    return [];
+  }
+}
+
 function footerText(footer: FooterContent, key: string, fallback: LocalizedTextValue): LocalizedTextValue {
   return footer[key] ?? fallback;
 }
 
-function mapGoogleProduct(row: Record<string, string>, categoriesById: Map<string, ProductCategory>): UrbanixProduct {
+function mapGoogleVariant(row: Record<string, string>): ProductVariantOption {
+  return {
+    id: cell(row, "variant_id"),
+    imageUrl: cell(row, "variant_image_url"),
+    isActive: true,
+    localizedOptionName: localized(cell(row, "option_name_en"), cell(row, "option_name_zh"), cell(row, "option_name_ms")),
+    localizedOptionValue: localized(cell(row, "option_value_en"), cell(row, "option_value_zh"), cell(row, "option_value_ms")),
+    optionName: cell(row, "option_name_en"),
+    optionValue: cell(row, "option_value_en"),
+    priceAdjustment: numberCell(row, "price_adjustment"),
+    productId: cell(row, "product_id"),
+    sku: cell(row, "variant_sku"),
+    sortOrder: numberCell(row, "sort_order"),
+  };
+}
+
+function mapGoogleProduct({
+  categoriesById,
+  row,
+  variants,
+}: {
+  row: Record<string, string>;
+  categoriesById: Map<string, ProductCategory>;
+  variants: ProductVariantOption[];
+}): UrbanixProduct {
   const categoryId = cell(row, "category_id");
   const category = categoriesById.get(categoryId);
   const images = Array.from({ length: 9 }, (_, index) => cell(row, `image_${index + 1}`)).filter(Boolean);
@@ -282,6 +342,8 @@ function mapGoogleProduct(row: Record<string, string>, categoriesById: Map<strin
     status: "active",
     stockQuantity: 99,
     stockStatus: "in_stock",
+    variantGroups: groupProductVariants(variants),
+    variantOptions: variants,
   };
 }
 
@@ -290,13 +352,14 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     return null;
   }
 
-  const [productRows, categoryRows, bannerRows, settingRows, footerRows, pageRows] = await Promise.all([
+  const [productRows, categoryRows, bannerRows, settingRows, footerRows, pageRows, variantRows] = await Promise.all([
     fetchSheetRows("Products"),
     fetchSheetRows("Categories"),
     fetchSheetRows("Banners"),
     fetchSheetRows("StoreSettings"),
     fetchSheetRows("Footer"),
     fetchSheetRows("Pages"),
+    fetchOptionalSheetRows("ProductVariants"),
   ]);
   const categories = categoryRows
     .filter(isActive)
@@ -315,10 +378,24 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
       tone: (cell(row, "tone") || "mint") as ProductCategory["tone"],
     }));
   const categoriesById = new Map(categories.map((category) => [category.id, category]));
+  const variantsByProductId = new Map<string, ProductVariantOption[]>();
+
+  for (const variant of variantRows.filter(isActive).sort(sortRows).map(mapGoogleVariant)) {
+    variantsByProductId.set(variant.productId, [...(variantsByProductId.get(variant.productId) ?? []), variant]);
+  }
+
   const products = productRows
     .filter(isActive)
     .sort(sortRows)
-    .map((row) => mapGoogleProduct(row, categoriesById));
+    .map((row) => {
+      const productId = cell(row, "product_id") || cell(row, "slug");
+
+      return mapGoogleProduct({
+        categoriesById,
+        row,
+        variants: variantsByProductId.get(productId) ?? [],
+      });
+    });
   const promotionBanners = bannerRows
     .filter(isActive)
     .sort(sortRows)

@@ -1,8 +1,9 @@
 import type { UrbanixProduct } from "@ecommerce/shared";
+import type { HTMLAttributes } from "react";
 import { Cable, Fan, Gem, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type ProductVisualProps = {
+type ProductVisualProps = HTMLAttributes<HTMLDivElement> & {
   tone: UrbanixProduct["imageTone"];
   className?: string;
   imageUrl?: string;
@@ -18,12 +19,13 @@ const toneStyles: Record<UrbanixProduct["imageTone"], string> = {
   cable: "from-[#f6f0e7] via-[#ffffff] to-[#d8e7fb] text-[#1f2937]",
 };
 
-export function ProductVisual({ alt = "Product image", className, imageUrl, tone }: ProductVisualProps) {
+export function ProductVisual({ alt = "Product image", className, imageUrl, tone, ...props }: ProductVisualProps) {
   const Icon = tone === "car" ? Smartphone : tone === "perfume" ? Gem : tone === "cable" ? Cable : Fan;
 
   if (imageUrl) {
     return (
       <div
+        {...props}
         className={cn(
           "relative aspect-square overflow-hidden rounded-2xl bg-white",
           className
@@ -36,6 +38,7 @@ export function ProductVisual({ alt = "Product image", className, imageUrl, tone
 
   return (
     <div
+      {...props}
       className={cn(
         "relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-linear-to-br",
         toneStyles[tone],

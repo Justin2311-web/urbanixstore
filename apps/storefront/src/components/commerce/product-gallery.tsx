@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { UrbanixProduct } from "@ecommerce/shared";
 import { ProductVisual } from "@/components/commerce/product-visual";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
@@ -19,7 +19,20 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
   const tones = galleryTones[product.imageTone];
   const imageUrls = product.galleryImages?.length ? product.galleryImages : product.image ? [product.image] : [];
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeImage = imageUrls[activeIndex];
+  const [variantImageUrl, setVariantImageUrl] = useState("");
+  const activeImage = variantImageUrl || imageUrls[activeIndex];
+
+  useEffect(() => {
+    function handleVariantImage(event: Event) {
+      setVariantImageUrl(String((event as CustomEvent<string>).detail ?? ""));
+    }
+
+    window.addEventListener(`urbanix-product-variant-image:${product.id}`, handleVariantImage);
+
+    return () => {
+      window.removeEventListener(`urbanix-product-variant-image:${product.id}`, handleVariantImage);
+    };
+  }, [product.id]);
 
   return (
     <section className="relative">
@@ -29,6 +42,7 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
       <ProductVisual
         alt={product.name}
         className="min-h-[350px] shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:min-h-[460px]"
+        data-product-main-image
         imageUrl={activeImage}
         tone={tones[activeIndex] ?? product.imageTone}
       />

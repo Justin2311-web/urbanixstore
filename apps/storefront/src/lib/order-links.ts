@@ -1,4 +1,4 @@
-import type { CartLine, LanguageCode, StoreSettings, UrbanixProduct } from "@ecommerce/shared";
+import type { CartLine, LanguageCode, ProductVariantOption, StoreSettings, UrbanixProduct } from "@ecommerce/shared";
 
 const defaultWhatsAppNumber = "60198993269";
 
@@ -6,6 +6,11 @@ export type OrderCustomerInfo = {
   customerAddress: string;
   customerName: string;
   customerPhone: string;
+};
+
+export type SelectedProductOption = {
+  groupName: string;
+  option: ProductVariantOption;
 };
 
 export function getWhatsAppNumber(settings?: Pick<StoreSettings, "whatsappNumber">) {
@@ -17,6 +22,13 @@ export function getWhatsAppNumber(settings?: Pick<StoreSettings, "whatsappNumber
 
 export function getLocalizedProductName(product: UrbanixProduct, language: LanguageCode) {
   return product.localizedName?.[language] || product.localizedName?.en || product.name;
+}
+
+export function getLocalizedVariantOption(option: ProductVariantOption, language: LanguageCode) {
+  return {
+    name: option.localizedOptionName?.[language] || option.localizedOptionName?.en || option.optionName,
+    value: option.localizedOptionValue?.[language] || option.localizedOptionValue?.en || option.optionValue,
+  };
 }
 
 export function getProductUrl(product: UrbanixProduct) {
@@ -33,23 +45,36 @@ export function formatOrderPrice(price: number) {
 
 export function createProductWhatsAppMessage({
   customer,
+  finalPrice,
   language,
   product,
   quantity = 1,
+  selectedOptions = [],
   settings,
 }: {
   customer?: OrderCustomerInfo | null;
+  finalPrice?: number;
   language: LanguageCode;
   product: UrbanixProduct;
   quantity?: number;
+  selectedOptions?: SelectedProductOption[];
   settings: Pick<StoreSettings, "storeName">;
 }) {
+  const selectedVariantSkus = selectedOptions.map(({ option }) => option.sku).filter(Boolean);
+  const selectedOptionLines = selectedOptions.map(({ option }) => {
+    const localized = getLocalizedVariantOption(option, language);
+
+    return `- ${localized.name}: ${localized.value}`;
+  });
+  const resolvedPrice = finalPrice ?? product.price;
+
   return [
     `Hi ${settings.storeName}, I want to order:`,
     "",
     `Product: ${getLocalizedProductName(product, language)}`,
-    `SKU: ${product.sku}`,
-    `Price: ${formatOrderPrice(product.price)}`,
+    `SKU: ${selectedVariantSkus.length > 0 ? `${product.sku} / ${selectedVariantSkus.join(" / ")}` : product.sku}`,
+    ...(selectedOptionLines.length > 0 ? ["Selected Options:", ...selectedOptionLines] : []),
+    ...(selectedOptionLines.length > 0 ? ["", `Base Price: ${formatOrderPrice(product.price)}`, `Final Price: ${formatOrderPrice(resolvedPrice)}`] : [`Price: ${formatOrderPrice(product.price)}`]),
     `Quantity: ${quantity}`,
     `Product Link: ${getProductUrl(product)}`,
     "",

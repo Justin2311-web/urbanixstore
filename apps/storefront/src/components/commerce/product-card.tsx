@@ -15,6 +15,8 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product, settings }: ProductCardProps) {
+  const hasOptions = (product.variantGroups?.length ?? 0) > 0;
+
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card p-2 shadow-[0_10px_26px_rgba(23,37,38,0.07)] transition hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_42px_rgba(23,37,38,0.12)]">
       <div className="absolute left-3 top-3 z-10">
@@ -27,6 +29,20 @@ export function ProductCard({ product, settings }: ProductCardProps) {
         {product.stockStatus !== "in_stock" ? (
           <div>
             <StockBadge status={product.stockStatus} />
+          </div>
+        ) : null}
+        {hasOptions ? (
+          <div>
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-primary">
+              <LocalizedValue
+                fallback="Options Available"
+                value={{
+                  en: "Options Available",
+                  ms: "Pilihan tersedia",
+                  zh: "可选款式",
+                }}
+              />
+            </span>
           </div>
         ) : null}
         <Link

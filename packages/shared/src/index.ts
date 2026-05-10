@@ -151,6 +151,28 @@ export type ProductCategory = {
   sortOrder?: number;
 };
 
+export type ProductVariantOption = {
+  id: string;
+  productId: string;
+  optionName: string;
+  localizedOptionName?: LocalizedTextValue;
+  optionValue: string;
+  localizedOptionValue?: LocalizedTextValue;
+  priceAdjustment: number;
+  sku?: string;
+  imageUrl?: string;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type ProductVariantGroup = {
+  id: string;
+  optionName: string;
+  localizedOptionName?: LocalizedTextValue;
+  options: ProductVariantOption[];
+  sortOrder: number;
+};
+
 export type UrbanixProduct = {
   id: string;
   name: string;
@@ -198,6 +220,8 @@ export type UrbanixProduct = {
   highlights?: string[];
   productHighlights?: string[];
   relatedCategory?: string;
+  variantGroups?: ProductVariantGroup[];
+  variantOptions?: ProductVariantOption[];
   createdAt?: string;
   updatedAt?: string;
 };

@@ -55,6 +55,24 @@ Rules:
 - `image_2` to `image_9` appear in the product detail gallery.
 - `price`, `compare_at_price`, and `sort_order` should be numeric.
 
+## ProductVariants
+
+Columns:
+
+```csv
+status,variant_id,product_id,option_name_en,option_name_zh,option_name_ms,option_value_en,option_value_zh,option_value_ms,price_adjustment,variant_sku,variant_image_url,sort_order
+```
+
+Rules:
+
+- `status` must be `active` to appear.
+- `product_id` must match `Products.product_id`.
+- Rows are grouped by `option_name_en` into selectable option groups such as Color, Model, Size, Package, Type, or Version.
+- `price_adjustment` is added to the base product price when that option is selected.
+- `variant_sku` is optional and appears in WhatsApp order messages when selected.
+- `variant_image_url` is optional and should be a Cloudinary HTTPS URL. When present, the product image updates after selection.
+- Every active option group is required before a product with variants can be ordered through WhatsApp.
+
 ## Categories
 
 Columns:
