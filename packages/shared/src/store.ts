@@ -199,7 +199,7 @@ async function fetchSheetRows(tab: string): Promise<Record<string, string>[]> {
 
   const url = config.endpoint
     ? config.endpoint.replace("{sheet}", encodeURIComponent(tab)).replace("{tab}", encodeURIComponent(tab))
-    : `https://docs.google.com/spreadsheets/d/${config.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}`;
+    : `https://docs.google.com/spreadsheets/d/${config.sheetId}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(tab)}`;
   const response = await fetch(url, {
     cache: "no-store",
     headers: { "Cache-Control": "no-store" },

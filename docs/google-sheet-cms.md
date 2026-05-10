@@ -2,6 +2,11 @@
 
 The storefront reads from a Product / Frontend Portal Google Sheet when `GOOGLE_SHEET_ID` or `GOOGLE_SHEET_CMS_URL` is configured. Image columns should contain Cloudinary HTTPS URLs only.
 
+Current Urbanix Store sheet IDs:
+
+- Frontend CMS: `11BJaqZ8Lvsr2LoeAVjYM1OhW_J1vDvrs2cI63CiCRRE`
+- Order Management: `1Tzw5OcqMLGUMhqa4hZ-_4MA4Bmnki0PlK00MJXs-eR0`
+
 ## Publish Setup
 
 1. Create one Google Sheet with the tabs below.
@@ -24,6 +29,8 @@ GOOGLE_SHEET_ID=
 GOOGLE_SHEET_CMS_URL=
 NEXT_PUBLIC_GOOGLE_SHEET_ID=
 NEXT_PUBLIC_GOOGLE_SHEET_CMS_URL=
+GOOGLE_ORDER_SHEET_ID=
+NEXT_PUBLIC_GOOGLE_ORDER_SHEET_ID=
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 NEXT_PUBLIC_SHOPEE_STORE_URL=
 NEXT_PUBLIC_LAZADA_STORE_URL=
@@ -153,3 +160,19 @@ The storefront language selector controls localized Sheet fields:
 - Footer text
 
 If a translated cell is blank, the storefront falls back to the English cell.
+
+## Order Management
+
+The order sheet is prepared for manual tracking now and future order-form writes later.
+
+Tab:
+
+```text
+Orders
+```
+
+Columns:
+
+```csv
+order_id,created_at,customer_name,customer_phone,customer_address,product_id,product_name,sku,quantity,unit_price,total_amount,payment_method,payment_status,order_status,shipping_method,tracking_number,notes,whatsapp_message
+```

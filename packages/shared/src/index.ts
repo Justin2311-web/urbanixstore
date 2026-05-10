@@ -117,7 +117,22 @@ export type ProductCategory = {
   description: string;
   imageUrl?: string;
   icon?: string;
-  tone: "teal" | "mint" | "peach" | "lilac" | "sky" | "rose" | "amber" | "slate" | "lime" | "violet" | "sand" | "dark" | "fan-green" | "fan-orange";
+  tone:
+    | "teal"
+    | "mint"
+    | "peach"
+    | "lilac"
+    | "sky"
+    | "rose"
+    | "amber"
+    | "slate"
+    | "lime"
+    | "violet"
+    | "sand"
+    | "sun"
+    | "dark"
+    | "fan-green"
+    | "fan-orange";
   active?: boolean;
   isActive?: boolean;
   sortOrder?: number;

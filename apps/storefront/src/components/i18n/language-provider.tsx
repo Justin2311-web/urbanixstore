@@ -19,8 +19,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const stored = window.localStorage.getItem(storageKey);
 
     if (stored === "en" || stored === "zh" || stored === "ms") {
-      queueMicrotask(() => setLanguageState(stored));
+      const timer = window.setTimeout(() => setLanguageState(stored), 0);
+
+      return () => window.clearTimeout(timer);
     }
+
+    return undefined;
   }, []);
 
   useEffect(() => {

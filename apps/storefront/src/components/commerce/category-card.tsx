@@ -17,6 +17,7 @@ const toneStyles: Record<ProductCategory["tone"], string> = {
   lime: "bg-[#ebf9dc] text-[#3f6f1b]",
   violet: "bg-[#eee9ff] text-[#493783]",
   sand: "bg-[#f4ead9] text-[#66451f]",
+  sun: "bg-[#fff4c7] text-[#7a4b00]",
   dark: "bg-[#1f2937] text-white",
   "fan-green": "bg-[#dcecff] text-primary",
   "fan-orange": "bg-[#ffe6d8] text-[#9f4b2f]",
