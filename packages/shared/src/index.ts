@@ -101,6 +101,16 @@ export type PromotionBanner = {
   updatedAt?: string;
 };
 
+export type StorefrontPage = {
+  key: string;
+  title: string;
+  localizedTitle?: LocalizedTextValue;
+  content: string;
+  localizedContent?: LocalizedTextValue;
+  isActive: boolean;
+  sortOrder: number;
+};
+
 export function formatCurrency(amount: number, currency = platformConfig.currency) {
   return new Intl.NumberFormat("en-MY", {
     style: "currency",
@@ -524,6 +534,7 @@ export type UrbanixStoreData = {
   categories: ProductCategory[];
   homepage: HomepageContent;
   promotionBanners: PromotionBanner[];
+  pages: StorefrontPage[];
   settings: StoreSettings;
   payments: PaymentSettings;
   footer: FooterContent;
@@ -534,6 +545,7 @@ export const defaultUrbanixStoreData: UrbanixStoreData = {
   categories: urbanixCategories,
   homepage: defaultHomepageContent,
   orders: [],
+  pages: [],
   payments: defaultPaymentSettings,
   footer: {},
   promotionBanners: [],

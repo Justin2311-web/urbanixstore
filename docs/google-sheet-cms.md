@@ -144,10 +144,28 @@ contact_title
 shipping
 contact_us
 our_story
-blog
 privacy_policy
 need_help
 ```
+
+## Pages
+
+Columns:
+
+```csv
+status,page_key,title_en,title_zh,title_ms,content_en,content_zh,content_ms,sort_order
+```
+
+Required active `page_key` values:
+
+```text
+our_story
+privacy_policy
+shipping
+contact_us
+```
+
+These rows power `/our-story`, `/privacy-policy`, `/shipping`, and `/contact-us`.
 
 ## Language Behavior
 
@@ -158,6 +176,7 @@ The storefront language selector controls localized Sheet fields:
 - Banner title, subtitle, and button text
 - Free shipping text
 - Footer text
+- Page title and content
 
 If a translated cell is blank, the storefront falls back to the English cell.
 

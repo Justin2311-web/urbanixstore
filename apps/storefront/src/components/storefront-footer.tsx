@@ -57,8 +57,8 @@ export async function StorefrontFooter() {
           />
           <FooterGroup
             links={[
-              { href: "/cart", label: "Shipping", key: "footer.shipping", localizedLabel: data.footer.shipping },
-              { href: "/cart", label: "Contact Us", key: "footer.contactUs", localizedLabel: data.footer.contact_us },
+              { href: "/shipping", label: "Shipping", key: "footer.shipping", localizedLabel: data.footer.shipping },
+              { href: "/contact-us", label: "Contact Us", key: "footer.contactUs", localizedLabel: data.footer.contact_us },
             ]}
             titleValue={data.footer.help_title}
             titleKey="footer.help"
@@ -66,9 +66,8 @@ export async function StorefrontFooter() {
           />
           <FooterGroup
             links={[
-              { href: "/", label: "Our Story", key: "footer.ourStory", localizedLabel: data.footer.our_story },
-              { href: "/", label: "Blog", key: "footer.blog", localizedLabel: data.footer.blog },
-              { href: "/", label: "Privacy Policy", key: "footer.privacy", localizedLabel: data.footer.privacy_policy },
+              { href: "/our-story", label: "Our Story", key: "footer.ourStory", localizedLabel: data.footer.our_story },
+              { href: "/privacy-policy", label: "Privacy Policy", key: "footer.privacy", localizedLabel: data.footer.privacy_policy },
             ]}
             titleValue={data.footer.about_title}
             titleKey="footer.about"

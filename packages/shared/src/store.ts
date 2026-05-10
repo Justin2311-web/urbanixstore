@@ -14,6 +14,7 @@ import {
   type ProductCategory,
   type PromotionBanner,
   type StoreSettings,
+  type StorefrontPage,
   type UrbanixProduct,
   type UrbanixStoreData,
 } from "./index";
@@ -47,6 +48,7 @@ function mergeStoreData(data: Partial<UrbanixStoreData>): UrbanixStoreData {
     categories: data.categories ?? defaultUrbanixStoreData.categories,
     homepage: { ...defaultUrbanixStoreData.homepage, ...data.homepage },
     orders: data.orders ?? defaultUrbanixStoreData.orders,
+    pages: data.pages ?? defaultUrbanixStoreData.pages,
     payments: { ...defaultUrbanixStoreData.payments, ...data.payments },
     footer: { ...defaultUrbanixStoreData.footer, ...data.footer },
     products: data.products ?? defaultUrbanixStoreData.products,
@@ -278,12 +280,13 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     return null;
   }
 
-  const [productRows, categoryRows, bannerRows, settingRows, footerRows] = await Promise.all([
+  const [productRows, categoryRows, bannerRows, settingRows, footerRows, pageRows] = await Promise.all([
     fetchSheetRows("Products"),
     fetchSheetRows("Categories"),
     fetchSheetRows("Banners"),
     fetchSheetRows("StoreSettings"),
     fetchSheetRows("Footer"),
+    fetchSheetRows("Pages"),
   ]);
   const categories = categoryRows
     .filter(isActive)
@@ -328,6 +331,18 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     cell(row, "key"),
     localized(cell(row, "en"), cell(row, "zh"), cell(row, "ms")),
   ])) as FooterContent;
+  const pages = pageRows
+    .filter(isActive)
+    .sort(sortRows)
+    .map((row): StorefrontPage => ({
+      content: cell(row, "content_en"),
+      isActive: true,
+      key: cell(row, "page_key"),
+      localizedContent: localized(cell(row, "content_en"), cell(row, "content_zh"), cell(row, "content_ms")),
+      localizedTitle: localized(cell(row, "title_en"), cell(row, "title_zh"), cell(row, "title_ms")),
+      sortOrder: numberCell(row, "sort_order"),
+      title: cell(row, "title_en"),
+    }));
   const freeShippingText = localized(
     settingsMap.get("free_shipping_text_en") || "Free shipping for orders above RM40",
     settingsMap.get("free_shipping_text_zh") || "订单满 RM40 即可免邮",
@@ -370,6 +385,7 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     categories,
     footer,
     homepage,
+    pages,
     payments: {
       ...defaultUrbanixStoreData.payments,
       whatsAppOrderEnabled: true,
@@ -672,4 +688,14 @@ export function listActivePromotionBanners(data = readUrbanixStoreData()) {
   return data.promotionBanners
     .filter((banner) => banner.isActive)
     .toSorted((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));
+}
+
+export function listStorefrontPages(data = readUrbanixStoreData()) {
+  return data.pages
+    .filter((page) => page.isActive)
+    .toSorted((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));
+}
+
+export function getStorefrontPageByKey(pageKey: string, data = readUrbanixStoreData()) {
+  return listStorefrontPages(data).find((page) => page.key === pageKey);
 }
