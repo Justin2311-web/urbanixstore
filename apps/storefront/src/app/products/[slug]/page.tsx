@@ -49,10 +49,12 @@ export default async function ProductDetailPage({
       ? product.originalPrice - product.price
       : 0;
   const isPortableFan = getCategoryIdByName(product.category) === "portable-fans";
-  const trustBadges = data.homepage.trustBadgeText.map((title) => ({
-    description: title === "Free Shipping" ? `Orders over RM${data.settings.freeShippingMinimumAmount}` : "",
-    title,
-  }));
+  const trustBadges = data.homepage.trustBadgeText
+    .filter((title) => !title.toLowerCase().includes("return"))
+    .map((title) => ({
+      description: title === "Free Shipping" ? `Orders above RM${data.settings.freeShippingMinimumAmount}` : title === "WhatsApp Order" ? "Fast confirmation" : "",
+      title,
+    }));
   const savedHighlightIcons = [Sparkles, Truck, LockKeyhole, ShieldCheck];
   const savedHighlightItems = (product.highlights ?? [])
     .filter(Boolean)
@@ -160,9 +162,11 @@ export default async function ProductDetailPage({
               ))}
             </ul>
           </InfoPanel>
-          <InfoPanel title="Shipping & Returns">
+          <InfoPanel title="Delivery Info">
             <p>{product.shippingInfo}</p>
-            <p className="mt-3">{product.returnNote}</p>
+            <p className="mt-3">
+              <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
+            </p>
           </InfoPanel>
         </div>
       </section>

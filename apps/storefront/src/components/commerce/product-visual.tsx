@@ -10,12 +10,12 @@ type ProductVisualProps = {
 };
 
 const toneStyles: Record<UrbanixProduct["imageTone"], string> = {
-  "fan-green": "from-[#e5f3ee] via-[#f6faf8] to-[#c8e7dc] text-primary",
-  "fan-cream": "from-[#fff7ef] via-[#fffdf9] to-[#eadccc] text-[#9a6b4c]",
+  "fan-green": "from-[#eaf3ff] via-[#ffffff] to-[#c8ddff] text-primary",
+  "fan-cream": "from-[#fff4e7] via-[#ffffff] to-[#d8e8ff] text-primary",
   "fan-black": "from-[#f0f1f1] via-[#ffffff] to-[#d6d8d8] text-[#1f2937]",
-  car: "from-[#e9eef0] via-[#ffffff] to-[#d8dee3] text-[#1f2937]",
-  perfume: "from-[#eef7f6] via-[#ffffff] to-[#d8ebe8] text-primary",
-  cable: "from-[#f6f0e7] via-[#ffffff] to-[#e7ded1] text-[#1f2937]",
+  car: "from-[#e9f1ff] via-[#ffffff] to-[#d7e4f5] text-primary",
+  perfume: "from-[#eef5ff] via-[#ffffff] to-[#d8e7fb] text-primary",
+  cable: "from-[#f6f0e7] via-[#ffffff] to-[#d8e7fb] text-[#1f2937]",
 };
 
 export function ProductVisual({ alt = "Product image", className, imageUrl, tone }: ProductVisualProps) {

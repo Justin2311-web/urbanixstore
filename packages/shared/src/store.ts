@@ -251,8 +251,8 @@ function mapGoogleProduct(row: Record<string, string>, categoriesById: Map<strin
     })),
     rating: 4.8,
     relatedCategory: categoryId,
-    returnNote: "Returns and exchanges depend on marketplace policy.",
-    shippingInfo: "Shipping details are confirmed during order chat.",
+    returnNote: "",
+    shippingInfo: "Free shipping applies for orders above RM40. Delivery details are confirmed during order chat.",
     shopeeUrl: cell(row, "shopee_url"),
     shortDescription: cell(row, "description_en"),
     sku: cell(row, "sku"),
@@ -321,19 +321,19 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     localized(cell(row, "en"), cell(row, "zh"), cell(row, "ms")),
   ])) as FooterContent;
   const freeShippingText = localized(
-    settingsMap.get("free_shipping_text_en") || `Free Shipping for orders over RM${settingsMap.get("free_shipping_threshold") || platformConfig.freeShippingThreshold}`,
-    settingsMap.get("free_shipping_text_zh") || "",
-    settingsMap.get("free_shipping_text_ms") || ""
+    settingsMap.get("free_shipping_text_en") || "Free shipping for orders above RM40",
+    settingsMap.get("free_shipping_text_zh") || "订单满 RM40 即可免邮",
+    settingsMap.get("free_shipping_text_ms") || "Penghantaran percuma untuk pesanan melebihi RM40"
   );
   const settings: StoreSettings = {
     ...defaultUrbanixStoreData.settings,
     contactEmail: settingsMap.get("contact_email") || defaultUrbanixStoreData.settings.contactEmail,
     contactPhone: settingsMap.get("contact_phone") || defaultUrbanixStoreData.settings.contactPhone,
-    freeShippingMinimumAmount: Number(settingsMap.get("free_shipping_threshold") || platformConfig.freeShippingThreshold),
-    freeShippingMinAmount: Number(settingsMap.get("free_shipping_threshold") || platformConfig.freeShippingThreshold),
+    freeShippingMinimumAmount: Number(settingsMap.get("free_shipping_threshold") || 40),
+    freeShippingMinAmount: Number(settingsMap.get("free_shipping_threshold") || 40),
     freeShippingText,
     logo: settingsMap.get("logo_url") || defaultUrbanixStoreData.settings.logo,
-    logoUrl: settingsMap.get("logo_url") || "",
+    logoUrl: settingsMap.get("logo_url") || defaultUrbanixStoreData.settings.logoUrl,
     platformLinks: {
       lazada: settingsMap.get("lazada_url") || "",
       shopee: settingsMap.get("shopee_url") || "",
@@ -471,10 +471,11 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     currency: row.currency,
     favicon: row.favicon_url ?? defaultUrbanixStoreData.settings.favicon,
     faviconUrl: row.favicon_url ?? defaultUrbanixStoreData.settings.faviconUrl,
-    freeShippingMinimumAmount: Number(row.free_shipping_min_amount),
-    freeShippingMinAmount: Number(row.free_shipping_min_amount),
+    freeShippingMinimumAmount: 40,
+    freeShippingMinAmount: 40,
+    freeShippingText: defaultUrbanixStoreData.settings.freeShippingText,
     logo: row.logo_url ?? defaultUrbanixStoreData.settings.logo,
-    logoUrl: row.logo_url ?? "",
+    logoUrl: row.logo_url || defaultUrbanixStoreData.settings.logoUrl,
     maintenanceMessage: row.maintenance_message ?? undefined,
     platformLinks: {
       lazada: typeof socialLinks.lazada === "string" ? socialLinks.lazada : defaultUrbanixStoreData.settings.platformLinks?.lazada ?? "",

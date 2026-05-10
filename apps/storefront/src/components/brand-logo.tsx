@@ -24,7 +24,10 @@ export function BrandLogo({
       {logoUrl ? (
         <img
           alt={storeName}
-          className="size-10 rounded-2xl bg-white object-cover shadow-sm"
+          className={cn(
+            "size-12 rounded-full bg-white object-contain p-0.5 shadow-sm ring-1 ring-primary/10 md:size-14",
+            inverse ? "drop-shadow-[0_1px_0_rgba(255,255,255,0.2)]" : ""
+          )}
           src={logoUrl}
         />
       ) : (
@@ -37,7 +40,7 @@ export function BrandLogo({
           <ShieldCheck className="size-5" />
         </div>
       )}
-      {!compact && (
+      {!compact && !logoUrl && (
         <div className="leading-none">
           <div
             className={cn(

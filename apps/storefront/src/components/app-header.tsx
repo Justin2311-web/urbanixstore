@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { House, Search, ShoppingCart, UserRound } from "lucide-react";
+import { House, MessageCircle, Search, ShoppingCart, UserRound } from "lucide-react";
 import { storefrontNavItems } from "@ecommerce/shared";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { BrandLogo } from "@/components/brand-logo";
@@ -9,6 +9,7 @@ import { LanguageSelector } from "@/components/i18n/language-selector";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
+import { getWhatsAppNumber } from "@/lib/order-links";
 
 export async function AppHeader() {
   const { homepage, settings } = await readUrbanixStoreDataAsync();
@@ -18,7 +19,7 @@ export async function AppHeader() {
       <div className="hidden bg-primary py-2 text-center text-xs font-semibold text-white md:block">
         <LocalizedValue fallback={homepage.promotionStripText} value={settings.freeShippingText} /> &nbsp; - &nbsp; WhatsApp {settings.whatsappNumber}
       </div>
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/92 shadow-[0_8px_24px_rgba(23,37,38,0.06)] backdrop-blur">
         <div className="urbanix-container flex h-16 items-center justify-between gap-4">
           <Link className="shrink-0" href="/">
             <BrandLogo logoUrl={settings.logoUrl} storeName={settings.storeName} />
@@ -41,6 +42,18 @@ export async function AppHeader() {
             <div className="hidden md:block">
               <LanguageSelector />
             </div>
+            <Link
+              className={buttonVariants({
+                className: "hidden bg-success text-white hover:bg-success/90 lg:inline-flex",
+                size: "sm",
+              })}
+              href={`https://wa.me/${getWhatsAppNumber(settings)}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <MessageCircle />
+              WhatsApp
+            </Link>
             <Link
               aria-label="Search"
               className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
@@ -81,13 +94,13 @@ function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-border bg-card px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-border bg-card px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(23,37,38,0.1)] md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
 
         return (
           <Link
-            className="flex flex-col items-center gap-1 rounded-xl px-2 py-1 text-[0.65rem] font-semibold text-muted-foreground"
+            className="flex flex-col items-center gap-1 rounded-xl px-2 py-1 text-[0.65rem] font-semibold text-muted-foreground transition hover:bg-secondary hover:text-primary"
             href={item.href}
             key={item.label}
           >

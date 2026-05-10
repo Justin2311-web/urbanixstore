@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { HomepageContent, PromotionBanner } from "@ecommerce/shared";
+import type { HomepageContent, LocalizedTextValue, PromotionBanner } from "@ecommerce/shared";
 import { ProductVisual } from "@/components/commerce/product-visual";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
@@ -13,9 +13,11 @@ import { cn } from "@/lib/utils";
 export function PromotionBannerCarousel({
   banners,
   fallback,
+  freeShippingText,
 }: {
   banners: PromotionBanner[];
   fallback: HomepageContent;
+  freeShippingText?: LocalizedTextValue;
 }) {
   const slides = banners.length > 0
     ? banners
@@ -24,11 +26,12 @@ export function PromotionBannerCarousel({
         desktopImageUrl: "",
         id: "fallback",
         isActive: true,
+        localizedTitle: freeShippingText,
         mobileImageUrl: "",
         sortOrder: 1,
         subtitle: fallback.heroSubtitle,
         targetUrl: fallback.heroButtonLink,
-        title: fallback.heroTitle,
+        title: freeShippingText?.en ?? fallback.heroTitle,
       }];
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slides[activeIndex];
@@ -47,7 +50,7 @@ export function PromotionBannerCarousel({
 
   return (
     <section className="urbanix-container pt-5 sm:pt-8 lg:pt-10">
-      <div className="relative overflow-hidden rounded-3xl bg-primary text-white shadow-[0_24px_70px_rgba(14,92,86,0.24)]">
+      <div className="relative overflow-hidden rounded-[1.25rem] bg-primary text-white shadow-[0_24px_70px_rgba(11,107,99,0.22)]">
         <Link aria-label={activeSlide.title} className="absolute inset-0 z-10" href={activeSlide.targetUrl || "/products"} />
         {activeSlide.desktopImageUrl || activeSlide.mobileImageUrl ? (
           <>
@@ -59,14 +62,17 @@ export function PromotionBannerCarousel({
               className="min-h-[430px] w-full object-cover md:hidden"
               src={activeSlide.mobileImageUrl || activeSlide.desktopImageUrl}
             />
-            <div className="absolute inset-0 bg-linear-to-r from-primary/88 via-primary/48 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-r from-primary/90 via-primary/58 to-primary/10" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(23,165,137,0.75),transparent_28%),radial-gradient(circle_at_20%_80%,rgba(255,107,74,0.25),transparent_25%)]" />
+          <div className="absolute inset-0 bg-linear-to-br from-primary via-[#0d8073] to-[#103b39]" />
         )}
-        <div className="relative grid min-h-[430px] gap-4 md:min-h-[390px] md:grid-cols-[1fr_0.95fr]">
-          <div className="flex flex-col justify-center gap-5 p-6 sm:p-10 lg:p-14">
-            <h1 className="max-w-xl text-4xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">
+        <div className="relative grid min-h-[390px] gap-4 md:min-h-[380px] md:grid-cols-[1fr_0.95fr]">
+          <div className="flex flex-col justify-center gap-5 p-6 sm:p-10 lg:p-12">
+            <div className="w-fit rounded-full bg-white/12 px-3 py-1 text-xs font-bold tracking-wide text-white ring-1 ring-white/20">
+              {freeShippingText ? <LocalizedValue fallback={freeShippingText.en} value={freeShippingText} /> : "Urbanix Deal"}
+            </div>
+            <h1 className="max-w-xl text-3xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">
               <LocalizedValue fallback={activeSlide.title} value={activeSlide.localizedTitle} />
             </h1>
             <p className="max-w-sm text-base font-medium leading-7 text-white/86 sm:text-lg">

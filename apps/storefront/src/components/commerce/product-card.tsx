@@ -16,7 +16,7 @@ type ProductCardProps = {
 
 export function ProductCard({ product, settings }: ProductCardProps) {
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card p-2 shadow-[0_12px_32px_rgba(15,23,42,0.07)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+    <article className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card p-2 shadow-[0_10px_26px_rgba(23,37,38,0.07)] transition hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_42px_rgba(23,37,38,0.12)]">
       <div className="absolute left-3 top-3 z-10">
         <PromotionBadge percent={product.promotionPercent} />
       </div>
@@ -36,7 +36,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
           <LocalizedValue fallback={product.name} value={product.localizedName} />
         </Link>
         <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/60 px-2 py-1.5">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="size-3 fill-warning text-warning" />
             <span className="font-semibold text-accent">{product.rating}</span>

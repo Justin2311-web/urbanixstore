@@ -39,29 +39,29 @@
 }
 
 :root {
-  --background: #f7f6f2;
-  --foreground: #1f2937;
+  --background: #f5f8fd;
+  --foreground: #111827;
   --card: #ffffff;
-  --card-foreground: #1f2937;
+  --card-foreground: #111827;
   --popover: #ffffff;
-  --popover-foreground: #1f2937;
-  --primary: #0e5c56;
+  --popover-foreground: #111827;
+  --primary: #0647a8;
   --primary-foreground: #ffffff;
-  --secondary: #e8f3ef;
-  --secondary-foreground: #0e3f3b;
-  --muted: #f0efeb;
-  --muted-foreground: #667085;
-  --accent: #ff6b4a;
+  --secondary: #eaf3ff;
+  --secondary-foreground: #062b63;
+  --muted: #eef4fb;
+  --muted-foreground: #5c6b7d;
+  --accent: #ff5a1f;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #17a589;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --coral: #ff6b4a;
-  --cream: #fff7ef;
-  --radius: 18px;
+  --border: #dce7f5;
+  --input: #d7e4f3;
+  --ring: #1d7eea;
+  --success: #11985b;
+  --warning: #f5a623;
+  --coral: #ff5a1f;
+  --cream: #fff4e7;
+  --radius: 14px;
 }
 
 @layer base {
@@ -75,6 +75,8 @@
 
   body {
     @apply bg-background text-foreground;
+    background-image:
+      linear-gradient(180deg, rgba(229, 241, 255, 0.86), rgba(245, 248, 253, 0.72) 280px, rgba(245, 248, 253, 1) 560px);
   }
 
   h1,
@@ -98,7 +100,7 @@
   }
 
   .urbanix-surface {
-    @apply rounded-2xl border border-border/80 bg-card shadow-[0_16px_45px_rgba(15,23,42,0.08)];
+    @apply rounded-2xl border border-border/80 bg-card shadow-[0_14px_34px_rgba(17,24,39,0.08)];
   }
 
   .price-current {

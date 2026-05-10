@@ -108,6 +108,15 @@ contact_email
 contact_phone
 ```
 
+Recommended free shipping values:
+
+```text
+free_shipping_threshold = 40
+free_shipping_text_en = Free shipping for orders above RM40
+free_shipping_text_zh = 订单满 RM40 即可免邮
+free_shipping_text_ms = Penghantaran percuma untuk pesanan melebihi RM40
+```
+
 ## Footer
 
 Columns:
@@ -126,7 +135,6 @@ help_title
 about_title
 contact_title
 shipping
-returns
 contact_us
 our_story
 blog

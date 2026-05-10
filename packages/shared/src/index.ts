@@ -26,7 +26,7 @@ export const platformConfig = {
   tagline: "Smart picks. Urban life.",
   currency: "MYR",
   whatsappNumber: "60198993269",
-  freeShippingThreshold: 50,
+  freeShippingThreshold: 40,
 } as const;
 
 export type StoreSettings = {
@@ -297,8 +297,8 @@ export const urbanixProducts: UrbanixProduct[] = [
       "Up to 12 hours battery life",
       "Pocket-friendly body",
     ],
-    shippingInfo: "Free shipping applies for orders over RM50.",
-    returnNote: "Returns accepted within 30 days for unused items in original packaging.",
+    shippingInfo: "Free shipping applies for orders above RM40.",
+    returnNote: "",
     price: 18.9,
     originalPrice: 24.9,
     promotionPercent: 20,
@@ -324,8 +324,8 @@ export const urbanixProducts: UrbanixProduct[] = [
     description:
       "A compact mount with firm grip support for daily commutes, navigation, and hands-free convenience.",
     specifications: ["Stable clamp grip", "Compact dashboard fit", "One-hand adjustment", "Matte black finish"],
-    shippingInfo: "Free shipping applies for orders over RM50.",
-    returnNote: "Returns accepted within 30 days for unused items in original packaging.",
+    shippingInfo: "Free shipping applies for orders above RM40.",
+    returnNote: "",
     price: 15.9,
     originalPrice: 18.9,
     promotionPercent: 15,
@@ -351,8 +351,8 @@ export const urbanixProducts: UrbanixProduct[] = [
     description:
       "A clean ocean-inspired car fragrance made for a calmer cabin and a more pleasant commute.",
     specifications: ["Ocean breeze scent", "Compact bottle", "Easy placement", "Long-lasting aroma"],
-    shippingInfo: "Free shipping applies for orders over RM50.",
-    returnNote: "Returns accepted within 30 days for unused items in original packaging.",
+    shippingInfo: "Free shipping applies for orders above RM40.",
+    returnNote: "",
     price: 11.9,
     originalPrice: 13.9,
     promotionPercent: 10,
@@ -378,8 +378,8 @@ export const urbanixProducts: UrbanixProduct[] = [
     description:
       "A minimalist magnetic cable organizer for desks, bedside tables, bags, and small workspaces.",
     specifications: ["Magnetic hold", "Compact footprint", "Desk-friendly design", "Works with common cables"],
-    shippingInfo: "Free shipping applies for orders over RM50.",
-    returnNote: "Returns accepted within 30 days for unused items in original packaging.",
+    shippingInfo: "Free shipping applies for orders above RM40.",
+    returnNote: "",
     price: 8.9,
     originalPrice: 10.1,
     promotionPercent: 12,
@@ -405,8 +405,8 @@ export const urbanixProducts: UrbanixProduct[] = [
     description:
       "A soft-toned portable fan with simple controls and a lightweight build for quick cooling anywhere.",
     specifications: ["2 speed modes", "USB charging", "Lightweight shell", "Quiet airflow"],
-    shippingInfo: "Free shipping applies for orders over RM50.",
-    returnNote: "Returns accepted within 30 days for unused items in original packaging.",
+    shippingInfo: "Free shipping applies for orders above RM40.",
+    returnNote: "",
     price: 15.9,
     rating: 4.7,
     sold: 120,
@@ -429,8 +429,8 @@ export const urbanixProducts: UrbanixProduct[] = [
     description:
       "A clip-on fan with adjustable positioning for focused airflow where you need it most.",
     specifications: ["360-degree angle", "Clip-on base", "Desk-ready design", "Rechargeable battery"],
-    shippingInfo: "Free shipping applies for orders over RM50.",
-    returnNote: "Returns accepted within 30 days for unused items in original packaging.",
+    shippingInfo: "Free shipping applies for orders above RM40.",
+    returnNote: "",
     price: 19.9,
     rating: 4.6,
     sold: 86,
@@ -446,32 +446,32 @@ export const urbanixProducts: UrbanixProduct[] = [
 ];
 
 export const defaultHomepageContent: HomepageContent = {
-  heroTitle: "Stay Cool. Move Smart.",
-  heroSubtitle: "Smart picks for your urban life.",
+  heroTitle: "Free shipping for orders above RM40",
+  heroSubtitle: "Smart daily essentials, easy WhatsApp ordering, and marketplace-ready checkout.",
   heroButtonText: "Shop Now",
   heroButtonLink: "/products",
   heroImage: "fan-green",
   heroImageUrl: "",
   featuredCategoryCards: ["portable-fans", "car-accessories", "home-picks", "lifestyle"],
-  promotionStripText: "Free Shipping for orders over RM50",
-  promoStripText: "Free Shipping for orders over RM50",
-  trustBadgeText: ["Free Shipping", "30-Day Returns", "Secure Checkout", "Trusted Store"],
+  promotionStripText: "Free shipping for orders above RM40",
+  promoStripText: "Free shipping for orders above RM40",
+  trustBadgeText: ["Free Shipping", "Secure Checkout", "WhatsApp Order", "Trusted Store"],
   isActive: true,
 };
 
 export const defaultStoreSettings: StoreSettings = {
   storeName: "Urbanix Store",
   storeTagline: "Smart picks for your urban life.",
-  logo: "Urbanix Store",
+  logo: "/urbanix-logo.png",
   favicon: "/favicon.ico",
-  logoUrl: "",
+  logoUrl: "/urbanix-logo.png",
   faviconUrl: "/favicon.ico",
   whatsappNumber: "60198993269",
   contactEmail: "hello@urbanix.store",
   contactPhone: "+60 12-345 6789",
   shippingFee: 6,
-  freeShippingMinimumAmount: 50,
-  freeShippingMinAmount: 50,
+  freeShippingMinimumAmount: 40,
+  freeShippingMinAmount: 40,
   currency: "MYR",
   socialLinks: {
     facebook: "",
@@ -481,6 +481,11 @@ export const defaultStoreSettings: StoreSettings = {
   platformLinks: {
     shopee: "",
     lazada: "",
+  },
+  freeShippingText: {
+    en: "Free shipping for orders above RM40",
+    zh: "订单满 RM40 即可免邮",
+    ms: "Penghantaran percuma untuk pesanan melebihi RM40",
   },
   storeActive: true,
   isStoreActive: true,
@@ -696,8 +701,8 @@ export function createWhatsAppOrderMessage(order: UrbanixOrder) {
 }
 
 export const trustBadges: TrustBadge[] = [
-  { title: "Free Shipping", description: "Orders over RM50" },
-  { title: "30-Day Returns", description: "No hassle" },
+  { title: "Free Shipping", description: "Orders above RM40" },
   { title: "Secure Checkout", description: "100% safe" },
+  { title: "WhatsApp Order", description: "Fast confirmation" },
   { title: "Trusted Store", description: "Friendly support" },
 ];

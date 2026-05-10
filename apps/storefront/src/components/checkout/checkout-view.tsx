@@ -13,6 +13,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
 import { WhatsAppCta } from "@/components/commerce/whatsapp-cta";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -237,6 +238,9 @@ export function CheckoutView({
 
         <aside className="flex flex-col gap-4">
           <OrderSummaryCard lines={lines} showItems totals={totals} />
+          <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
+            <LocalizedValue fallback="Free shipping for orders above RM40" value={settings.freeShippingText} />
+          </div>
 
           <Card>
             <CardHeader>

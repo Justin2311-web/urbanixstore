@@ -13,14 +13,15 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 const storageKey = "urbanix-language";
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<LanguageCode>(() => {
-    if (typeof window === "undefined") {
-      return "en";
-    }
+  const [language, setLanguageState] = useState<LanguageCode>("en");
 
+  useEffect(() => {
     const stored = window.localStorage.getItem(storageKey);
-    return stored === "en" || stored === "zh" || stored === "ms" ? stored : "en";
-  });
+
+    if (stored === "en" || stored === "zh" || stored === "ms") {
+      queueMicrotask(() => setLanguageState(stored));
+    }
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-CN" : language;

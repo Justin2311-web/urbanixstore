@@ -13,6 +13,7 @@ import { CartItemCard } from "@/components/commerce/cart-item-card";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
 import { useLanguage } from "@/components/i18n/language-provider";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 import {
   createCartWhatsAppMessage,
@@ -65,6 +66,9 @@ export function CartView({
         </section>
 
         <aside className="flex flex-col gap-4">
+          <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
+            <LocalizedValue fallback="Free shipping for orders above RM40" value={settings.freeShippingText} />
+          </div>
           <OrderSummaryCard lines={lines} totals={totals} />
           <a
             className={buttonVariants({

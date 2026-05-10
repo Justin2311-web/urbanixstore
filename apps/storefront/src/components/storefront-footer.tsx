@@ -58,7 +58,6 @@ export async function StorefrontFooter() {
           <FooterGroup
             links={[
               { href: "/cart", label: "Shipping", key: "footer.shipping", localizedLabel: data.footer.shipping },
-              { href: "/cart", label: "Returns", key: "footer.returns", localizedLabel: data.footer.returns },
               { href: "/cart", label: "Contact Us", key: "footer.contactUs", localizedLabel: data.footer.contact_us },
             ]}
             titleValue={data.footer.help_title}

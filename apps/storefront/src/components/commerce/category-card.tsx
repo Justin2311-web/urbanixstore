@@ -6,8 +6,8 @@ import { LocalizedValue } from "@/components/i18n/localized-value";
 import { cn } from "@/lib/utils";
 
 const toneStyles: Record<ProductCategory["tone"], string> = {
-  teal: "bg-[#e7f2ef] text-primary",
-  mint: "bg-[#e4f6ee] text-primary",
+  teal: "bg-[#e8f2ff] text-primary",
+  mint: "bg-[#eef7ff] text-primary",
   peach: "bg-[#fff0df] text-[#9f4b2f]",
   lilac: "bg-[#f0eaf8] text-[#4f3b6d]",
   sky: "bg-[#e8f3ff] text-[#245f9f]",
@@ -18,7 +18,7 @@ const toneStyles: Record<ProductCategory["tone"], string> = {
   violet: "bg-[#eee9ff] text-[#493783]",
   sand: "bg-[#f4ead9] text-[#66451f]",
   dark: "bg-[#1f2937] text-white",
-  "fan-green": "bg-[#dff3ea] text-primary",
+  "fan-green": "bg-[#dcecff] text-primary",
   "fan-orange": "bg-[#ffe6d8] text-[#9f4b2f]",
 };
 
