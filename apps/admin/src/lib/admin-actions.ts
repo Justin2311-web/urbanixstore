@@ -141,18 +141,24 @@ async function getProductImageUrls(formData: FormData, slug: string, existingIma
 
 export async function saveProduct(formData: FormData) {
   const name = text(formData, "name");
+  const id = text(formData, "id");
   const slug = text(formData, "slug") || slugify(name) || getCategoryIdByName(name);
+  console.log(`[Admin] saveProduct start: id=${id} slug=${slug} name=${name}`);
+
   const data = await readUrbanixStoreDataAsync();
-  const existingProduct = data.products.find((product) => product.id === text(formData, "id"));
+  const existingProduct = data.products.find((product) => product.id === id);
   const normalPrice = numberValue(formData, "normalPrice");
   const promotionPrice = numberValue(formData, "promotionPrice");
   const stockQuantity = numberValue(formData, "stockQuantity");
   const categoryId = text(formData, "categoryId") || existingProduct?.categoryId || data.categories[0]?.id || "";
   const category = data.categories.find((item) => item.id === categoryId || item.slug === categoryId)?.name ?? existingProduct?.category ?? "Lifestyle";
+  console.log(`[Admin] saveProduct: categoryId=${categoryId} category=${category} normalPrice=${normalPrice} stock=${stockQuantity}`);
+
   const existingImages = jsonStringArray(formData, "existingProductImages");
   let productImageUrls: string[];
   try {
     productImageUrls = await getProductImageUrls(formData, slug, existingImages);
+    console.log(`[Admin] saveProduct: imageUrls count=${productImageUrls.length}`);
   } catch (err) {
     console.error("[Admin] Image upload failed:", err);
     productImageUrls = existingImages;
@@ -214,15 +220,18 @@ export async function saveProduct(formData: FormData) {
     variantGroups,
   };
 
+  console.log(`[Admin] saveProduct: calling upsertProduct for slug=${slug}`);
   try {
     await upsertProduct(product);
+    console.log(`[Admin] saveProduct: upsertProduct succeeded for slug=${slug}`);
   } catch (err) {
-    console.error("[Admin] saveProduct upsert failed:", err);
-    redirect(`/products/${slug}/edit?saveError=1`);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[Admin] saveProduct upsert failed for slug=${slug}:`, message);
+    redirect(`/products/${slug}/edit?saveError=${encodeURIComponent(message)}`);
   }
   await revalidateStorefront();
   revalidatePath("/", "layout");
-  redirect("/products?saved=1");
+  redirect(`/products/${slug}/edit?saved=1`);
 }
 
 export async function saveCategories(formData: FormData) {

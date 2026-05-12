@@ -741,18 +741,20 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     // table not yet migrated — skip silently
   }
 
-  const publicError = [
-    categoriesResult.error,
-    productsResult.error,
-    imagesResult.error,
-    settingsResult.error,
-    bannersResult.error,
-    paymentsResult.error,
-    promotionBannersResult.error,
-  ].find(Boolean);
+  const queryResults = {
+    categories: categoriesResult.error,
+    products: productsResult.error,
+    product_images: imagesResult.error,
+    store_settings: settingsResult.error,
+    banners: bannersResult.error,
+    payment_settings: paymentsResult.error,
+    promotion_banners: promotionBannersResult.error,
+  };
+  const publicError = Object.values(queryResults).find(Boolean);
 
   if (publicError) {
-    console.error("[Urbanix] Supabase query error, falling back to defaults:", publicError);
+    const failedTable = Object.entries(queryResults).find(([, e]) => e === publicError)?.[0];
+    console.error(`[Urbanix] Supabase query error on table "${failedTable}", falling back to defaults:`, publicError);
     return readUrbanixStoreData();
   }
 
@@ -977,22 +979,27 @@ function localUpsertProduct(product: UrbanixProduct) {
 
 export async function upsertProduct(product: UrbanixProduct) {
   const supabase = createSupabaseStoreClient({ admin: true });
+  console.log(`[Urbanix] upsertProduct: slug=${product.slug} supabaseConfigured=${Boolean(supabase)}`);
 
   if (!supabase) {
     return localUpsertProduct(product);
   }
 
   const categorySlug = product.categoryId ?? product.relatedCategory ?? getCategoryIdByName(product.category);
+  console.log(`[Urbanix] upsertProduct: looking up categorySlug="${categorySlug}"`);
 
   // Support both slug and UUID — categoryId from Supabase-loaded products is a UUID, not a slug
   let categoryDbId: string | undefined;
   const slugResult = await supabase.from("categories").select("id").eq("slug", categorySlug).maybeSingle();
+  if (slugResult.error) console.error("[Urbanix] upsertProduct: category slug lookup error:", slugResult.error);
   if (slugResult.data?.id) {
     categoryDbId = slugResult.data.id;
   } else {
     const idResult = await supabase.from("categories").select("id").eq("id", categorySlug).maybeSingle();
+    if (idResult.error) console.error("[Urbanix] upsertProduct: category id lookup error:", idResult.error);
     categoryDbId = idResult.data?.id;
   }
+  console.log(`[Urbanix] upsertProduct: categoryDbId=${categoryDbId}`);
   if (!categoryDbId) throw new Error(`Category "${categorySlug}" not found in Supabase.`);
 
   const upsertResult = await supabase
@@ -1026,11 +1033,16 @@ export async function upsertProduct(product: UrbanixProduct) {
     .select("id")
     .single();
 
-  if (upsertResult.error) throw upsertResult.error;
+  if (upsertResult.error) {
+    console.error("[Urbanix] upsertProduct: products upsert error:", upsertResult.error);
+    throw upsertResult.error;
+  }
 
   const productDbId = upsertResult.data.id;
+  console.log(`[Urbanix] upsertProduct: products upsert succeeded dbId=${productDbId}`);
   await syncProductImages(supabase, productDbId, product.galleryImages ?? []);
   await syncProductVariants(supabase, productDbId, product.variantGroups ?? [], product.price);
+  console.log(`[Urbanix] upsertProduct: complete for slug=${product.slug}`);
   return product;
 }
 
