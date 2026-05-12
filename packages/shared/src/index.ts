@@ -30,6 +30,8 @@ export const adminNavItems: AppNavItem[] = [
   { label: "Settings", href: "/settings" },
   { label: "Payments", href: "/payments" },
   { label: "Homepage", href: "/homepage" },
+  { label: "Customers", href: "/customers" },
+  { label: "Inventory", href: "/inventory" },
 ];
 
 export const platformConfig = {

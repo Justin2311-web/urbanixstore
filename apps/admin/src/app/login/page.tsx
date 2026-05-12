@@ -1,23 +1,56 @@
+import { signIn } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { BrandLogo } from "@/components/brand-logo";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+
   return (
-    <main className="urbanix-container flex min-h-[70vh] items-center justify-center py-10">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Admin Login</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-3" action="/">
-            <Input defaultValue="owner@urbanix.store" name="email" type="email" />
-            <Input defaultValue="urbanix-demo" name="password" type="password" />
-            <Button type="submit" variant="secondary">Sign In</Button>
-            <p className="text-xs text-muted-foreground">Demo login for local admin testing.</p>
-          </form>
-        </CardContent>
-      </Card>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex justify-center">
+          <BrandLogo />
+        </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xl">Admin Sign In</CardTitle>
+            <p className="text-sm text-muted-foreground">Sign in to manage your Urbanix store.</p>
+          </CardHeader>
+          <CardContent>
+            {params.error && (
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                Invalid email or password. Please try again.
+              </div>
+            )}
+            <form action={signIn} className="grid gap-3">
+              <Input
+                autoComplete="email"
+                autoFocus
+                name="email"
+                placeholder="admin@urbanix.store"
+                required
+                type="email"
+              />
+              <Input
+                autoComplete="current-password"
+                name="password"
+                placeholder="Password"
+                required
+                type="password"
+              />
+              <Button className="w-full" type="submit">
+                Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

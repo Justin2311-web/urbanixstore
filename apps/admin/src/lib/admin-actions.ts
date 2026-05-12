@@ -361,3 +361,21 @@ export async function saveOrderStatuses(formData: FormData) {
   });
   revalidatePath("/orders", "layout");
 }
+
+export async function saveStockUpdate(formData: FormData) {
+  const { products } = await readUrbanixStoreDataAsync();
+
+  const updates = products
+    .map((product) => {
+      const raw = formData.get(`stock-${product.id}`);
+      if (raw === null) return null;
+      const stockQuantity = Math.max(0, Number(raw) || 0);
+      return { ...product, stockQuantity, stockStatus: stockQuantity <= 0 ? "out_of_stock" as const : stockQuantity <= 5 ? "low_stock" as const : "in_stock" as const };
+    })
+    .filter((p): p is NonNullable<typeof p> => p !== null);
+
+  await Promise.all(updates.map((p) => upsertProduct(p)));
+  await revalidateStorefront();
+  revalidatePath("/", "layout");
+  redirect("/inventory?saved=1");
+}

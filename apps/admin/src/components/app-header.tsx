@@ -1,10 +1,24 @@
 import Link from "next/link";
-import { BarChart3, Boxes, CreditCard, Home, Image, ListTree, PackagePlus, Settings, ShoppingBag } from "lucide-react";
+import {
+  BarChart3,
+  Boxes,
+  CreditCard,
+  Home,
+  Image,
+  ListTree,
+  LogOut,
+  Package,
+  PackagePlus,
+  Settings,
+  ShoppingBag,
+  Users,
+} from "lucide-react";
 import { adminNavItems } from "@ecommerce/shared";
+import { signOut } from "@/lib/auth-actions";
 import { BrandLogo } from "@/components/brand-logo";
 import { cn } from "@/lib/utils";
 
-const icons = [Home, Boxes, PackagePlus, ListTree, Image, ShoppingBag, Settings, CreditCard, BarChart3];
+const icons = [Home, Boxes, PackagePlus, ListTree, Image, ShoppingBag, Settings, CreditCard, BarChart3, Users, Package];
 
 export function AppHeader() {
   return (
@@ -32,6 +46,17 @@ export function AppHeader() {
           );
         })}
       </nav>
+      <div className="hidden px-3 pb-4 lg:block">
+        <form action={signOut}>
+          <button
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-destructive"
+            type="submit"
+          >
+            <LogOut className="size-4" />
+            Sign Out
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }
