@@ -13,7 +13,17 @@ export default async function OrdersPage({
   searchParams: Promise<{ q?: string; paymentStatus?: string; orderStatus?: string }>;
 }) {
   const params = await searchParams;
-  const { orders, settings } = await readUrbanixStoreDataAsync({ includeOrders: true });
+  let orders: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["orders"] = [];
+  let settings: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["settings"];
+  try {
+    const data = await readUrbanixStoreDataAsync({ includeOrders: true });
+    orders = data.orders;
+    settings = data.settings;
+  } catch (error) {
+    console.error("[Admin] Orders page data error:", error);
+    const { defaultUrbanixStoreData } = await import("@ecommerce/shared");
+    settings = defaultUrbanixStoreData.settings;
+  }
   const query = (params.q ?? "").trim().toLowerCase();
   const visibleOrders = orders.filter((order) => {
     const searchMatches =

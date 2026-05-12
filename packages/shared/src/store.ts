@@ -755,13 +755,25 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
   let orders: UrbanixOrder[] = [];
 
   if (options.includeOrders) {
-    const ordersResult = await supabase
-      .from("orders")
-      .select("*, order_items(*)")
-      .order("created_at", { ascending: false });
+    try {
+      const [ordersResult, orderItemsResult] = await Promise.all([
+        supabase.from("orders").select("*").order("created_at", { ascending: false }),
+        supabase.from("order_items").select("*"),
+      ]);
 
-    if (!ordersResult.error) {
-      orders = (ordersResult.data ?? []).map((row) => mapOrder(row));
+      if (!ordersResult.error) {
+        const itemsByOrderId = new Map<string, Array<{ id: string; product_name: string; product_sku: string; quantity: number; unit_price: number; total_price: number }>>();
+        for (const item of orderItemsResult.data ?? []) {
+          const list = itemsByOrderId.get(item.order_id) ?? [];
+          list.push(item);
+          itemsByOrderId.set(item.order_id, list);
+        }
+        orders = (ordersResult.data ?? []).map((row) =>
+          mapOrder({ ...row, order_items: itemsByOrderId.get(row.id) ?? [] })
+        );
+      }
+    } catch (error) {
+      console.error("[Urbanix] Failed to load orders:", error);
     }
   }
 

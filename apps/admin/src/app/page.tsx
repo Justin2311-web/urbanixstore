@@ -7,7 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function Home() {
-  const data = await readUrbanixStoreDataAsync({ includeOrders: true });
+  let data;
+  try {
+    data = await readUrbanixStoreDataAsync({ includeOrders: true });
+  } catch (error) {
+    console.error("[Admin] Dashboard data error:", error);
+    data = (await import("@ecommerce/shared")).defaultUrbanixStoreData;
+  }
   const stats = [
     { label: "Products", value: String(data.products.length), icon: Package },
     { label: "Orders", value: String(data.orders.length), icon: ShoppingBag },
