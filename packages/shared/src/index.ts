@@ -172,8 +172,10 @@ export type ProductVariantOption = {
   localizedOptionName?: LocalizedTextValue;
   optionValue: string;
   localizedOptionValue?: LocalizedTextValue;
+  price?: number;
   priceAdjustment: number;
   sku?: string;
+  stockQuantity?: number;
   imageUrl?: string;
   isActive: boolean;
   sortOrder: number;

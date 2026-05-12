@@ -4,7 +4,14 @@ import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { ProductForm } from "@/components/product-form";
 
 export default async function AddProductPage() {
-  const { categories } = await readUrbanixStoreDataAsync();
+  let categories: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["categories"] = [];
+  try {
+    const data = await readUrbanixStoreDataAsync();
+    categories = data.categories;
+  } catch {
+    const { defaultUrbanixStoreData } = await import("@ecommerce/shared");
+    categories = defaultUrbanixStoreData.categories;
+  }
 
   return (
     <main className="urbanix-container urbanix-section">

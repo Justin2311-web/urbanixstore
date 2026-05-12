@@ -2,6 +2,7 @@ import { saveProduct } from "@/lib/admin-actions";
 import { Field, SaveButton, Select, TextArea, CheckField } from "@/components/admin-form";
 import { Input } from "@/components/ui/input";
 import { ProductImagesField } from "@/components/product-images-field";
+import { VariantsField } from "@/components/variants-field";
 import type { ProductCategory, UrbanixProduct } from "@ecommerce/shared";
 
 export function ProductForm({
@@ -69,7 +70,14 @@ export function ProductForm({
         <Field label="Specifications, one per line">
           <TextArea defaultValue={product?.specifications.join("\n")} name="specifications" />
         </Field>
+        <Field label="Shipping info">
+          <TextArea defaultValue={product?.shippingInfo} name="shippingInfo" />
+        </Field>
+        <Field label="Return note">
+          <TextArea defaultValue={product?.returnNote} name="returnNote" />
+        </Field>
       </section>
+      <VariantsField existing={product?.variantGroups} />
       <SaveButton label={product ? "Update Product" : "Add Product"} />
     </form>
   );

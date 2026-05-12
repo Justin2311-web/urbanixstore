@@ -74,11 +74,16 @@ function mergeStoreData(data: Partial<UrbanixStoreData>): UrbanixStoreData {
 }
 
 export function readUrbanixStoreData(): UrbanixStoreData {
-  if (!existsSync(urbanixDataPath)) {
-    writeUrbanixStoreData(defaultUrbanixStoreData);
-  }
-
   try {
+    if (!existsSync(urbanixDataPath)) {
+      try {
+        writeUrbanixStoreData(defaultUrbanixStoreData);
+      } catch {
+        // Vercel read-only filesystem — skip write, return defaults
+        return defaultUrbanixStoreData;
+      }
+    }
+
     return mergeStoreData(JSON.parse(readFileSync(urbanixDataPath, "utf8")) as Partial<UrbanixStoreData>);
   } catch {
     return defaultUrbanixStoreData;
@@ -290,9 +295,11 @@ function mapGoogleVariant(row: Record<string, string>): ProductVariantOption {
     localizedOptionValue: localized(cell(row, "option_value_en"), cell(row, "option_value_zh"), cell(row, "option_value_ms")),
     optionName: cell(row, "option_name_en"),
     optionValue: cell(row, "option_value_en"),
+    price: numberCell(row, "price") || undefined,
     priceAdjustment: numberCell(row, "price_adjustment"),
     productId: cell(row, "product_id"),
     sku: cell(row, "variant_sku"),
+    stockQuantity: numberCell(row, "stock_quantity") || undefined,
     sortOrder: numberCell(row, "sort_order"),
   };
 }
@@ -524,13 +531,16 @@ function mapProduct({
   categoriesById,
   imagesByProductId,
   row,
+  variantsByProductId,
 }: {
   row: Database["public"]["Tables"]["products"]["Row"];
   categoriesById: Map<string, ProductCategory>;
   imagesByProductId: Map<string, Database["public"]["Tables"]["product_images"]["Row"][]>;
+  variantsByProductId?: Map<string, ProductVariantOption[]>;
 }): UrbanixProduct {
   const category = row.category_id ? categoriesById.get(row.category_id) : undefined;
   const galleryImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
+  const variantOptions = variantsByProductId?.get(row.id) ?? [];
   const product: UrbanixProduct = {
     category: category?.name ?? "Uncategorized",
     categoryId: category?.id,
@@ -574,6 +584,8 @@ function mapProduct({
     stockStatus:
       row.stock_quantity <= 0 ? "out_of_stock" : row.stock_quantity <= 5 ? "low_stock" : "in_stock",
     updatedAt: row.updated_at,
+    variantGroups: variantOptions.length > 0 ? groupProductVariants(variantOptions) : undefined,
+    variantOptions: variantOptions.length > 0 ? variantOptions : undefined,
   };
   const pricing = getDisplayPrice(product);
 
@@ -697,10 +709,6 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
   const supabase = createSupabaseStoreClient();
 
   if (!supabase) {
-    if (process.env.VERCEL) {
-      throw new Error("Missing Supabase environment variables for live Urbanix data.");
-    }
-
     return readUrbanixStoreData();
   }
 
@@ -722,6 +730,17 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     supabase.from("promotion_banners").select("*").order("sort_order", { ascending: true }),
   ]);
 
+  // Fetch variants separately — graceful fallback if table doesn't exist yet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let variantsResult: { data: any[] | null } = { data: [] };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (supabase as any).from("product_variants").select("*").order("sort_order", { ascending: true });
+    if (!result.error) variantsResult = result;
+  } catch {
+    // table not yet migrated — skip silently
+  }
+
   const publicError = [
     categoriesResult.error,
     productsResult.error,
@@ -733,7 +752,8 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
   ].find(Boolean);
 
   if (publicError) {
-    throw publicError;
+    console.error("[Urbanix] Supabase query error, falling back to defaults:", publicError);
+    return readUrbanixStoreData();
   }
 
   const categoriesByUuid = new Map((categoriesResult.data ?? []).map((row) => [row.id, mapCategory(row)]));
@@ -743,12 +763,33 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     imagesByProductId.set(image.product_id, [...(imagesByProductId.get(image.product_id) ?? []), image]);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const variantRows: any[] = (variantsResult as any)?.data ?? [];
+  const variantsByProductId = new Map<string, ProductVariantOption[]>();
+
+  for (const vrow of variantRows) {
+    const opt: ProductVariantOption = {
+      id: vrow.id,
+      isActive: vrow.is_active,
+      optionName: vrow.option_name,
+      optionValue: vrow.option_value,
+      price: Number(vrow.price),
+      priceAdjustment: Number(vrow.price_adjustment),
+      productId: vrow.product_id,
+      sku: vrow.sku ?? undefined,
+      sortOrder: vrow.sort_order,
+      stockQuantity: vrow.stock_quantity,
+    };
+    variantsByProductId.set(vrow.product_id, [...(variantsByProductId.get(vrow.product_id) ?? []), opt]);
+  }
+
   const categories = (categoriesResult.data ?? []).map(mapCategory);
   const products = (productsResult.data ?? []).map((row) =>
     mapProduct({
       categoriesById: categoriesByUuid,
       imagesByProductId,
       row,
+      variantsByProductId,
     })
   );
 
@@ -980,8 +1021,55 @@ export async function upsertProduct(product: UrbanixProduct) {
 
   if (upsertResult.error) throw upsertResult.error;
 
-  await syncProductImages(supabase, upsertResult.data.id, product.galleryImages ?? []);
+  const productDbId = upsertResult.data.id;
+  await syncProductImages(supabase, productDbId, product.galleryImages ?? []);
+  await syncProductVariants(supabase, productDbId, product.variantGroups ?? [], product.price);
   return product;
+}
+
+async function syncProductVariants(
+  supabase: SupabaseStoreClient,
+  productId: string,
+  variantGroups: ProductVariantGroup[],
+  basePrice: number,
+) {
+  const deleteResult = await supabase.from("product_variants").delete().eq("product_id", productId);
+  if (deleteResult.error) throw deleteResult.error;
+
+  const rows: {
+    product_id: string;
+    option_name: string;
+    option_value: string;
+    price: number;
+    price_adjustment: number;
+    sku: string | null;
+    stock_quantity: number;
+    is_active: boolean;
+    sort_order: number;
+  }[] = [];
+
+  let globalOrder = 0;
+  for (const group of variantGroups) {
+    for (const opt of group.options) {
+      const price = opt.price ?? basePrice + opt.priceAdjustment;
+      rows.push({
+        product_id: productId,
+        option_name: opt.optionName || group.optionName,
+        option_value: opt.optionValue,
+        price,
+        price_adjustment: price - basePrice,
+        sku: opt.sku ?? null,
+        stock_quantity: opt.stockQuantity ?? 0,
+        is_active: opt.isActive,
+        sort_order: globalOrder++,
+      });
+    }
+  }
+
+  if (rows.length === 0) return;
+
+  const insertResult = await supabase.from("product_variants").insert(rows);
+  if (insertResult.error) throw insertResult.error;
 }
 
 async function syncProductImages(supabase: SupabaseStoreClient, productId: string, galleryImages: string[]) {

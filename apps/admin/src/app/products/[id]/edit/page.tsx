@@ -10,7 +10,17 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { categories, products } = await readUrbanixStoreDataAsync();
+  let categories: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["categories"] = [];
+  let products: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["products"] = [];
+  try {
+    const data = await readUrbanixStoreDataAsync();
+    categories = data.categories;
+    products = data.products;
+  } catch {
+    const { defaultUrbanixStoreData } = await import("@ecommerce/shared");
+    categories = defaultUrbanixStoreData.categories;
+    products = defaultUrbanixStoreData.products;
+  }
   const product = products.find((item) => item.id === id);
 
   if (!product) {

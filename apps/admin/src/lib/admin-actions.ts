@@ -152,6 +152,24 @@ export async function saveProduct(formData: FormData) {
   const existingImages = jsonStringArray(formData, "existingProductImages");
   const productImageUrls = await getProductImageUrls(formData, slug, existingImages);
   const mainImageUrl = productImageUrls[0] ?? existingProduct?.image ?? "";
+
+  // Parse variant groups from the VariantsField client component
+  let variantGroups: import("@ecommerce/shared").ProductVariantGroup[] = existingProduct?.variantGroups ?? [];
+  try {
+    const raw = text(formData, "variantGroupsJson");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        variantGroups = parsed.map((g: import("@ecommerce/shared").ProductVariantGroup) => ({
+          ...g,
+          options: g.options.map((o) => ({ ...o, productId: text(formData, "id") || slug })),
+        }));
+      }
+    }
+  } catch {
+    // malformed JSON — keep existing variants
+  }
+
   const product: UrbanixProduct = {
     category,
     categoryId,
@@ -187,6 +205,7 @@ export async function saveProduct(formData: FormData) {
     status: text(formData, "status") === "inactive" ? "inactive" : "active",
     stockQuantity,
     stockStatus: stockQuantity <= 0 ? "out_of_stock" : stockQuantity <= 5 ? "low_stock" : "in_stock",
+    variantGroups,
   };
 
   await upsertProduct(product);

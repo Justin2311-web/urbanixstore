@@ -15,7 +15,14 @@ export default async function ProductsPage({
   searchParams: Promise<{ saved?: string }>;
 }) {
   const params = await searchParams;
-  const { products } = await readUrbanixStoreDataAsync();
+  let products: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["products"] = [];
+  try {
+    const data = await readUrbanixStoreDataAsync();
+    products = data.products;
+  } catch {
+    const { defaultUrbanixStoreData } = await import("@ecommerce/shared");
+    products = defaultUrbanixStoreData.products;
+  }
 
   return (
     <main className="urbanix-container urbanix-section">
