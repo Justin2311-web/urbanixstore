@@ -66,4 +66,3 @@ export async function signOut() {
   redirect("/login");
 }
 
-export { BYPASS_COOKIE, BYPASS_VALUE };
