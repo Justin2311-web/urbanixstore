@@ -33,7 +33,7 @@ export default async function LoginPage({
                 autoComplete="email"
                 autoFocus
                 name="email"
-                placeholder="admin@urbanix.store"
+                placeholder="urbanixstore.official@gmail.com"
                 required
                 type="email"
               />
