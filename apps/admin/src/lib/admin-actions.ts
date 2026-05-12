@@ -1,0 +1,363 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import {
+  updateHomepage,
+  updateOrderStatuses,
+  updatePaymentSettings,
+  updateStoreSettings,
+  replaceCategories,
+  uploadUrbanixAsset,
+  upsertPromotionBanners,
+  upsertProduct,
+  readUrbanixStoreDataAsync,
+} from "@ecommerce/shared/store";
+import {
+  getCategoryIdByName,
+  type HomepageContent,
+  type PaymentSettings,
+  type ProductCategory,
+  type PromotionBanner,
+  type UrbanixOrder,
+  type UrbanixProduct,
+  type StoreSettings,
+} from "@ecommerce/shared";
+
+async function revalidateStorefront() {
+  const storefrontUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+
+  if (!storefrontUrl || !secret) {
+    try {
+      await fetch(`http://localhost:3000/api/revalidate?secret=${secret ?? "dev"}`, {
+        method: "POST",
+        cache: "no-store",
+      });
+    } catch {
+      // local storefront may not be running, ignore
+    }
+    return;
+  }
+
+  try {
+    await fetch(`${storefrontUrl}/api/revalidate?secret=${secret}`, {
+      method: "POST",
+      cache: "no-store",
+    });
+  } catch (error) {
+    console.error("[Admin] Failed to revalidate storefront:", error);
+  }
+}
+
+function text(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim();
+}
+
+function numberValue(formData: FormData, key: string) {
+  return Number(text(formData, key) || 0);
+}
+
+function boolValue(formData: FormData, key: string) {
+  return formData.get(key) === "on";
+}
+
+function lines(formData: FormData, key: string) {
+  return text(formData, key)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function jsonStringArray(formData: FormData, key: string) {
+  try {
+    const value = JSON.parse(text(formData, key));
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function fileValues(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .filter((value): value is File => value instanceof File && value.size > 0);
+}
+
+async function getProductImageUrls(formData: FormData, slug: string, existingImages: string[]) {
+  const files = fileValues(formData, "productImageFiles");
+  const tokens = jsonStringArray(formData, "productImageOrder");
+  const uploadedByIndex = new Map<number, string>();
+  const uploadFileAt = async (index: number) => {
+    if (!uploadedByIndex.has(index) && files[index]) {
+      uploadedByIndex.set(index, await uploadUrbanixAsset(files[index], "product-images", slug));
+    }
+
+    return uploadedByIndex.get(index) ?? "";
+  };
+
+  if (tokens.length === 0) {
+    const uploaded = await Promise.all(files.slice(0, Math.max(0, 9 - existingImages.length)).map((file) =>
+      uploadUrbanixAsset(file, "product-images", slug)
+    ));
+
+    return [...existingImages, ...uploaded].filter(Boolean).slice(0, 9);
+  }
+
+  const urls: string[] = [];
+
+  for (const token of tokens) {
+    if (urls.length >= 9) {
+      break;
+    }
+
+    if (token.startsWith("existing:")) {
+      const url = token.slice("existing:".length);
+
+      if (existingImages.includes(url)) {
+        urls.push(url);
+      }
+    }
+
+    if (token.startsWith("file:")) {
+      const uploaded = await uploadFileAt(Number(token.slice("file:".length)));
+
+      if (uploaded) {
+        urls.push(uploaded);
+      }
+    }
+  }
+
+  return urls;
+}
+
+export async function saveProduct(formData: FormData) {
+  const name = text(formData, "name");
+  const slug = text(formData, "slug") || slugify(name) || getCategoryIdByName(name);
+  const data = await readUrbanixStoreDataAsync();
+  const existingProduct = data.products.find((product) => product.id === text(formData, "id"));
+  const normalPrice = numberValue(formData, "normalPrice");
+  const promotionPrice = numberValue(formData, "promotionPrice");
+  const stockQuantity = numberValue(formData, "stockQuantity");
+  const categoryId = text(formData, "categoryId") || existingProduct?.categoryId || data.categories[0]?.id || "";
+  const category = data.categories.find((item) => item.id === categoryId || item.slug === categoryId)?.name ?? existingProduct?.category ?? "Lifestyle";
+  const existingImages = jsonStringArray(formData, "existingProductImages");
+  const productImageUrls = await getProductImageUrls(formData, slug, existingImages);
+  const mainImageUrl = productImageUrls[0] ?? existingProduct?.image ?? "";
+  const product: UrbanixProduct = {
+    category,
+    categoryId,
+    description: text(formData, "fullDescription"),
+    featured: boolValue(formData, "featured"),
+    fullDescription: text(formData, "fullDescription"),
+    galleryImages: productImageUrls,
+    highlights: lines(formData, "highlights"),
+    id: text(formData, "id") || slug,
+    image: mainImageUrl,
+    imageTone: existingProduct?.imageTone ?? "fan-green",
+    isActive: text(formData, "status") !== "inactive",
+    isFeatured: boolValue(formData, "featured"),
+    mainImageUrl,
+    name,
+    normalPrice,
+    originalPrice: promotionPrice > 0 && promotionPrice < normalPrice ? normalPrice : undefined,
+    price: promotionPrice > 0 ? promotionPrice : normalPrice,
+    promotionEndDate: text(formData, "promotionEndDate"),
+    promotionEndAt: text(formData, "promotionEndDate"),
+    promotionPrice: promotionPrice || undefined,
+    promotionStartDate: text(formData, "promotionStartDate"),
+    promotionStartAt: text(formData, "promotionStartDate"),
+    rating: numberValue(formData, "rating") || existingProduct?.rating || 4.7,
+    relatedCategory: categoryId,
+    returnNote: text(formData, "returnNote") || "Returns accepted within 30 days for unused items in original packaging.",
+    shippingInfo: text(formData, "shippingInfo") || "Free shipping applies for eligible orders.",
+    shortDescription: text(formData, "shortDescription"),
+    sku: text(formData, "sku"),
+    slug,
+    sold: numberValue(formData, "sold") || existingProduct?.sold || 0,
+    specifications: lines(formData, "specifications"),
+    status: text(formData, "status") === "inactive" ? "inactive" : "active",
+    stockQuantity,
+    stockStatus: stockQuantity <= 0 ? "out_of_stock" : stockQuantity <= 5 ? "low_stock" : "in_stock",
+  };
+
+  await upsertProduct(product);
+  await revalidateStorefront();
+  revalidatePath("/", "layout");
+  redirect("/products?saved=1");
+}
+
+export async function saveCategories(formData: FormData) {
+  const keys = jsonStringArray(formData, "categoryKeys");
+  const deletedSlugs: string[] = [];
+  const categories = keys
+    .map((key, index): ProductCategory | null => {
+      const name = text(formData, `${key}-name`);
+      const slug = text(formData, `${key}-slug`) || slugify(name);
+
+      if (!name || !slug) {
+        return null;
+      }
+
+      if (formData.get(`${key}-delete`) === "on") {
+        deletedSlugs.push(slug);
+        return null;
+      }
+
+      return {
+        active: formData.get(`${key}-active`) === "on",
+        description: text(formData, `${key}-description`),
+        href: `/categories?category=${slug}`,
+        id: slug,
+        isActive: formData.get(`${key}-active`) === "on",
+        name,
+        slug,
+        sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
+        tone: (text(formData, `${key}-tone`) || "mint") as ProductCategory["tone"],
+      };
+    })
+    .filter((category): category is ProductCategory => Boolean(category));
+
+  await replaceCategories(categories, deletedSlugs);
+  await revalidateStorefront();
+  revalidatePath("/", "layout");
+  redirect("/categories?saved=1");
+}
+
+export async function saveHomepage(formData: FormData) {
+  const homepage: HomepageContent = {
+    featuredCategoryCards: lines(formData, "featuredCategoryCards"),
+    heroButtonLink: text(formData, "heroButtonLink"),
+    heroButtonText: text(formData, "heroButtonText"),
+    heroImage: text(formData, "heroImage"),
+    heroImageUrl: text(formData, "heroImage"),
+    heroSubtitle: text(formData, "heroSubtitle"),
+    heroTitle: text(formData, "heroTitle"),
+    promotionStripText: text(formData, "promotionStripText"),
+    promoStripText: text(formData, "promotionStripText"),
+    trustBadgeText: lines(formData, "trustBadgeText"),
+    isActive: true,
+  };
+
+  await updateHomepage(homepage);
+  await revalidateStorefront();
+  revalidatePath("/", "layout");
+  redirect("/homepage?saved=1");
+}
+
+export async function saveStoreSettings(formData: FormData) {
+  const settings: StoreSettings = {
+    contactEmail: text(formData, "contactEmail"),
+    contactPhone: text(formData, "contactPhone"),
+    favicon: text(formData, "favicon"),
+    faviconUrl: text(formData, "favicon"),
+    freeShippingMinimumAmount: numberValue(formData, "freeShippingMinimumAmount"),
+    freeShippingMinAmount: numberValue(formData, "freeShippingMinimumAmount"),
+    logo: text(formData, "logo"),
+    logoUrl: text(formData, "logo"),
+    shippingFee: numberValue(formData, "shippingFee"),
+    socialLinks: {
+      facebook: text(formData, "facebook"),
+      instagram: text(formData, "instagram"),
+      tiktok: text(formData, "tiktok"),
+    },
+    storeActive: boolValue(formData, "storeActive"),
+    isStoreActive: boolValue(formData, "storeActive"),
+    storeName: text(formData, "storeName"),
+    storeTagline: text(formData, "storeTagline"),
+    whatsappNumber: text(formData, "whatsappNumber"),
+  };
+
+  await updateStoreSettings(settings);
+  await revalidateStorefront();
+  revalidatePath("/", "layout");
+  redirect("/settings?saved=1");
+}
+
+export async function savePaymentSettings(formData: FormData) {
+  const payments: PaymentSettings = {
+    accountName: text(formData, "accountName"),
+    accountNumber: text(formData, "accountNumber"),
+    bankName: text(formData, "bankName"),
+    futureGatewayPlaceholder: text(formData, "futureGatewayPlaceholder"),
+    providerPlaceholder: text(formData, "futureGatewayPlaceholder"),
+    isEnabled: true,
+    manualPaymentEnabled: boolValue(formData, "manualPaymentEnabled"),
+    paymentInstruction: text(formData, "paymentInstruction"),
+    whatsAppOrderEnabled: boolValue(formData, "whatsAppOrderEnabled"),
+  };
+
+  await updatePaymentSettings(payments);
+  await revalidateStorefront();
+  revalidatePath("/", "layout");
+  redirect("/payments?saved=1");
+}
+
+export async function savePromotionBanners(formData: FormData) {
+  const keys = jsonStringArray(formData, "bannerKeys");
+  const deletedIds: string[] = [];
+  const banners: PromotionBanner[] = [];
+
+  for (const [index, key] of keys.entries()) {
+    const id = text(formData, `${key}-id`);
+    const title = text(formData, `${key}-title`);
+
+    if (!title && !id) {
+      continue;
+    }
+
+    if (formData.get(`${key}-delete`) === "on") {
+      if (id) {
+        deletedIds.push(id);
+      }
+
+      continue;
+    }
+
+    const desktopFile = fileValues(formData, `${key}-desktopFile`)[0];
+    const mobileFile = fileValues(formData, `${key}-mobileFile`)[0];
+    const folder = id || slugify(title) || `banner-${index + 1}`;
+    const desktopImageUrl = desktopFile
+      ? await uploadUrbanixAsset(desktopFile, "banners", folder)
+      : text(formData, `${key}-desktopImageUrl`);
+    const mobileImageUrl = mobileFile
+      ? await uploadUrbanixAsset(mobileFile, "banners", folder)
+      : text(formData, `${key}-mobileImageUrl`);
+
+    banners.push({
+      buttonEnabled: true,
+      buttonUrl: text(formData, `${key}-targetUrl`) || "/products",
+      ctaText: text(formData, `${key}-ctaText`) || "Shop Now",
+      desktopImageUrl,
+      id,
+      imageClickUrl: text(formData, `${key}-targetUrl`) || "/products",
+      isActive: formData.get(`${key}-isActive`) === "on",
+      mobileImageUrl,
+      sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
+      subtitle: text(formData, `${key}-subtitle`),
+      targetUrl: text(formData, `${key}-targetUrl`) || "/products",
+      title,
+    });
+  }
+
+  await upsertPromotionBanners(banners, deletedIds);
+  await revalidateStorefront();
+  revalidatePath("/", "layout");
+  redirect("/promotions?saved=1");
+}
+
+export async function saveOrderStatuses(formData: FormData) {
+  await updateOrderStatuses(text(formData, "orderId"), {
+    orderStatus: text(formData, "orderStatus") as UrbanixOrder["orderStatus"],
+    paymentStatus: text(formData, "paymentStatus") as UrbanixOrder["paymentStatus"],
+  });
+  revalidatePath("/orders", "layout");
+}

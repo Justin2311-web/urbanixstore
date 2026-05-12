@@ -20,6 +20,18 @@ export const storefrontNavItems: AppNavItem[] = [
   { label: "Cart", href: "/cart" },
 ];
 
+export const adminNavItems: AppNavItem[] = [
+  { label: "Dashboard", href: "/" },
+  { label: "Products", href: "/products" },
+  { label: "Add Product", href: "/products/new" },
+  { label: "Categories", href: "/categories" },
+  { label: "Promotions", href: "/promotions" },
+  { label: "Orders", href: "/orders" },
+  { label: "Settings", href: "/settings" },
+  { label: "Payments", href: "/payments" },
+  { label: "Homepage", href: "/homepage" },
+];
+
 export const platformConfig = {
   name: "Urbanix Store",
   storefrontName: "Urbanix Store",
