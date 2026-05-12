@@ -64,6 +64,89 @@
   --radius: 14px;
 }
 
+/* ─── Dark theme: token overrides ───────────────────────────────────────── */
+html.dark {
+  /* Backgrounds */
+  --background: #08101f;
+  --card: #0d1829;
+  --popover: #0d1829;
+
+  /* Text */
+  --foreground: #dde6f5;
+  --card-foreground: #dde6f5;
+  --popover-foreground: #dde6f5;
+
+  /* Primary: electric blue */
+  --primary: #1e8cf0;
+  --primary-foreground: #ffffff;
+
+  /* Secondary: dark navy */
+  --secondary: #111e35;
+  --secondary-foreground: #8aafd4;
+
+  /* Muted */
+  --muted: #111e35;
+  --muted-foreground: #7a95b5;
+
+  /* Accent: gold */
+  --accent: #c9922a;
+  --accent-foreground: #ffffff;
+
+  /* Semantic */
+  --destructive: #ef4444;
+  --border: #1c2f50;
+  --input: #172843;
+  --ring: #1e8cf0;
+  --success: #16a46a;
+  --warning: #f0a820;
+
+  /* Custom */
+  --coral: #c9922a;
+  --cream: #0f1300;
+}
+
+/* Dark body gradient — overrides the inline light gradient */
+html.dark body {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(6, 14, 36, 0.97),
+      rgba(8, 16, 31, 0.94) 280px,
+      rgba(8, 16, 31, 1) 560px
+    );
+}
+
+/* Surface shadow deepens in dark mode */
+html.dark .urbanix-surface {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+}
+
+/* ─── Theme transitions (enabled after first paint to prevent flash) ──── */
+html.theme-transitions body,
+html.theme-transitions header,
+html.theme-transitions footer,
+html.theme-transitions nav,
+html.theme-transitions main,
+html.theme-transitions article,
+html.theme-transitions section,
+html.theme-transitions aside,
+html.theme-transitions div,
+html.theme-transitions span,
+html.theme-transitions a,
+html.theme-transitions button,
+html.theme-transitions input,
+html.theme-transitions p,
+html.theme-transitions h1,
+html.theme-transitions h2,
+html.theme-transitions h3,
+html.theme-transitions h4,
+html.theme-transitions li {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.22s;
+  transition-timing-function: ease;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border outline-ring/40;

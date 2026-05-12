@@ -8,6 +8,7 @@ import { SearchBar } from "@/components/commerce/search-bar";
 import { LanguageSelector } from "@/components/i18n/language-selector";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { getWhatsAppNumber } from "@/lib/order-links";
 
@@ -42,6 +43,7 @@ export async function AppHeader() {
             <div className="hidden md:block">
               <LanguageSelector />
             </div>
+            <ThemeToggle />
             <Link
               className={buttonVariants({
                 className: "hidden bg-success text-white hover:bg-success/90 lg:inline-flex",
@@ -112,7 +114,8 @@ function MobileBottomNav() {
           </Link>
         );
       })}
-      <div className="absolute -top-12 right-2">
+      <div className="absolute -top-12 right-2 flex items-center gap-1">
+        <ThemeToggle compact />
         <LanguageSelector compact />
       </div>
     </nav>
