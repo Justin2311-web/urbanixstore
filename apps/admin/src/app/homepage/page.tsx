@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default async function HomepagePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; saveError?: string }>;
 }) {
   const params = await searchParams;
   const { homepage } = await readUrbanixStoreDataAsync();
@@ -21,7 +21,7 @@ export default async function HomepagePage({
         <h1 className="text-3xl font-extrabold">Banner / Homepage Content</h1>
         <p className="mt-1 text-sm text-muted-foreground">Update the storefront hero, featured categories, strip, and trust text.</p>
       </div>
-      <SaveNotice saved={params.saved} />
+      <SaveNotice saveError={params.saveError} saved={params.saved} />
       <form action={saveHomepage}>
         <Card>
           <CardHeader>

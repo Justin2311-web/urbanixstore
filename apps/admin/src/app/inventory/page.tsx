@@ -17,7 +17,7 @@ function stockBadge(qty: number) {
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; saveError?: string }>;
 }) {
   const params = await searchParams;
   let data;
@@ -46,7 +46,7 @@ export default async function InventoryPage({
           </p>
         </div>
       </div>
-      <SaveNotice saved={params.saved} />
+      <SaveNotice saveError={params.saveError} saved={params.saved} />
       <form action={saveStockUpdate}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">

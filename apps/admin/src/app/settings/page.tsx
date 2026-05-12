@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; saveError?: string }>;
 }) {
   const params = await searchParams;
   const { settings } = await readUrbanixStoreDataAsync();
@@ -23,7 +23,7 @@ export default async function SettingsPage({
           Configure public store identity and operational defaults.
         </p>
       </div>
-      <SaveNotice saved={params.saved} />
+      <SaveNotice saveError={params.saveError} saved={params.saved} />
       <form action={saveStoreSettings}>
         <Card>
           <CardHeader>

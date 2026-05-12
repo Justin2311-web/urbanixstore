@@ -265,7 +265,13 @@ export async function saveCategories(formData: FormData) {
     })
     .filter((category): category is ProductCategory => Boolean(category));
 
-  await replaceCategories(categories, deletedSlugs);
+  try {
+    await replaceCategories(categories, deletedSlugs);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Admin] saveCategories failed:", message);
+    redirect(`/categories?saveError=${encodeURIComponent(message)}`);
+  }
   await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/categories?saved=1");
@@ -286,7 +292,13 @@ export async function saveHomepage(formData: FormData) {
     isActive: true,
   };
 
-  await updateHomepage(homepage);
+  try {
+    await updateHomepage(homepage);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Admin] saveHomepage failed:", message);
+    redirect(`/homepage?saveError=${encodeURIComponent(message)}`);
+  }
   await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/homepage?saved=1");
@@ -315,7 +327,13 @@ export async function saveStoreSettings(formData: FormData) {
     whatsappNumber: text(formData, "whatsappNumber"),
   };
 
-  await updateStoreSettings(settings);
+  try {
+    await updateStoreSettings(settings);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Admin] saveStoreSettings failed:", message);
+    redirect(`/settings?saveError=${encodeURIComponent(message)}`);
+  }
   await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/settings?saved=1");
@@ -334,7 +352,13 @@ export async function savePaymentSettings(formData: FormData) {
     whatsAppOrderEnabled: boolValue(formData, "whatsAppOrderEnabled"),
   };
 
-  await updatePaymentSettings(payments);
+  try {
+    await updatePaymentSettings(payments);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Admin] savePaymentSettings failed:", message);
+    redirect(`/payments?saveError=${encodeURIComponent(message)}`);
+  }
   await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/payments?saved=1");
@@ -387,17 +411,27 @@ export async function savePromotionBanners(formData: FormData) {
     });
   }
 
-  await upsertPromotionBanners(banners, deletedIds);
+  try {
+    await upsertPromotionBanners(banners, deletedIds);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Admin] savePromotionBanners failed:", message);
+    redirect(`/promotions?saveError=${encodeURIComponent(message)}`);
+  }
   await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/promotions?saved=1");
 }
 
 export async function saveOrderStatuses(formData: FormData) {
-  await updateOrderStatuses(text(formData, "orderId"), {
-    orderStatus: text(formData, "orderStatus") as UrbanixOrder["orderStatus"],
-    paymentStatus: text(formData, "paymentStatus") as UrbanixOrder["paymentStatus"],
-  });
+  try {
+    await updateOrderStatuses(text(formData, "orderId"), {
+      orderStatus: text(formData, "orderStatus") as UrbanixOrder["orderStatus"],
+      paymentStatus: text(formData, "paymentStatus") as UrbanixOrder["paymentStatus"],
+    });
+  } catch (err) {
+    console.error("[Admin] saveOrderStatuses failed:", err instanceof Error ? err.message : String(err));
+  }
   revalidatePath("/orders", "layout");
 }
 
@@ -413,7 +447,13 @@ export async function saveStockUpdate(formData: FormData) {
     })
     .filter((p): p is NonNullable<typeof p> => p !== null);
 
-  await Promise.all(updates.map((p) => upsertProduct(p)));
+  try {
+    await Promise.all(updates.map((p) => upsertProduct(p)));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Admin] saveStockUpdate failed:", message);
+    redirect(`/inventory?saveError=${encodeURIComponent(message)}`);
+  }
   await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/inventory?saved=1");
