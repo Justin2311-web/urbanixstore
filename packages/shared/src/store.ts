@@ -754,7 +754,11 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
 
   if (publicError) {
     const failedTable = Object.entries(queryResults).find(([, e]) => e === publicError)?.[0];
-    console.error(`[Urbanix] Supabase query error on table "${failedTable}", falling back to defaults:`, publicError);
+    console.error(`[ERR:table] ${failedTable}`);
+    console.error(`[ERR:code] ${publicError.code}`);
+    console.error(`[ERR:msg] ${publicError.message}`);
+    console.error(`[ERR:hint] ${publicError.hint ?? ""}`);
+    console.error("[Urbanix] Supabase read failed, falling back to defaults");
     return readUrbanixStoreData();
   }
 
