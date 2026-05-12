@@ -741,7 +741,8 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     // table not yet migrated — skip silently
   }
 
-  const queryResults = {
+  // Log errors per-table but continue with partial data instead of all-or-nothing fallback
+  for (const [table, err] of Object.entries({
     categories: categoriesResult.error,
     products: productsResult.error,
     product_images: imagesResult.error,
@@ -749,17 +750,12 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     banners: bannersResult.error,
     payment_settings: paymentsResult.error,
     promotion_banners: promotionBannersResult.error,
-  };
-  const publicError = Object.values(queryResults).find(Boolean);
-
-  if (publicError) {
-    const failedTable = Object.entries(queryResults).find(([, e]) => e === publicError)?.[0];
-    console.error(`[ERR:table] ${failedTable}`);
-    console.error(`[ERR:code] ${publicError.code}`);
-    console.error(`[ERR:msg] ${publicError.message}`);
-    console.error(`[ERR:hint] ${publicError.hint ?? ""}`);
-    console.error("[Urbanix] Supabase read failed, falling back to defaults");
-    return readUrbanixStoreData();
+  })) {
+    if (err) {
+      console.error(`[ERR:table] ${table}`);
+      console.error(`[ERR:code] ${err.code}`);
+      console.error(`[ERR:msg] ${err.message}`);
+    }
   }
 
   const categoriesByUuid = new Map((categoriesResult.data ?? []).map((row) => [row.id, mapCategory(row)]));
