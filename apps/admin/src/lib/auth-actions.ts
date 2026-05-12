@@ -33,8 +33,8 @@ export async function signIn(formData: FormData) {
   const password = String(formData.get("password") ?? "");
 
   // Always check env-var credentials as a bypass (works with or without Supabase)
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@urbanix.store";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "urbanix-admin";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "urbanixstore.official@gmail.com";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "UrbanixAdmin2026!";
   if (email === adminEmail && password === adminPassword) {
     const cookieStore = await cookies();
     cookieStore.set(BYPASS_COOKIE, BYPASS_VALUE, {
