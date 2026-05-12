@@ -696,19 +696,18 @@ function mapPaymentSettings(row?: Database["public"]["Tables"]["payment_settings
 }
 
 export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}): Promise<UrbanixStoreData> {
-  try {
-    const googleSheetData = await readGoogleSheetStoreData();
-
-    if (googleSheetData) {
-      return googleSheetData;
-    }
-  } catch (error) {
-    console.error("[Urbanix] Google Sheet CMS unavailable, falling back to Supabase/static data.", error);
-  }
-
+  // Supabase is the primary source of truth (written to by admin).
+  // Google Sheets is a fallback CMS for deployments without Supabase.
   const supabase = createSupabaseStoreClient();
 
   if (!supabase) {
+    // No Supabase configured — try Google Sheets, then local fallback.
+    try {
+      const googleSheetData = await readGoogleSheetStoreData();
+      if (googleSheetData) return googleSheetData;
+    } catch (error) {
+      console.error("[Urbanix] Google Sheet CMS unavailable, falling back to static data.", error);
+    }
     return readUrbanixStoreData();
   }
 
@@ -742,7 +741,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
   }
 
   // Log errors per-table but continue with partial data instead of all-or-nothing fallback
-  for (const [table, err] of Object.entries({
+  const tableErrors = {
     categories: categoriesResult.error,
     products: productsResult.error,
     product_images: imagesResult.error,
@@ -750,12 +749,29 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     banners: bannersResult.error,
     payment_settings: paymentsResult.error,
     promotion_banners: promotionBannersResult.error,
-  })) {
+  };
+  for (const [table, err] of Object.entries(tableErrors)) {
     if (err) {
       console.error(`[ERR:table] ${table}`);
       console.error(`[ERR:code] ${err.code}`);
       console.error(`[ERR:msg] ${err.message}`);
     }
+  }
+
+  // If ALL core queries failed, fall back to Google Sheets then local data.
+  const allCoreFailed =
+    !!categoriesResult.error &&
+    !!productsResult.error &&
+    !!settingsResult.error;
+  if (allCoreFailed) {
+    console.error("[Urbanix] Supabase read failed entirely, falling back to Google Sheets/static.");
+    try {
+      const googleSheetData = await readGoogleSheetStoreData();
+      if (googleSheetData) return googleSheetData;
+    } catch {
+      // ignore
+    }
+    return readUrbanixStoreData();
   }
 
   const categoriesByUuid = new Map((categoriesResult.data ?? []).map((row) => [row.id, mapCategory(row)]));
