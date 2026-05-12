@@ -983,16 +983,23 @@ export async function upsertProduct(product: UrbanixProduct) {
   }
 
   const categorySlug = product.categoryId ?? product.relatedCategory ?? getCategoryIdByName(product.category);
-  const categoryResult = await supabase.from("categories").select("id").eq("slug", categorySlug).maybeSingle();
 
-  if (categoryResult.error) throw categoryResult.error;
-  if (!categoryResult.data?.id) throw new Error(`Category "${categorySlug}" not found in Supabase.`);
+  // Support both slug and UUID — categoryId from Supabase-loaded products is a UUID, not a slug
+  let categoryDbId: string | undefined;
+  const slugResult = await supabase.from("categories").select("id").eq("slug", categorySlug).maybeSingle();
+  if (slugResult.data?.id) {
+    categoryDbId = slugResult.data.id;
+  } else {
+    const idResult = await supabase.from("categories").select("id").eq("id", categorySlug).maybeSingle();
+    categoryDbId = idResult.data?.id;
+  }
+  if (!categoryDbId) throw new Error(`Category "${categorySlug}" not found in Supabase.`);
 
   const upsertResult = await supabase
     .from("products")
     .upsert(
       {
-        category_id: categoryResult.data.id,
+        category_id: categoryDbId,
         description: product.fullDescription || product.description,
         highlights: toJsonArray(product.highlights ?? []),
         image_tone: product.imageTone,

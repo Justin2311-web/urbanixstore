@@ -150,7 +150,13 @@ export async function saveProduct(formData: FormData) {
   const categoryId = text(formData, "categoryId") || existingProduct?.categoryId || data.categories[0]?.id || "";
   const category = data.categories.find((item) => item.id === categoryId || item.slug === categoryId)?.name ?? existingProduct?.category ?? "Lifestyle";
   const existingImages = jsonStringArray(formData, "existingProductImages");
-  const productImageUrls = await getProductImageUrls(formData, slug, existingImages);
+  let productImageUrls: string[];
+  try {
+    productImageUrls = await getProductImageUrls(formData, slug, existingImages);
+  } catch (err) {
+    console.error("[Admin] Image upload failed:", err);
+    productImageUrls = existingImages;
+  }
   const mainImageUrl = productImageUrls[0] ?? existingProduct?.image ?? "";
 
   // Parse variant groups from the VariantsField client component
@@ -208,7 +214,12 @@ export async function saveProduct(formData: FormData) {
     variantGroups,
   };
 
-  await upsertProduct(product);
+  try {
+    await upsertProduct(product);
+  } catch (err) {
+    console.error("[Admin] saveProduct upsert failed:", err);
+    redirect(`/products/${slug}/edit?saveError=1`);
+  }
   await revalidateStorefront();
   revalidatePath("/", "layout");
   redirect("/products?saved=1");
