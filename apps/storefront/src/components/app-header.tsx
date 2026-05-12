@@ -17,15 +17,19 @@ export async function AppHeader() {
 
   return (
     <>
-      <div className="hidden bg-primary py-2 text-center text-xs font-semibold text-white md:block">
-        <LocalizedValue fallback={homepage.promotionStripText} value={settings.freeShippingText} /> &nbsp; - &nbsp; WhatsApp {settings.whatsappNumber}
+      {/* Promo strip */}
+      <div className="bg-primary py-2 text-center text-xs font-semibold text-white dark:bg-[#091833] dark:text-[#7ab4e0]">
+        <LocalizedValue fallback={homepage.promotionStripText} value={settings.freeShippingText} /> &nbsp;·&nbsp; WhatsApp {settings.whatsappNumber}
       </div>
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/92 shadow-[0_8px_24px_rgba(23,37,38,0.06)] backdrop-blur">
+
+      {/* Sticky header */}
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-card/90 shadow-[0_4px_20px_rgba(17,37,68,0.07)] backdrop-blur-lg dark:border-[rgba(59,158,255,0.1)] dark:bg-[rgba(11,21,40,0.88)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
         <div className="urbanix-container flex h-16 items-center justify-between gap-4">
           <Link className="shrink-0" href="/">
             <BrandLogo logoUrl={settings.logoUrl} storeName={settings.storeName} />
           </Link>
-          <nav className="hidden items-center gap-1 md:flex">
+
+          <nav className="hidden items-center gap-0.5 md:flex">
             {storefrontNavItems.slice(1, 5).map((item) => (
               <Link
                 className={buttonVariants({ size: "sm", variant: "ghost" })}
@@ -36,9 +40,11 @@ export async function AppHeader() {
               </Link>
             ))}
           </nav>
+
           <div className="hidden w-full max-w-xs md:block">
             <SearchBar />
           </div>
+
           <div className="flex items-center gap-1">
             <div className="hidden md:block">
               <LanguageSelector />
@@ -81,6 +87,7 @@ export async function AppHeader() {
           </div>
         </div>
       </header>
+
       <MobileBottomNav />
     </>
   );
@@ -96,7 +103,7 @@ function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-border bg-card px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(23,37,38,0.1)] md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-border/60 bg-card/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_28px_rgba(17,37,68,0.1)] backdrop-blur-lg dark:border-[rgba(59,158,255,0.1)] dark:bg-[rgba(11,21,40,0.95)] dark:shadow-[0_-8px_28px_rgba(0,0,0,0.4)] md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
 

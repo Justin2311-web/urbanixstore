@@ -18,7 +18,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
   const hasOptions = (product.variantGroups?.length ?? 0) > 0;
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card p-2 shadow-[0_10px_26px_rgba(23,37,38,0.07)] transition hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_42px_rgba(23,37,38,0.12)]">
+    <article className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-2 shadow-[0_8px_24px_rgba(17,37,68,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/30 hover:shadow-[0_18px_48px_rgba(17,37,68,0.13)] dark:border-[rgba(59,158,255,0.12)] dark:bg-card dark:shadow-[0_8px_24px_rgba(0,0,0,0.25)] dark:hover:border-[rgba(59,158,255,0.3)] dark:hover:shadow-[0_18px_48px_rgba(59,158,255,0.12)]">
       <div className="absolute left-3 top-3 z-10">
         <PromotionBadge percent={product.promotionPercent} />
       </div>
@@ -33,7 +33,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
         ) : null}
         {hasOptions ? (
           <div>
-            <span className="rounded-full bg-secondary px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-primary">
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-primary dark:bg-[rgba(59,158,255,0.12)] dark:text-[#3b9eff]">
               <LocalizedValue
                 fallback="Options Available"
                 value={{
@@ -52,7 +52,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
           <LocalizedValue fallback={product.name} value={product.localizedName} />
         </Link>
         <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
-        <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/60 px-2 py-1.5">
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/50 px-2 py-1.5 dark:bg-[rgba(15,30,56,0.8)]">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="size-3 fill-warning text-warning" />
             <span className="font-semibold text-accent">{product.rating}</span>
