@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { CategoryManagementForm } from "@/components/category-management-form";
 import { SaveNotice } from "@/components/save-notice";

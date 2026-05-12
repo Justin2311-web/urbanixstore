@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { saveStoreSettings } from "@/lib/admin-actions";
 import { CheckField, Field, SaveButton } from "@/components/admin-form";

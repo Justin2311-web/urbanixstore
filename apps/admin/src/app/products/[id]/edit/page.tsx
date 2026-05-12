@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { ProductForm } from "@/components/product-form";

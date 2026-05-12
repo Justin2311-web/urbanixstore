@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { saveHomepage } from "@/lib/admin-actions";
 import { Field, SaveButton, TextArea } from "@/components/admin-form";

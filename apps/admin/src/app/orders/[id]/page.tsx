@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { formatCurrency } from "@ecommerce/shared";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";

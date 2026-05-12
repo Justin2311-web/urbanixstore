@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { SaveNotice } from "@/components/save-notice";
 import { PromotionBannersForm } from "@/components/promotion-banners-form";
