@@ -59,23 +59,24 @@ export default async function Home() {
       {/* Promotional CTA banner */}
       <section className="urbanix-container urbanix-section">
         <div className="relative grid gap-5 overflow-hidden rounded-3xl p-5 sm:p-7 md:grid-cols-[auto_1fr_auto] md:items-center">
-          {/* Background layers */}
-          <div className="absolute inset-0 bg-linear-to-br from-[#1245b8] via-[#1a56db] to-[#1e78f0] dark:from-[#040d24] dark:via-[#091833] dark:to-[#0c2140]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_80%_at_80%_50%,rgba(59,158,255,0.22),transparent)] dark:bg-[radial-gradient(ellipse_70%_80%_at_80%_50%,rgba(59,158,255,0.15),transparent)]" />
-          <div className="absolute right-0 top-0 size-64 rounded-full bg-white/5 blur-3xl" />
+          {/* Background: dark navy with warm amber glow — energetic & youthful */}
+          <div className="absolute inset-0 bg-[#0d1b35] dark:bg-[#07101f]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_90%_at_15%_50%,rgba(251,146,60,0.18),transparent)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_85%_50%,rgba(59,158,255,0.12),transparent)]" />
+          <div className="absolute right-0 top-0 size-56 rounded-full bg-[rgba(251,146,60,0.06)] blur-3xl" />
 
-          <div className="relative flex size-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
-            <Truck className="size-7 text-white" />
+          <div className="relative flex size-14 items-center justify-center rounded-2xl bg-[rgba(251,146,60,0.18)] ring-1 ring-[rgba(251,146,60,0.35)]">
+            <Truck className="size-7 text-[#fb923c]" />
           </div>
           <div className="relative">
             <h2 className="text-xl font-extrabold text-white sm:text-2xl">
               <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
             </h2>
-            <p className="mt-1 text-sm font-medium text-white/75">Auto-applies from RM{data.settings.freeShippingMinimumAmount} orders. WhatsApp ordering stays fast and simple.</p>
+            <p className="mt-1 text-sm font-medium text-white/60">Auto-applies from RM{data.settings.freeShippingMinimumAmount} orders. WhatsApp ordering stays fast and simple.</p>
           </div>
           <Link
             className={buttonVariants({
-              className: "relative w-fit bg-white text-[#1245b8] font-bold hover:bg-white/92 shadow-[0_4px_16px_rgba(0,0,0,0.2)]",
+              className: "relative w-fit bg-[#fb923c] text-white font-bold hover:bg-[#f97316] shadow-[0_4px_20px_rgba(251,146,60,0.45)]",
             })}
             href="/products"
           >

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { House, MessageCircle, Search, ShoppingCart, UserRound } from "lucide-react";
-import { storefrontNavItems } from "@ecommerce/shared";
+import { House, MessageCircle, PackageSearch, Search, ShoppingCart, UserRound } from "lucide-react";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { BrandLogo } from "@/components/brand-logo";
 import { CartCountBadge } from "@/components/cart/cart-count-badge";
@@ -12,20 +11,8 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { getWhatsAppNumber } from "@/lib/order-links";
 
-function navLabelKey(label: string) {
-  if (label === "New Arrivals") return "nav.newArrivals";
-  if (label === "Best Sellers") return "nav.bestSellers";
-  if (label === "About Us") return "nav.aboutUs";
-  return `nav.${label.toLowerCase()}`;
-}
-
 export async function AppHeader() {
   const { homepage, settings } = await readUrbanixStoreDataAsync();
-
-  // Use nav items from DB if admin has configured them, else fall back to hardcoded
-  const navItems = (settings.navItems && settings.navItems.length > 0)
-    ? settings.navItems
-    : storefrontNavItems;
 
   // Show announcement bar only if enabled (defaults to true)
   const announcementEnabled = homepage.announcementEnabled !== false;
@@ -66,15 +53,13 @@ export async function AppHeader() {
           </Link>
 
           <nav className="hidden items-center gap-0.5 md:flex">
-            {navItems.slice(1, 5).map((item) => (
-              <Link
-                className={buttonVariants({ size: "sm", variant: "ghost" })}
-                href={item.href}
-                key={item.label}
-              >
-                <LocalizedText fallback={item.label} k={navLabelKey(item.label)} />
-              </Link>
-            ))}
+            <Link
+              className={buttonVariants({ size: "sm", variant: "ghost" })}
+              href="/track-order"
+            >
+              <PackageSearch className="size-4" />
+              <LocalizedText fallback="Track Order" k="nav.trackOrder" />
+            </Link>
           </nav>
 
           <div className="hidden w-full max-w-xs md:block">
@@ -132,7 +117,7 @@ export async function AppHeader() {
 function MobileBottomNav() {
   const items = [
     { href: "/", label: "Home", key: "home", icon: House },
-    { href: "/products", label: "Shop", icon: ShoppingCart },
+    { href: "/track-order", label: "Track", key: "trackOrder", icon: PackageSearch },
     { href: "/search", label: "Search", icon: Search },
     { href: "/cart", label: "Cart", icon: ShoppingCart },
     { href: "/account", label: "Account", icon: UserRound },

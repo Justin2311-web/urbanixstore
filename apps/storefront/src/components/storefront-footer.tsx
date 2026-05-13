@@ -105,6 +105,7 @@ export async function StorefrontFooter() {
           />
           <FooterGroup
             links={[
+              { href: "/track-order", label: "Track Order", localizedLabel: { en: "Track Order", ms: "Jejak Pesanan", zh: "追踪订单" } },
               { href: "/shipping", label: "Shipping", key: "footer.shipping", localizedLabel: data.footer.shipping },
               { href: "/contact-us", label: "Contact Us", key: "footer.contactUs", localizedLabel: data.footer.contact_us },
             ]}

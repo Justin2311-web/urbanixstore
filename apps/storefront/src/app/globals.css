@@ -39,7 +39,7 @@
 }
 
 :root {
-  --background: #f6f9fd;
+  --background: #f5f7fa;
   --foreground: #0d1527;
   --card: #ffffff;
   --card-foreground: #0d1527;
@@ -47,11 +47,11 @@
   --popover-foreground: #0d1527;
   --primary: #1a56db;
   --primary-foreground: #ffffff;
-  --secondary: #e8f1ff;
+  --secondary: #eef3fc;
   --secondary-foreground: #1a3d8f;
-  --muted: #f0f5fc;
+  --muted: #f0f4fb;
   --muted-foreground: #5a6e87;
-  --accent: #d97706;
+  --accent: #ea580c;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --border: #dde8f6;
@@ -88,9 +88,9 @@ html.dark {
   --muted: #0f1e38;
   --muted-foreground: #6b8db5;
 
-  /* Accent: metallic gold */
-  --accent: #d4a431;
-  --accent-foreground: #0a0e1a;
+  /* Accent: vibrant orange */
+  --accent: #fb923c;
+  --accent-foreground: #ffffff;
 
   /* Semantic */
   --destructive: #ef4444;
@@ -98,11 +98,11 @@ html.dark {
   --input: #112040;
   --ring: #3b9eff;
   --success: #16a46a;
-  --warning: #f4b233;
+  --warning: #fbbf24;
 
   /* Custom */
-  --coral: #d4a431;
-  --cream: #080f00;
+  --coral: #fb923c;
+  --cream: #0d1b35;
 }
 
 /* Dark body gradient — overrides the inline light gradient */
