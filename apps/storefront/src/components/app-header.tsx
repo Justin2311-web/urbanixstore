@@ -12,15 +12,51 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { getWhatsAppNumber } from "@/lib/order-links";
 
+function navLabelKey(label: string) {
+  if (label === "New Arrivals") return "nav.newArrivals";
+  if (label === "Best Sellers") return "nav.bestSellers";
+  if (label === "About Us") return "nav.aboutUs";
+  return `nav.${label.toLowerCase()}`;
+}
+
 export async function AppHeader() {
   const { homepage, settings } = await readUrbanixStoreDataAsync();
 
+  // Use nav items from DB if admin has configured them, else fall back to hardcoded
+  const navItems = (settings.navItems && settings.navItems.length > 0)
+    ? settings.navItems
+    : storefrontNavItems;
+
+  // Show announcement bar only if enabled (defaults to true)
+  const announcementEnabled = homepage.announcementEnabled !== false;
+  const announcementBg = homepage.announcementBgColor ?? "#1a1a1a";
+  const announcementColor = homepage.announcementTextColor ?? "#ffffff";
+  const announcementText = homepage.promotionStripText;
+  const announcementLink = homepage.announcementLink;
+
   return (
     <>
-      {/* Promo strip */}
-      <div className="bg-primary py-2 text-center text-xs font-semibold text-white dark:bg-[#091833] dark:text-[#7ab4e0]">
-        <LocalizedValue fallback={homepage.promotionStripText} value={settings.freeShippingText} /> &nbsp;·&nbsp; WhatsApp {settings.whatsappNumber}
-      </div>
+      {/* Announcement bar */}
+      {announcementEnabled ? (
+        announcementLink ? (
+          <Link
+            className="block py-2 text-center text-xs font-semibold transition-opacity hover:opacity-90"
+            href={announcementLink}
+            style={{ backgroundColor: announcementBg, color: announcementColor }}
+          >
+            <LocalizedValue fallback={announcementText} value={settings.freeShippingText} />
+            &nbsp;·&nbsp; WhatsApp {settings.whatsappNumber}
+          </Link>
+        ) : (
+          <div
+            className="py-2 text-center text-xs font-semibold"
+            style={{ backgroundColor: announcementBg, color: announcementColor }}
+          >
+            <LocalizedValue fallback={announcementText} value={settings.freeShippingText} />
+            &nbsp;·&nbsp; WhatsApp {settings.whatsappNumber}
+          </div>
+        )
+      ) : null}
 
       {/* Sticky header */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-card/90 shadow-[0_4px_20px_rgba(17,37,68,0.07)] backdrop-blur-lg dark:border-[rgba(59,158,255,0.1)] dark:bg-[rgba(11,21,40,0.88)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
@@ -30,13 +66,13 @@ export async function AppHeader() {
           </Link>
 
           <nav className="hidden items-center gap-0.5 md:flex">
-            {storefrontNavItems.slice(1, 5).map((item) => (
+            {navItems.slice(1, 5).map((item) => (
               <Link
                 className={buttonVariants({ size: "sm", variant: "ghost" })}
                 href={item.href}
                 key={item.label}
               >
-                <LocalizedText fallback={item.label} k={`nav.${item.label === "New Arrivals" ? "newArrivals" : item.label === "Best Sellers" ? "bestSellers" : item.label === "About Us" ? "aboutUs" : item.label.toLowerCase()}`} />
+                <LocalizedText fallback={item.label} k={navLabelKey(item.label)} />
               </Link>
             ))}
           </nav>

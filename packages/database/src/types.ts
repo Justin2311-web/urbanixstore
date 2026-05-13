@@ -212,11 +212,13 @@ export type Database = {
           created_at: string;
           currency: string;
           favicon_url: string | null;
+          footer_content: Json | null;
           free_shipping_min_amount: number;
           id: boolean;
           is_store_active: boolean;
           logo_url: string | null;
           maintenance_message: string | null;
+          nav_items: Json | null;
           shipping_fee: number;
           social_links: Json;
           store_name: string;
@@ -230,11 +232,13 @@ export type Database = {
           created_at?: string;
           currency?: string;
           favicon_url?: string | null;
+          footer_content?: Json | null;
           free_shipping_min_amount?: number;
           id?: boolean;
           is_store_active?: boolean;
           logo_url?: string | null;
           maintenance_message?: string | null;
+          nav_items?: Json | null;
           shipping_fee?: number;
           social_links?: Json;
           store_name?: string;
@@ -246,6 +250,10 @@ export type Database = {
       };
       banners: {
         Row: {
+          announcement_bg_color: string | null;
+          announcement_enabled: boolean;
+          announcement_link: string | null;
+          announcement_text_color: string | null;
           created_at: string;
           featured_category_cards: Json;
           hero_button_link: string | null;
@@ -260,6 +268,10 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          announcement_bg_color?: string | null;
+          announcement_enabled?: boolean;
+          announcement_link?: string | null;
+          announcement_text_color?: string | null;
           created_at?: string;
           featured_category_cards?: Json;
           hero_button_link?: string | null;

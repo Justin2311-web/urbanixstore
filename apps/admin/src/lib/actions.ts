@@ -339,7 +339,7 @@ export async function savePromotionBanner(formData: FormData) {
   const sort_order = fdNum(formData, "sort_order") || 1;
   const is_active = fdBool(formData, "is_active");
 
-  if (!title) redirect("/promotions?saveError=Banner+title+is+required");
+  if (!title) redirect("/cms?saveError=Banner+title+is+required");
 
   // Image URLs are submitted directly (uploaded client-side via signed URL)
   const desktop_image_url = fd(formData, "desktop_image_url") || null;
@@ -365,30 +365,30 @@ export async function savePromotionBanner(formData: FormData) {
 
   if (error) {
     console.error("[Admin] savePromotionBanner error:", error);
-    redirect(`/promotions?saveError=${encodeURIComponent(error.message)}`);
+    redirect(`/cms?saveError=${encodeURIComponent(error.message)}`);
   }
 
   revalidateAll();
   await revalidateStorefront();
-  redirect("/promotions?saved=1");
+  redirect("/cms?saved=1");
 }
 
 export async function deletePromotionBanner(formData: FormData) {
   const sb = createAdminClient();
   const id = fd(formData, "id");
 
-  if (!id) redirect("/promotions?saveError=Missing+banner+ID");
+  if (!id) redirect("/cms?saveError=Missing+banner+ID");
 
   const { error } = await sb.from("promotion_banners").delete().eq("id", id);
 
   if (error) {
     console.error("[Admin] deletePromotionBanner error:", error);
-    redirect(`/promotions?saveError=${encodeURIComponent(error.message)}`);
+    redirect(`/cms?saveError=${encodeURIComponent(error.message)}`);
   }
 
   revalidateAll();
   await revalidateStorefront();
-  redirect("/promotions?saved=1");
+  redirect("/cms?saved=1");
 }
 
 // ─── ORDERS ───────────────────────────────────────────────────────────────────
@@ -467,32 +467,41 @@ export async function saveInventory(formData: FormData) {
   redirect("/inventory?saved=1");
 }
 
-// ─── HOMEPAGE / BANNERS ───────────────────────────────────────────────────────
+// ─── CMS / BANNERS ────────────────────────────────────────────────────────────
 
 export async function saveHomepage(formData: FormData) {
+  return saveCmsBanner(formData, "/homepage");
+}
+
+export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const sb = createAdminClient();
-  const hero_title = fd(formData, "hero_title");
-  const hero_subtitle = fd(formData, "hero_subtitle") || null;
-  const hero_image_url = fd(formData, "hero_image_url") || null;
-  const hero_button_text = fd(formData, "hero_button_text") || null;
-  const hero_button_link = fd(formData, "hero_button_link") || null;
-  const promo_strip_text = fd(formData, "promo_strip_text") || null;
-  const is_active = fdBool(formData, "is_active");
+  const hero_title = fd(formData, "heroTitle") || fd(formData, "hero_title");
+  const hero_subtitle = fd(formData, "heroSubtitle") || fd(formData, "hero_subtitle") || null;
+  const hero_image_url = fd(formData, "heroImage") || fd(formData, "hero_image_url") || null;
+  const hero_button_text = fd(formData, "heroButtonText") || fd(formData, "hero_button_text") || null;
+  const hero_button_link = fd(formData, "heroButtonLink") || fd(formData, "hero_button_link") || null;
+  const promo_strip_text = fd(formData, "promotionStripText") || fd(formData, "promo_strip_text") || null;
+  const is_active = fdBool(formData, "isActive") || fdBool(formData, "is_active");
+  const announcement_enabled = fdBool(formData, "announcementEnabled");
+  const announcement_link = fd(formData, "announcementLink") || null;
+  const announcement_bg_color = fd(formData, "announcementBgColor") || "#1a1a1a";
+  const announcement_text_color = fd(formData, "announcementTextColor") || "#ffffff";
 
-  if (!hero_title) redirect("/homepage?saveError=Hero+title+is+required");
-
-  // hero_image_url is submitted directly (uploaded client-side via signed URL)
-  const finalHeroImage = hero_image_url;
+  if (!hero_title) redirect(`${redirectBase}?saveError=Hero+title+is+required`);
 
   const payload = {
     id: true,
     hero_title,
     hero_subtitle,
-    hero_image_url: finalHeroImage,
+    hero_image_url,
     hero_button_text,
     hero_button_link,
     promo_strip_text,
     is_active,
+    announcement_enabled,
+    announcement_link,
+    announcement_bg_color,
+    announcement_text_color,
     featured_category_cards: [] as string[],
     trust_badge_text: [] as string[],
   };
@@ -502,13 +511,46 @@ export async function saveHomepage(formData: FormData) {
     .upsert(payload, { onConflict: "id" });
 
   if (error) {
-    console.error("[Admin] saveHomepage error:", error);
-    redirect(`/homepage?saveError=${encodeURIComponent(error.message)}`);
+    console.error("[Admin] saveCmsBanner error:", error);
+    redirect(`${redirectBase}?saveError=${encodeURIComponent(error.message)}`);
   }
 
   revalidateAll();
   await revalidateStorefront();
-  redirect("/homepage?saved=1");
+  redirect(`${redirectBase}?saved=1`);
+}
+
+export async function saveCmsNavigation(formData: FormData) {
+  const sb = createAdminClient();
+
+  // Nav items submitted as individual nav_label_N / nav_href_N fields
+  // Count by finding all nav_label_* keys
+  const nav_items: Array<{ label: string; href: string }> = [];
+  let i = 0;
+  while (formData.has(`nav_label_${i}`)) {
+    const label = fd(formData, `nav_label_${i}`);
+    const href = fd(formData, `nav_href_${i}`);
+    if (label && href) nav_items.push({ label, href });
+    i++;
+  }
+
+  const payload = {
+    id: true,
+    nav_items: nav_items as unknown as import("@ecommerce/database").Database["public"]["Tables"]["store_settings"]["Row"]["nav_items"],
+  };
+
+  const { error } = await sb
+    .from("store_settings")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    console.error("[Admin] saveCmsNavigation error:", error);
+    redirect(`/cms?saveError=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidateAll();
+  await revalidateStorefront();
+  redirect("/cms?saved=1");
 }
 
 // ─── PAYMENT SETTINGS ─────────────────────────────────────────────────────────
@@ -551,6 +593,8 @@ export async function saveStoreSettings(formData: FormData) {
     facebook: fd(formData, "facebook") || "",
     instagram: fd(formData, "instagram") || "",
     tiktok: fd(formData, "tiktok") || "",
+    shopee: fd(formData, "shopee") || "",
+    lazada: fd(formData, "lazada") || "",
   };
 
   const payload = {

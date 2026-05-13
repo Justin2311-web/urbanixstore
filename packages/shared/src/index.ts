@@ -25,11 +25,10 @@ export const adminNavItems: AppNavItem[] = [
   { label: "Products", href: "/products" },
   { label: "Add Product", href: "/products/new" },
   { label: "Categories", href: "/categories" },
-  { label: "Promotions", href: "/promotions" },
+  { label: "Website CMS", href: "/cms" },
   { label: "Orders", href: "/orders" },
   { label: "Settings", href: "/settings" },
   { label: "Payments", href: "/payments" },
-  { label: "Homepage", href: "/homepage" },
   { label: "Customers", href: "/customers" },
   { label: "Inventory", href: "/inventory" },
 ];
@@ -66,6 +65,7 @@ export type StoreSettings = {
     shopee: string;
     lazada: string;
   };
+  navItems?: AppNavItem[];
   freeShippingText?: LocalizedTextValue;
   storeActive: boolean;
   isStoreActive?: boolean;
@@ -96,6 +96,10 @@ export type HomepageContent = {
   promoStripText?: string;
   trustBadgeText: string[];
   isActive?: boolean;
+  announcementEnabled?: boolean;
+  announcementLink?: string;
+  announcementBgColor?: string;
+  announcementTextColor?: string;
 };
 
 export type PromotionBanner = {
@@ -531,6 +535,10 @@ export const defaultHomepageContent: HomepageContent = {
   promoStripText: "Free shipping for orders above RM40",
   trustBadgeText: ["Free Shipping", "Secure Checkout", "WhatsApp Order", "Trusted Store"],
   isActive: true,
+  announcementEnabled: true,
+  announcementLink: "",
+  announcementBgColor: "#1a1a1a",
+  announcementTextColor: "#ffffff",
 };
 
 export const defaultStoreSettings: StoreSettings = {

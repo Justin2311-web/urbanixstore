@@ -4,21 +4,32 @@ import {
   Boxes,
   CreditCard,
   Home,
-  Image,
+  LayoutDashboard,
   ListTree,
   LogOut,
+  Monitor,
   Package,
   PackagePlus,
   Settings,
   ShoppingBag,
   Users,
 } from "lucide-react";
-import { adminNavItems } from "@ecommerce/shared";
 import { signOut } from "@/lib/auth-actions";
 import { BrandLogo } from "@/components/brand-logo";
 import { cn } from "@/lib/utils";
 
-const icons = [Home, Boxes, PackagePlus, ListTree, Image, ShoppingBag, Settings, CreditCard, BarChart3, Users, Package];
+const navLinks = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/products", label: "Products", icon: Boxes },
+  { href: "/products/new", label: "Add Product", icon: PackagePlus },
+  { href: "/categories", label: "Categories", icon: ListTree },
+  { href: "/cms", label: "Website CMS", icon: Monitor },
+  { href: "/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/payments", label: "Payments", icon: CreditCard },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/inventory", label: "Inventory", icon: Package },
+];
 
 export function AppHeader() {
   return (
@@ -29,8 +40,8 @@ export function AppHeader() {
         </Link>
       </div>
       <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible">
-        {adminNavItems.map((item, index) => {
-          const Icon = icons[index] ?? Home;
+        {navLinks.map((item) => {
+          const Icon = item.icon;
 
           return (
             <Link

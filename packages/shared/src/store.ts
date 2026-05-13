@@ -606,6 +606,13 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     ? row.social_links
     : {};
 
+  // Parse nav_items JSONB — must be array of {label, href}
+  let navItems: import("./index").AppNavItem[] | undefined;
+  if (Array.isArray((row as Record<string, unknown>).nav_items)) {
+    navItems = ((row as Record<string, unknown>).nav_items as Array<{ label: string; href: string }>)
+      .filter((item) => item && typeof item.label === "string" && typeof item.href === "string");
+  }
+
   return {
     contactEmail: row.contact_email ?? "",
     contactPhone: row.contact_phone ?? "",
@@ -618,15 +625,16 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     logo: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logo,
     logoUrl: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logoUrl,
     maintenanceMessage: row.maintenance_message ?? undefined,
+    navItems: navItems && navItems.length > 0 ? navItems : undefined,
     platformLinks: {
-      lazada: typeof socialLinks.lazada === "string" ? socialLinks.lazada : defaultUrbanixStoreData.settings.platformLinks?.lazada ?? "",
-      shopee: typeof socialLinks.shopee === "string" ? socialLinks.shopee : defaultUrbanixStoreData.settings.platformLinks?.shopee ?? "",
+      lazada: typeof (socialLinks as Record<string, unknown>).lazada === "string" ? (socialLinks as Record<string, unknown>).lazada as string : defaultUrbanixStoreData.settings.platformLinks?.lazada ?? "",
+      shopee: typeof (socialLinks as Record<string, unknown>).shopee === "string" ? (socialLinks as Record<string, unknown>).shopee as string : defaultUrbanixStoreData.settings.platformLinks?.shopee ?? "",
     },
     shippingFee: Number(row.shipping_fee),
     socialLinks: {
-      facebook: typeof socialLinks.facebook === "string" ? socialLinks.facebook : "",
-      instagram: typeof socialLinks.instagram === "string" ? socialLinks.instagram : "",
-      tiktok: typeof socialLinks.tiktok === "string" ? socialLinks.tiktok : "",
+      facebook: typeof (socialLinks as Record<string, unknown>).facebook === "string" ? (socialLinks as Record<string, unknown>).facebook as string : "",
+      instagram: typeof (socialLinks as Record<string, unknown>).instagram === "string" ? (socialLinks as Record<string, unknown>).instagram as string : "",
+      tiktok: typeof (socialLinks as Record<string, unknown>).tiktok === "string" ? (socialLinks as Record<string, unknown>).tiktok as string : "",
     },
     storeActive: row.is_store_active,
     isStoreActive: row.is_store_active,
@@ -641,7 +649,13 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
     return defaultUrbanixStoreData.homepage;
   }
 
+  const r = row as Record<string, unknown>;
+
   return {
+    announcementBgColor: typeof r.announcement_bg_color === "string" ? r.announcement_bg_color : defaultUrbanixStoreData.homepage.announcementBgColor,
+    announcementEnabled: typeof r.announcement_enabled === "boolean" ? r.announcement_enabled : true,
+    announcementLink: typeof r.announcement_link === "string" ? r.announcement_link : "",
+    announcementTextColor: typeof r.announcement_text_color === "string" ? r.announcement_text_color : defaultUrbanixStoreData.homepage.announcementTextColor,
     featuredCategoryCards: asStringArray(row.featured_category_cards),
     heroButtonLink: row.hero_button_link ?? "/products",
     heroButtonText: row.hero_button_text ?? "Shop Now",
@@ -650,8 +664,12 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
     heroSubtitle: row.hero_subtitle ?? "",
     heroTitle: row.hero_title,
     isActive: row.is_active,
-    promotionStripText: defaultUrbanixStoreData.homepage.promotionStripText,
-    promoStripText: defaultUrbanixStoreData.homepage.promoStripText,
+    promotionStripText: typeof row.promo_strip_text === "string" && row.promo_strip_text
+      ? row.promo_strip_text
+      : defaultUrbanixStoreData.homepage.promotionStripText,
+    promoStripText: typeof row.promo_strip_text === "string" && row.promo_strip_text
+      ? row.promo_strip_text
+      : defaultUrbanixStoreData.homepage.promoStripText,
     trustBadgeText: withoutReturnBadges(asStringArray(row.trust_badge_text)),
   };
 }
