@@ -119,7 +119,7 @@ export default async function ProductDetailPage({
             ) : null}
           </div>
 
-          <ProductPurchasePanel product={product} />
+          <ProductPurchasePanel product={product} settings={data.settings} />
 
           <div className="grid grid-cols-2 gap-4">
             {highlightItems.map((item) => (
