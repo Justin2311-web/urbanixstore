@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@ecommerce/database";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -7,6 +7,7 @@ import {
   getCategoryIdByName,
   getDisplayPrice,
   platformConfig,
+  type CheckoutCustomer,
   type FooterContent,
   type HomepageContent,
   type LocalizedTextValue,
@@ -17,9 +18,15 @@ import {
   type PromotionBanner,
   type StoreSettings,
   type StorefrontPage,
+  type UrbanixOrder,
   type UrbanixProduct,
   type UrbanixStoreData,
 } from "./index";
+
+type SupabaseStoreClient = SupabaseClient;
+type StoreReadOptions = {
+  includeOrders?: boolean;
+};
 
 function findWorkspaceRoot() {
   let current = process.cwd();
@@ -67,11 +74,16 @@ function mergeStoreData(data: Partial<UrbanixStoreData>): UrbanixStoreData {
 }
 
 export function readUrbanixStoreData(): UrbanixStoreData {
-  if (!existsSync(urbanixDataPath)) {
-    writeUrbanixStoreData(defaultUrbanixStoreData);
-  }
-
   try {
+    if (!existsSync(urbanixDataPath)) {
+      try {
+        writeUrbanixStoreData(defaultUrbanixStoreData);
+      } catch {
+        // Vercel read-only filesystem — skip write, return defaults
+        return defaultUrbanixStoreData;
+      }
+    }
+
     return mergeStoreData(JSON.parse(readFileSync(urbanixDataPath, "utf8")) as Partial<UrbanixStoreData>);
   } catch {
     return defaultUrbanixStoreData;
@@ -98,9 +110,11 @@ function getGoogleSheetConfig() {
   return { endpoint, sheetId };
 }
 
-function createSupabaseStoreClient() {
+function createSupabaseStoreClient({ admin = false } = {}) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = getPublicSupabaseKey();
+  const supabaseKey = admin
+    ? process.env.SUPABASE_SERVICE_ROLE_KEY ?? getPublicSupabaseKey()
+    : getPublicSupabaseKey();
 
   if (!supabaseUrl || !supabaseKey) {
     return null;
@@ -281,9 +295,11 @@ function mapGoogleVariant(row: Record<string, string>): ProductVariantOption {
     localizedOptionValue: localized(cell(row, "option_value_en"), cell(row, "option_value_zh"), cell(row, "option_value_ms")),
     optionName: cell(row, "option_name_en"),
     optionValue: cell(row, "option_value_en"),
+    price: numberCell(row, "price") || undefined,
     priceAdjustment: numberCell(row, "price_adjustment"),
     productId: cell(row, "product_id"),
     sku: cell(row, "variant_sku"),
+    stockQuantity: numberCell(row, "stock_quantity") || undefined,
     sortOrder: numberCell(row, "sort_order"),
   };
 }
@@ -515,13 +531,16 @@ function mapProduct({
   categoriesById,
   imagesByProductId,
   row,
+  variantsByProductId,
 }: {
   row: Database["public"]["Tables"]["products"]["Row"];
   categoriesById: Map<string, ProductCategory>;
   imagesByProductId: Map<string, Database["public"]["Tables"]["product_images"]["Row"][]>;
+  variantsByProductId?: Map<string, ProductVariantOption[]>;
 }): UrbanixProduct {
   const category = row.category_id ? categoriesById.get(row.category_id) : undefined;
   const galleryImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
+  const variantOptions = variantsByProductId?.get(row.id) ?? [];
   const product: UrbanixProduct = {
     category: category?.name ?? "Uncategorized",
     categoryId: category?.id,
@@ -565,9 +584,8 @@ function mapProduct({
     stockStatus:
       row.stock_quantity <= 0 ? "out_of_stock" : row.stock_quantity <= 5 ? "low_stock" : "in_stock",
     updatedAt: row.updated_at,
-    productVariants: Array.isArray(row.product_variants)
-      ? (row.product_variants as Array<{ name: string; values: string[] }>)
-      : undefined,
+    variantGroups: variantOptions.length > 0 ? groupProductVariants(variantOptions) : undefined,
+    variantOptions: variantOptions.length > 0 ? variantOptions : undefined,
   };
   const pricing = getDisplayPrice(product);
 
@@ -677,24 +695,19 @@ function mapPaymentSettings(row?: Database["public"]["Tables"]["payment_settings
   };
 }
 
-export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
-  try {
-    const googleSheetData = await readGoogleSheetStoreData();
-
-    if (googleSheetData) {
-      return googleSheetData;
-    }
-  } catch (error) {
-    console.error("[Urbanix] Google Sheet CMS unavailable, falling back to Supabase/static data.", error);
-  }
-
+export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}): Promise<UrbanixStoreData> {
+  // Supabase is the primary source of truth (written to by admin).
+  // Google Sheets is a fallback CMS for deployments without Supabase.
   const supabase = createSupabaseStoreClient();
 
   if (!supabase) {
-    if (process.env.VERCEL) {
-      throw new Error("Missing Supabase environment variables for live Urbanix data.");
+    // No Supabase configured — try Google Sheets, then local fallback.
+    try {
+      const googleSheetData = await readGoogleSheetStoreData();
+      if (googleSheetData) return googleSheetData;
+    } catch (error) {
+      console.error("[Urbanix] Google Sheet CMS unavailable, falling back to static data.", error);
     }
-
     return readUrbanixStoreData();
   }
 
@@ -716,18 +729,49 @@ export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
     supabase.from("promotion_banners").select("*").order("sort_order", { ascending: true }),
   ]);
 
-  const publicError = [
-    categoriesResult.error,
-    productsResult.error,
-    imagesResult.error,
-    settingsResult.error,
-    bannersResult.error,
-    paymentsResult.error,
-    promotionBannersResult.error,
-  ].find(Boolean);
+  // Fetch variants separately — graceful fallback if table doesn't exist yet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let variantsResult: { data: any[] | null } = { data: [] };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (supabase as any).from("product_variants").select("*").order("sort_order", { ascending: true });
+    if (!result.error) variantsResult = result;
+  } catch {
+    // table not yet migrated — skip silently
+  }
 
-  if (publicError) {
-    throw publicError;
+  // Log errors per-table but continue with partial data instead of all-or-nothing fallback
+  const tableErrors = {
+    categories: categoriesResult.error,
+    products: productsResult.error,
+    product_images: imagesResult.error,
+    store_settings: settingsResult.error,
+    banners: bannersResult.error,
+    payment_settings: paymentsResult.error,
+    promotion_banners: promotionBannersResult.error,
+  };
+  for (const [table, err] of Object.entries(tableErrors)) {
+    if (err) {
+      console.error(`[ERR:table] ${table}`);
+      console.error(`[ERR:code] ${err.code}`);
+      console.error(`[ERR:msg] ${err.message}`);
+    }
+  }
+
+  // If ALL core queries failed, fall back to Google Sheets then local data.
+  const allCoreFailed =
+    !!categoriesResult.error &&
+    !!productsResult.error &&
+    !!settingsResult.error;
+  if (allCoreFailed) {
+    console.error("[Urbanix] Supabase read failed entirely, falling back to Google Sheets/static.");
+    try {
+      const googleSheetData = await readGoogleSheetStoreData();
+      if (googleSheetData) return googleSheetData;
+    } catch {
+      // ignore
+    }
+    return readUrbanixStoreData();
   }
 
   const categoriesByUuid = new Map((categoriesResult.data ?? []).map((row) => [row.id, mapCategory(row)]));
@@ -737,18 +781,65 @@ export async function readUrbanixStoreDataAsync(): Promise<UrbanixStoreData> {
     imagesByProductId.set(image.product_id, [...(imagesByProductId.get(image.product_id) ?? []), image]);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const variantRows: any[] = (variantsResult as any)?.data ?? [];
+  const variantsByProductId = new Map<string, ProductVariantOption[]>();
+
+  for (const vrow of variantRows) {
+    const opt: ProductVariantOption = {
+      id: vrow.id,
+      isActive: vrow.is_active,
+      optionName: vrow.option_name,
+      optionValue: vrow.option_value,
+      price: Number(vrow.price),
+      priceAdjustment: Number(vrow.price_adjustment),
+      productId: vrow.product_id,
+      sku: vrow.sku ?? undefined,
+      sortOrder: vrow.sort_order,
+      stockQuantity: vrow.stock_quantity,
+    };
+    variantsByProductId.set(vrow.product_id, [...(variantsByProductId.get(vrow.product_id) ?? []), opt]);
+  }
+
   const categories = (categoriesResult.data ?? []).map(mapCategory);
   const products = (productsResult.data ?? []).map((row) =>
     mapProduct({
       categoriesById: categoriesByUuid,
       imagesByProductId,
       row,
+      variantsByProductId,
     })
   );
+
+  let orders: UrbanixOrder[] = [];
+
+  if (options.includeOrders) {
+    try {
+      const [ordersResult, orderItemsResult] = await Promise.all([
+        supabase.from("orders").select("*").order("created_at", { ascending: false }),
+        supabase.from("order_items").select("*"),
+      ]);
+
+      if (!ordersResult.error) {
+        const itemsByOrderId = new Map<string, Array<{ id: string; product_name: string; product_sku: string; quantity: number; unit_price: number; total_price: number }>>();
+        for (const item of orderItemsResult.data ?? []) {
+          const list = itemsByOrderId.get(item.order_id) ?? [];
+          list.push(item);
+          itemsByOrderId.set(item.order_id, list);
+        }
+        orders = (ordersResult.data ?? []).map((row) =>
+          mapOrder({ ...row, order_items: itemsByOrderId.get(row.id) ?? [] })
+        );
+      }
+    } catch (error) {
+      console.error("[Urbanix] Failed to load orders:", error);
+    }
+  }
 
   return mergeStoreData({
     categories,
     homepage: mapHomepage(bannersResult.data),
+    orders,
     payments: mapPaymentSettings(paymentsResult.data),
     products,
     promotionBanners: (promotionBannersResult.data ?? []).map(mapPromotionBanner),
@@ -802,4 +893,568 @@ export function listStorefrontPages(data = readUrbanixStoreData()) {
 
 export function getStorefrontPageByKey(pageKey: string, data = readUrbanixStoreData()) {
   return listStorefrontPages(data).find((page) => page.key === pageKey);
+}
+
+// ─── Admin write helpers ──────────────────────────────────────────────────────
+
+function toJsonArray(lines: string[]): Json {
+  return lines as Json;
+}
+
+function dateOrNull(value?: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function isAssetUrl(value?: string | null): boolean {
+  return Boolean(value && (/^(https?:)?\/\//.test(value) || value.startsWith("/")));
+}
+
+function mapOrder(row: { id: string; order_number: string; customer_name: string; customer_phone: string; customer_email?: string | null; shipping_address?: unknown; delivery_note?: string | null; subtotal: number; shipping_fee: number; discount_amount: number; total_amount: number; payment_method: string; payment_status: string; order_status: string; created_at: string; updated_at?: string; order_items?: Array<{ id: string; product_name: string; product_sku: string; quantity: number; unit_price: number; total_price: number }> }): UrbanixOrder {
+  const address = (row.shipping_address ?? {}) as Partial<CheckoutCustomer>;
+  const customer: CheckoutCustomer = {
+    addressLine1: address.addressLine1 ?? "",
+    addressLine2: address.addressLine2 ?? "",
+    city: address.city ?? "",
+    country: address.country ?? "Malaysia",
+    deliveryNote: row.delivery_note ?? "",
+    email: row.customer_email ?? address.email ?? "",
+    fullName: row.customer_name,
+    phone: row.customer_phone,
+    postcode: address.postcode ?? "",
+    state: address.state ?? "",
+  };
+
+  return {
+    createdAt: row.created_at,
+    customer,
+    customerEmail: row.customer_email ?? "",
+    customerName: row.customer_name,
+    customerPhone: row.customer_phone,
+    deliveryNote: row.delivery_note ?? "",
+    discountAmount: Number(row.discount_amount),
+    id: row.id,
+    items: (row.order_items ?? []).map((item) => ({
+      lineTotal: Number(item.total_price),
+      product: {
+        id: item.product_sku,
+        name: item.product_name,
+        price: Number(item.unit_price),
+        sku: item.product_sku,
+      } as UrbanixProduct,
+      quantity: item.quantity,
+      totalPrice: Number(item.total_price),
+      unitPrice: Number(item.unit_price),
+    })),
+    orderNumber: row.order_number,
+    orderStatus: row.order_status as UrbanixOrder["orderStatus"],
+    paymentMethod: row.payment_method as UrbanixOrder["paymentMethod"],
+    paymentStatus: row.payment_status as UrbanixOrder["paymentStatus"],
+    shippingAddress: customer,
+    shippingFee: Number(row.shipping_fee),
+    subtotal: Number(row.subtotal),
+    totalAmount: Number(row.total_amount),
+    totals: {
+      discount: Number(row.discount_amount),
+      shipping: Number(row.shipping_fee),
+      subtotal: Number(row.subtotal),
+      total: Number(row.total_amount),
+    },
+    updatedAt: row.updated_at ?? row.created_at,
+  };
+}
+
+function localUpsertProduct(product: UrbanixProduct) {
+  const data = readUrbanixStoreData();
+  const id = product.id || product.slug;
+  const categoryId = product.categoryId ?? product.relatedCategory ?? getCategoryIdByName(product.category);
+  const nextProduct = {
+    ...product,
+    categoryId,
+    id,
+    isActive: product.isActive ?? product.status !== "inactive",
+    isFeatured: product.isFeatured ?? product.featured ?? false,
+    mainImageUrl: product.mainImageUrl ?? product.image,
+    promotionEndAt: product.promotionEndAt ?? product.promotionEndDate,
+    promotionStartAt: product.promotionStartAt ?? product.promotionStartDate,
+    relatedCategory: product.relatedCategory ?? categoryId,
+    updatedAt: new Date().toISOString(),
+  };
+  const existingIndex = data.products.findIndex((item) => item.id === id);
+
+  if (existingIndex >= 0) {
+    data.products[existingIndex] = nextProduct;
+  } else {
+    data.products.unshift(nextProduct);
+  }
+
+  writeUrbanixStoreData(data);
+  return nextProduct;
+}
+
+export async function upsertProduct(product: UrbanixProduct) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+  console.log(`[Urbanix] upsertProduct: slug=${product.slug} supabaseConfigured=${Boolean(supabase)}`);
+
+  if (!supabase) {
+    return localUpsertProduct(product);
+  }
+
+  const categorySlug = product.categoryId ?? product.relatedCategory ?? getCategoryIdByName(product.category);
+  console.log(`[Urbanix] upsertProduct: looking up categorySlug="${categorySlug}"`);
+
+  // Support both slug and UUID — categoryId from Supabase-loaded products is a UUID, not a slug
+  let categoryDbId: string | undefined;
+  const slugResult = await supabase.from("categories").select("id").eq("slug", categorySlug).maybeSingle();
+  if (slugResult.error) console.error("[Urbanix] upsertProduct: category slug lookup error:", slugResult.error);
+  if (slugResult.data?.id) {
+    categoryDbId = slugResult.data.id;
+  } else {
+    const idResult = await supabase.from("categories").select("id").eq("id", categorySlug).maybeSingle();
+    if (idResult.error) console.error("[Urbanix] upsertProduct: category id lookup error:", idResult.error);
+    categoryDbId = idResult.data?.id;
+  }
+  console.log(`[Urbanix] upsertProduct: categoryDbId=${categoryDbId}`);
+  if (!categoryDbId) throw new Error(`Category "${categorySlug}" not found in Supabase.`);
+
+  const upsertResult = await supabase
+    .from("products")
+    .upsert(
+      {
+        category_id: categoryDbId,
+        description: product.fullDescription || product.description,
+        highlights: toJsonArray(product.highlights ?? []),
+        image_tone: product.imageTone,
+        is_active: product.status !== "inactive" && product.isActive !== false,
+        is_featured: product.featured ?? product.isFeatured ?? false,
+        main_image_url: product.image || product.mainImageUrl || null,
+        name: product.name,
+        price: product.normalPrice ?? product.originalPrice ?? product.price,
+        promotion_end_at: dateOrNull(product.promotionEndAt ?? product.promotionEndDate),
+        promotion_price: product.promotionPrice ?? null,
+        promotion_start_at: dateOrNull(product.promotionStartAt ?? product.promotionStartDate),
+        rating: product.rating,
+        return_note: product.returnNote,
+        shipping_info: product.shippingInfo,
+        short_description: product.shortDescription,
+        sku: product.sku,
+        slug: product.slug,
+        sold: product.sold,
+        specifications: toJsonArray(product.specifications),
+        stock_quantity: product.stockQuantity ?? 0,
+      },
+      { onConflict: "slug" }
+    )
+    .select("id")
+    .single();
+
+  if (upsertResult.error) {
+    console.error("[Urbanix] upsertProduct: products upsert error:", upsertResult.error);
+    throw upsertResult.error;
+  }
+
+  const productDbId = upsertResult.data.id;
+  console.log(`[Urbanix] upsertProduct: products upsert succeeded dbId=${productDbId}`);
+  await syncProductImages(supabase, productDbId, product.galleryImages ?? []);
+  await syncProductVariants(supabase, productDbId, product.variantGroups ?? [], product.price);
+  console.log(`[Urbanix] upsertProduct: complete for slug=${product.slug}`);
+  return product;
+}
+
+async function syncProductVariants(
+  supabase: SupabaseStoreClient,
+  productId: string,
+  variantGroups: ProductVariantGroup[],
+  basePrice: number,
+) {
+  const deleteResult = await supabase.from("product_variants").delete().eq("product_id", productId);
+  if (deleteResult.error) throw deleteResult.error;
+
+  const rows: {
+    product_id: string;
+    option_name: string;
+    option_value: string;
+    price: number;
+    price_adjustment: number;
+    sku: string | null;
+    stock_quantity: number;
+    is_active: boolean;
+    sort_order: number;
+  }[] = [];
+
+  let globalOrder = 0;
+  for (const group of variantGroups) {
+    for (const opt of group.options) {
+      const price = opt.price ?? basePrice + opt.priceAdjustment;
+      rows.push({
+        product_id: productId,
+        option_name: opt.optionName || group.optionName,
+        option_value: opt.optionValue,
+        price,
+        price_adjustment: price - basePrice,
+        sku: opt.sku ?? null,
+        stock_quantity: opt.stockQuantity ?? 0,
+        is_active: opt.isActive,
+        sort_order: globalOrder++,
+      });
+    }
+  }
+
+  if (rows.length === 0) return;
+
+  const insertResult = await supabase.from("product_variants").insert(rows);
+  if (insertResult.error) throw insertResult.error;
+}
+
+async function syncProductImages(supabase: SupabaseStoreClient, productId: string, galleryImages: string[]) {
+  const deleteResult = await supabase.from("product_images").delete().eq("product_id", productId);
+  if (deleteResult.error) throw deleteResult.error;
+
+  const imageRows = galleryImages
+    .filter(Boolean)
+    .map((imageUrl, index) => ({
+      alt_text: null,
+      image_url: imageUrl,
+      is_primary: index === 0,
+      product_id: productId,
+      sort_order: index,
+    }));
+
+  if (imageRows.length === 0) return;
+
+  const insertResult = await supabase.from("product_images").insert(imageRows);
+  if (insertResult.error) throw insertResult.error;
+}
+
+export async function updateCategories(categories: ProductCategory[]) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.categories = categories.map((c, i) => ({
+      ...c,
+      active: c.active ?? c.isActive ?? true,
+      href: c.href || `/categories?category=${c.slug ?? c.id}`,
+      isActive: c.isActive ?? c.active ?? true,
+      slug: c.slug ?? c.id,
+      sortOrder: c.sortOrder ?? i + 1,
+    }));
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  const result = await supabase.from("categories").upsert(
+    categories.map((c, i) => ({
+      description: c.description,
+      image_url: c.imageUrl ?? null,
+      is_active: c.active ?? c.isActive ?? true,
+      name: c.name,
+      slug: c.slug ?? c.id,
+      sort_order: c.sortOrder ?? i + 1,
+      tone: c.tone,
+    })),
+    { onConflict: "slug" }
+  );
+
+  if (result.error) throw result.error;
+}
+
+export async function replaceCategories(categories: ProductCategory[], deletedSlugs: string[] = []) {
+  const normalized = categories.map((c, i) => ({
+    ...c,
+    active: c.active ?? c.isActive ?? true,
+    href: c.href || `/categories?category=${c.slug ?? c.id}`,
+    id: c.slug ?? c.id,
+    isActive: c.isActive ?? c.active ?? true,
+    slug: c.slug ?? c.id,
+    sortOrder: c.sortOrder ?? i + 1,
+  }));
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.categories = normalized.filter((c) => !deletedSlugs.includes(c.slug ?? c.id));
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  if (deletedSlugs.length > 0) {
+    const del = await supabase.from("categories").delete().in("slug", deletedSlugs);
+    if (del.error) throw del.error;
+  }
+
+  await updateCategories(normalized);
+}
+
+export async function updateHomepage(homepage: HomepageContent) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.homepage = homepage;
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  const result = await supabase.from("banners").upsert(
+    {
+      featured_category_cards: toJsonArray(homepage.featuredCategoryCards),
+      hero_button_link: homepage.heroButtonLink,
+      hero_button_text: homepage.heroButtonText,
+      hero_image_url: homepage.heroImage || null,
+      hero_subtitle: homepage.heroSubtitle,
+      hero_title: homepage.heroTitle,
+      id: true,
+      is_active: homepage.isActive ?? true,
+      promo_strip_text: homepage.promotionStripText,
+      trust_badge_text: toJsonArray(homepage.trustBadgeText),
+    },
+    { onConflict: "id" }
+  );
+
+  if (result.error) throw result.error;
+
+  const primaryBannerResult = await supabase
+    .from("promotion_banners")
+    .select("id, desktop_image_url, mobile_image_url")
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (primaryBannerResult.error) throw primaryBannerResult.error;
+
+  const bannerPayload = {
+    cta_text: homepage.heroButtonText || "Shop Now",
+    desktop_image_url: isAssetUrl(homepage.heroImage) ? homepage.heroImage : primaryBannerResult.data?.desktop_image_url ?? null,
+    is_active: homepage.isActive ?? true,
+    mobile_image_url: primaryBannerResult.data?.mobile_image_url ?? null,
+    sort_order: 1,
+    subtitle: homepage.heroSubtitle,
+    target_url: homepage.heroButtonLink || "/products",
+    title: homepage.heroTitle,
+  };
+
+  const promoResult = primaryBannerResult.data?.id
+    ? await supabase.from("promotion_banners").update(bannerPayload).eq("id", primaryBannerResult.data.id)
+    : await supabase.from("promotion_banners").insert(bannerPayload);
+
+  if (promoResult.error) throw promoResult.error;
+}
+
+export async function updateStoreSettings(settings: StoreSettings) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.settings = {
+      ...settings,
+      faviconUrl: settings.faviconUrl ?? settings.favicon,
+      freeShippingMinAmount: settings.freeShippingMinAmount ?? settings.freeShippingMinimumAmount,
+      isStoreActive: settings.isStoreActive ?? settings.storeActive,
+      logoUrl: settings.logoUrl ?? settings.logo,
+    };
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  const result = await supabase.from("store_settings").upsert(
+    {
+      contact_email: settings.contactEmail,
+      contact_phone: settings.contactPhone,
+      currency: settings.currency ?? "MYR",
+      favicon_url: settings.favicon || settings.faviconUrl || null,
+      free_shipping_min_amount: settings.freeShippingMinimumAmount,
+      id: true,
+      is_store_active: settings.storeActive,
+      logo_url: settings.logo || settings.logoUrl || null,
+      maintenance_message: settings.maintenanceMessage ?? null,
+      shipping_fee: settings.shippingFee,
+      social_links: settings.socialLinks,
+      store_name: settings.storeName,
+      store_tagline: settings.storeTagline,
+      whatsapp_number: settings.whatsappNumber,
+    },
+    { onConflict: "id" }
+  );
+
+  if (result.error) throw result.error;
+}
+
+export async function updatePaymentSettings(payments: PaymentSettings) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.payments = {
+      ...payments,
+      isEnabled: payments.isEnabled ?? true,
+      providerPlaceholder: payments.providerPlaceholder ?? payments.futureGatewayPlaceholder,
+    };
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  const result = await supabase.from("payment_settings").upsert(
+    {
+      account_name: payments.accountName,
+      account_number: payments.accountNumber,
+      bank_name: payments.bankName,
+      id: true,
+      is_enabled: payments.isEnabled ?? true,
+      manual_payment_enabled: payments.manualPaymentEnabled,
+      payment_instruction: payments.paymentInstruction,
+      provider_placeholder: payments.providerPlaceholder ?? payments.futureGatewayPlaceholder,
+      whatsapp_order_enabled: payments.whatsAppOrderEnabled,
+    },
+    { onConflict: "id" }
+  );
+
+  if (result.error) throw result.error;
+}
+
+export async function upsertPromotionBanners(banners: PromotionBanner[], deletedIds: string[] = []) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.promotionBanners = banners
+      .filter((b) => !deletedIds.includes(b.id))
+      .toSorted((a, b) => a.sortOrder - b.sortOrder);
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  if (deletedIds.length > 0) {
+    const del = await supabase.from("promotion_banners").delete().in("id", deletedIds);
+    if (del.error) throw del.error;
+  }
+
+  if (banners.length === 0) return;
+
+  const result = await supabase.from("promotion_banners").upsert(
+    banners.map((banner, index) => ({
+      cta_text: banner.ctaText,
+      desktop_image_url: banner.desktopImageUrl || null,
+      id: banner.id || undefined,
+      is_active: banner.isActive,
+      mobile_image_url: banner.mobileImageUrl || null,
+      sort_order: banner.sortOrder || index + 1,
+      subtitle: banner.subtitle,
+      target_url: banner.targetUrl || "/products",
+      title: banner.title,
+    })),
+    { onConflict: "id" }
+  );
+
+  if (result.error) throw result.error;
+}
+
+export async function uploadUrbanixAsset(file: File, bucket: "product-images" | "banners" | "logos", folder: string) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+  if (!supabase) throw new Error("Supabase Storage upload requires SUPABASE_SERVICE_ROLE_KEY.");
+  if (file.size === 0) return "";
+
+  const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "webp";
+  const safeFolder = folder.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const filePath = `${safeFolder}/${crypto.randomUUID()}.${extension}`;
+  const uploadResult = await supabase.storage.from(bucket).upload(filePath, file, {
+    cacheControl: "31536000",
+    contentType: file.type || undefined,
+    upsert: false,
+  });
+
+  if (uploadResult.error) throw uploadResult.error;
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(uploadResult.data.path);
+  return data.publicUrl;
+}
+
+export async function upsertOrder(order: UrbanixOrder) {
+  const supabase = createSupabaseStoreClient();
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    const nextOrder = normalizeOrder(order);
+    data.orders = [nextOrder, ...data.orders.filter((item) => item.id !== order.id)];
+    writeUrbanixStoreData(data);
+    return nextOrder;
+  }
+
+  const insertOrder = await supabase.from("orders").insert({
+    created_at: order.createdAt,
+    customer_email: order.customer.email,
+    customer_name: order.customer.fullName,
+    customer_phone: order.customer.phone,
+    delivery_note: order.customer.deliveryNote || null,
+    discount_amount: order.totals.discount,
+    id: order.id,
+    order_number: order.orderNumber,
+    order_status: order.orderStatus,
+    payment_method: order.paymentMethod,
+    payment_status: order.paymentStatus,
+    shipping_address: order.customer as unknown as Json,
+    shipping_fee: order.totals.shipping,
+    subtotal: order.totals.subtotal,
+    total_amount: order.totals.total,
+  });
+
+  if (insertOrder.error) throw insertOrder.error;
+
+  const orderItems = order.items.map((item) => ({
+    order_id: order.id,
+    product_id: null,
+    product_name: item.product.name,
+    product_sku: item.product.sku,
+    quantity: item.quantity,
+    total_price: item.lineTotal,
+    unit_price: item.product.price,
+  }));
+
+  if (orderItems.length > 0) {
+    const insertItems = await supabase.from("order_items").insert(orderItems);
+    if (insertItems.error) throw insertItems.error;
+  }
+
+  return normalizeOrder(order);
+}
+
+function normalizeOrder(order: UrbanixOrder): UrbanixOrder {
+  return {
+    ...order,
+    customerEmail: order.customerEmail ?? order.customer.email,
+    customerName: order.customerName ?? order.customer.fullName,
+    customerPhone: order.customerPhone ?? order.customer.phone,
+    deliveryNote: order.deliveryNote ?? order.customer.deliveryNote,
+    discountAmount: order.discountAmount ?? order.totals.discount,
+    shippingAddress: order.shippingAddress ?? order.customer,
+    shippingFee: order.shippingFee ?? order.totals.shipping,
+    subtotal: order.subtotal ?? order.totals.subtotal,
+    totalAmount: order.totalAmount ?? order.totals.total,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateOrderStatuses(
+  orderId: string,
+  statuses: Pick<UrbanixOrder, "orderStatus" | "paymentStatus">
+) {
+  const supabase = createSupabaseStoreClient({ admin: true });
+
+  if (!supabase) {
+    const data = readUrbanixStoreData();
+    data.orders = data.orders.map((o) => (o.id === orderId ? { ...o, ...statuses } : o));
+    writeUrbanixStoreData(data);
+    return;
+  }
+
+  const result = await supabase
+    .from("orders")
+    .update({
+      order_status: statuses.orderStatus,
+      payment_status: statuses.paymentStatus,
+    })
+    .eq("id", orderId);
+
+  if (result.error) throw result.error;
 }

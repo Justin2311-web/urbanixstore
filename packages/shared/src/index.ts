@@ -20,6 +20,20 @@ export const storefrontNavItems: AppNavItem[] = [
   { label: "Cart", href: "/cart" },
 ];
 
+export const adminNavItems: AppNavItem[] = [
+  { label: "Dashboard", href: "/" },
+  { label: "Products", href: "/products" },
+  { label: "Add Product", href: "/products/new" },
+  { label: "Categories", href: "/categories" },
+  { label: "Promotions", href: "/promotions" },
+  { label: "Orders", href: "/orders" },
+  { label: "Settings", href: "/settings" },
+  { label: "Payments", href: "/payments" },
+  { label: "Homepage", href: "/homepage" },
+  { label: "Customers", href: "/customers" },
+  { label: "Inventory", href: "/inventory" },
+];
+
 export const platformConfig = {
   name: "Urbanix Store",
   storefrontName: "Urbanix Store",
@@ -158,8 +172,10 @@ export type ProductVariantOption = {
   localizedOptionName?: LocalizedTextValue;
   optionValue: string;
   localizedOptionValue?: LocalizedTextValue;
+  price?: number;
   priceAdjustment: number;
   sku?: string;
+  stockQuantity?: number;
   imageUrl?: string;
   isActive: boolean;
   sortOrder: number;

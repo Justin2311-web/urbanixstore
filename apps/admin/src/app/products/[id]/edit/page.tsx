@@ -1,0 +1,104 @@
+export const dynamic = "force-dynamic";
+
+import type { Database } from "@ecommerce/database";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase";
+import { ProductForm } from "@/components/product-form";
+import { Flash } from "@/components/flash";
+import { deleteProduct } from "@/lib/actions";
+
+type CategoryOption = { id: string; name: string };
+type ProductWithImages = Database["public"]["Tables"]["products"]["Row"] & {
+  product_images: Array<{ image_url: string; sort_order: number }>;
+};
+
+export default async function EditProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string; saveError?: string }>;
+}) {
+  const { id } = await params;
+  const sp = await searchParams;
+  const sb = createAdminClient();
+
+  const [{ data: productRaw }, { data: categoriesRaw }] = await Promise.all([
+    sb
+      .from("products")
+      .select(
+        "id, name, sku, slug, category_id, price, promotion_price, promotion_start_at, promotion_end_at, stock_quantity, is_active, is_featured, short_description, description, highlights, specifications, shipping_info, return_note, rating, main_image_url, product_variants, product_images(image_url, sort_order)"
+      )
+      .eq("id", id)
+      .single(),
+    sb
+      .from("categories")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("sort_order"),
+  ]);
+
+  const product = productRaw as ProductWithImages | null;
+  const categories = categoriesRaw as CategoryOption[] | null;
+
+  if (!product) notFound();
+
+  // Build product shape for the form
+  const formProduct = {
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    slug: product.slug,
+    category_id: product.category_id,
+    price: Number(product.price),
+    promotion_price: product.promotion_price ? Number(product.promotion_price) : null,
+    promotion_start_at: product.promotion_start_at,
+    promotion_end_at: product.promotion_end_at,
+    stock_quantity: product.stock_quantity,
+    is_active: product.is_active,
+    is_featured: product.is_featured,
+    short_description: product.short_description,
+    description: product.description,
+    highlights: Array.isArray(product.highlights) ? (product.highlights as string[]) : [],
+    specifications: Array.isArray(product.specifications) ? (product.specifications as string[]) : [],
+    shipping_info: product.shipping_info,
+    return_note: product.return_note,
+    rating: product.rating,
+    product_variants: Array.isArray(product.product_variants)
+      ? (product.product_variants as Array<{ name: string; values: string[] }>)
+      : null,
+    images: (product.product_images ?? []).sort((a, b) => a.sort_order - b.sort_order),
+  };
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <div className="mb-1 text-sm text-gray-500">
+            <Link href="/products" className="hover:underline">Products</Link>
+            {" › "}Edit
+          </div>
+          <h1 className="page-title">{product.name}</h1>
+          <p className="text-sm text-gray-500 font-mono">{product.slug}</p>
+        </div>
+
+        <form action={deleteProduct}>
+          <input type="hidden" name="id" value={product.id} />
+          <button
+            type="submit"
+            className="btn-danger text-xs px-3 py-1.5"
+            onClick={undefined}
+            formAction={deleteProduct}
+          >
+            Delete Product
+          </button>
+        </form>
+      </div>
+
+      <Flash saved={sp.saved} saveError={sp.saveError} />
+
+      <ProductForm categories={categories ?? []} product={formProduct} />
+    </div>
+  );
+}

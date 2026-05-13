@@ -4,7 +4,7 @@ import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { AppHeader } from "@/components/app-header";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { LanguageProvider } from "@/components/i18n/language-provider";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { StorefrontFooter } from "@/components/storefront-footer";
 import "./globals.css";
 
@@ -49,26 +49,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning
     >
       <head>
+        {/* Inline blocking script: applies saved theme before first paint to prevent flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('urbanix-theme');
-                  if (!theme) {
-                    theme = 'light';
-                  }
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                  } else {
-                    document.documentElement.classList.remove('dark');
-                  }
-                } catch (e) {}
-              })();
-            `,
+            __html: `try{var t=localStorage.getItem('urbanix-theme');if(t==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
       </head>
@@ -86,4 +72,3 @@ export default function RootLayout({
     </html>
   );
 }
-

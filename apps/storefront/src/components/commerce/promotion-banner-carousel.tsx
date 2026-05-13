@@ -33,16 +33,8 @@ export function PromotionBannerCarousel({
           ms: fallback.heroButtonText,
           zh: fallback.heroButtonText,
         },
-        localizedSubtitle: {
-          en: "",
-          ms: "",
-          zh: "",
-        },
-        localizedTitle: {
-          en: "",
-          ms: "",
-          zh: "",
-        },
+        localizedSubtitle: { en: "", ms: "", zh: "" },
+        localizedTitle: { en: "", ms: "", zh: "" },
         mobileImageUrl: fallback.heroImageUrl || "",
         sortOrder: 1,
         subtitle: "",
@@ -60,21 +52,17 @@ export function PromotionBannerCarousel({
   const showButton = activeSlide.buttonEnabled && Boolean(activeSlide.ctaText && buttonHref);
 
   useEffect(() => {
-    if (slides.length <= 1) {
-      return;
-    }
-
+    if (slides.length <= 1) return;
     const timer = window.setInterval(() => {
       setActiveIndex((index) => (index + 1) % slides.length);
     }, 5500);
-
     return () => window.clearInterval(timer);
   }, [slides.length]);
 
   return (
-    <section className="urbanix-container pt-8 sm:pt-10 lg:pt-12">
+    <section className="urbanix-container pt-4 sm:pt-7 lg:pt-9">
       <div
-        className="relative overflow-hidden rounded-[2.5rem] bg-card shadow-[0_40px_100px_rgba(0,0,0,0.08)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.3)]"
+        className="relative overflow-hidden rounded-[1.5rem] bg-card shadow-[0_20px_60px_rgba(12,36,68,0.14)] ring-1 ring-border/60 dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] dark:ring-[rgba(59,158,255,0.12)]"
         data-banner-carousel
       >
         <Link
@@ -84,38 +72,42 @@ export function PromotionBannerCarousel({
           href={imageHref}
         >
           <div
-            className="relative aspect-[4/3] w-full overflow-hidden bg-linear-to-br from-background via-card to-secondary sm:aspect-[16/7] lg:aspect-[21/8]"
+            className="relative aspect-[4/3] w-full overflow-hidden sm:aspect-[16/7] lg:aspect-[21/8]"
             key={activeSlide.id}
           >
             {hasImage ? (
               <>
                 <img
                   alt=""
-                  className="hidden size-full object-cover transition duration-700 md:block dark:opacity-80"
+                  className="hidden size-full object-cover transition duration-700 md:block"
                   data-banner-desktop-image
                   src={activeSlide.desktopImageUrl || activeSlide.mobileImageUrl}
                 />
                 <img
                   alt=""
-                  className="size-full object-cover transition duration-700 md:hidden dark:opacity-80"
+                  className="size-full object-cover transition duration-700 md:hidden"
                   data-banner-mobile-image
                   src={activeSlide.mobileImageUrl || activeSlide.desktopImageUrl}
                 />
               </>
             ) : (
-              <div className="flex size-full items-center justify-center p-6 text-center">
-                <span className="max-w-xl text-3xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl">
+              <div className="relative flex size-full items-center justify-center overflow-hidden p-6 text-center">
+                <div className="absolute inset-0 bg-linear-to-br from-[#0a2d6e] via-[#1255c9] to-[#0e6fd4] dark:from-[#030917] dark:via-[#0a1e45] dark:to-[#0d2860]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_110%,rgba(59,158,255,0.28),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_110%,rgba(59,158,255,0.2),transparent)]" />
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+                <span className="relative max-w-md text-2xl font-extrabold leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)] sm:text-4xl">
                   {freeShippingText ? <LocalizedValue fallback={freeShippingText.en} value={freeShippingText} /> : fallback.heroTitle}
                 </span>
               </div>
             )}
           </div>
         </Link>
+
         {showButton ? (
           <Link
             className={buttonVariants({
               className:
-                "absolute bottom-6 left-6 z-20 h-14 rounded-full bg-primary px-10 text-sm font-black uppercase tracking-widest text-primary-foreground shadow-xl hover:bg-primary/90 sm:bottom-10 sm:left-10",
+                "absolute bottom-4 left-4 z-20 rounded-full bg-primary px-6 text-white shadow-[0_8px_24px_rgba(26,86,219,0.4)] hover:bg-primary/90 hover:shadow-[0_12px_32px_rgba(26,86,219,0.5)] dark:bg-[#3b9eff] dark:shadow-[0_8px_24px_rgba(59,158,255,0.35)] dark:hover:shadow-[0_12px_32px_rgba(59,158,255,0.5)] sm:bottom-6 sm:left-6",
               size: "lg",
             })}
             data-banner-button
@@ -124,16 +116,22 @@ export function PromotionBannerCarousel({
             {buttonText}
           </Link>
         ) : null}
+
         {slides.length > 1 ? (
-          <div className="absolute bottom-6 right-6 z-20 flex items-center gap-3 rounded-full bg-background/40 p-1.5 backdrop-blur-md sm:bottom-10 sm:right-10">
+          <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-black/20 p-1 backdrop-blur-md sm:bottom-6 sm:right-6">
             <CarouselButton label="Previous banner" onClick={() => setActiveIndex((index) => (index - 1 + slides.length) % slides.length)}>
-              <ChevronLeft className="size-5" />
+              <ChevronLeft className="size-4" />
             </CarouselButton>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 items-center">
               {slides.map((slide, index) => (
                 <button
                   aria-label={`Show banner ${index + 1}`}
-                  className={cn("h-1.5 rounded-full bg-primary/20 transition-all", activeIndex === index ? "w-8 bg-primary" : "w-1.5")}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-300",
+                    activeIndex === index
+                      ? "w-6 bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+                      : "w-1.5 bg-white/45 hover:bg-white/65"
+                  )}
                   key={slide.id || index}
                   onClick={() => setActiveIndex(index)}
                   type="button"
@@ -141,7 +139,7 @@ export function PromotionBannerCarousel({
               ))}
             </div>
             <CarouselButton label="Next banner" onClick={() => setActiveIndex((index) => (index + 1) % slides.length)}>
-              <ChevronRight className="size-5" />
+              <ChevronRight className="size-4" />
             </CarouselButton>
           </div>
         ) : null}
@@ -162,7 +160,7 @@ function CarouselButton({
   return (
     <button
       aria-label={label}
-      className="relative z-30 flex size-10 items-center justify-center rounded-full bg-background/60 text-foreground backdrop-blur transition hover:bg-background"
+      className="relative z-30 flex size-7 items-center justify-center rounded-full bg-white/18 text-white backdrop-blur transition hover:bg-white/32"
       onClick={onClick}
       type="button"
     >
@@ -170,5 +168,3 @@ function CarouselButton({
     </button>
   );
 }
-
-

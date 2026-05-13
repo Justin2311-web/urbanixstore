@@ -39,127 +39,188 @@
 }
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f6f9fd;
+  --foreground: #0d1527;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #0d1527;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #0369a1;
+  --popover-foreground: #0d1527;
+  --primary: #1a56db;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #475569;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #d4a017;
+  --secondary: #e8f1ff;
+  --secondary-foreground: #1a3d8f;
+  --muted: #f0f5fc;
+  --muted-foreground: #5a6e87;
+  --accent: #d97706;
   --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --border: #dde8f6;
+  --input: #d8e6f5;
+  --ring: #1a56db;
+  --success: #059669;
+  --warning: #d97706;
+  --coral: #ea580c;
+  --cream: #fffbeb;
+  --radius: 16px;
+}
+
+/* ─── Dark theme: token overrides ───────────────────────────────────────── */
+html.dark {
+  /* Backgrounds */
+  --background: #060c1a;
+  --card: #0b1528;
+  --popover: #0b1528;
+
+  /* Text */
+  --foreground: #dde6f5;
+  --card-foreground: #dde6f5;
+  --popover-foreground: #dde6f5;
+
+  /* Primary: electric blue */
+  --primary: #3b9eff;
+  --primary-foreground: #ffffff;
+
+  /* Secondary: deep navy */
+  --secondary: #0f1e38;
+  --secondary-foreground: #7ab4e0;
+
+  /* Muted */
+  --muted: #0f1e38;
+  --muted-foreground: #6b8db5;
+
+  /* Accent: metallic gold */
+  --accent: #d4a431;
+  --accent-foreground: #0a0e1a;
+
+  /* Semantic */
   --destructive: #ef4444;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0369a1;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --coral: #e07a5f;
-  --cream: #fef3c7;
-  --radius: 24px;
+  --border: #1a3058;
+  --input: #112040;
+  --ring: #3b9eff;
+  --success: #16a46a;
+  --warning: #f4b233;
+
+  /* Custom */
+  --coral: #d4a431;
+  --cream: #080f00;
 }
 
-.dark {
-  --background: #01040a;
-  --foreground: #f8fafc;
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
-  --popover: #0f172a;
-  --popover-foreground: #f8fafc;
-  --primary: #0ea5e9;
-  --primary-foreground: #ffffff;
-  --secondary: #1e293b;
-  --secondary-foreground: #94a3b8;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #f5a623;
-  --accent-foreground: #ffffff;
-  --destructive: #f43f5e;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #0ea5e9;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --coral: #fb7185;
-  --cream: #1e1b16;
+/* Dark body gradient — overrides the inline light gradient */
+html.dark body {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(4, 10, 24, 0.98),
+      rgba(6, 12, 26, 0.95) 300px,
+      rgba(6, 12, 26, 1) 600px
+    );
 }
 
+/* Surface shadow deepens in dark mode */
+html.dark .urbanix-surface {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+}
+
+/* Glassmorphism card — dark mode */
+html.dark .urbanix-glass {
+  background: rgba(11, 21, 40, 0.75);
+  border-color: rgba(59, 158, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(59, 158, 255, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+/* Electric glow — dark mode */
+html.dark .urbanix-glow {
+  box-shadow: 0 0 0 1px rgba(59, 158, 255, 0.3), 0 8px 32px rgba(59, 158, 255, 0.15);
+}
+
+/* Gold glow — dark mode */
+html.dark .urbanix-glow-gold {
+  box-shadow: 0 0 0 1px rgba(212, 164, 49, 0.35), 0 8px 28px rgba(212, 164, 49, 0.18);
+}
+
+/* ─── Theme transitions (enabled after first paint to prevent flash) ──── */
+html.theme-transitions body,
+html.theme-transitions header,
+html.theme-transitions footer,
+html.theme-transitions nav,
+html.theme-transitions main,
+html.theme-transitions article,
+html.theme-transitions section,
+html.theme-transitions aside,
+html.theme-transitions div,
+html.theme-transitions span,
+html.theme-transitions a,
+html.theme-transitions button,
+html.theme-transitions input,
+html.theme-transitions p,
+html.theme-transitions h1,
+html.theme-transitions h2,
+html.theme-transitions h3,
+html.theme-transitions h4,
+html.theme-transitions li {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.22s;
+  transition-timing-function: ease;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border outline-ring/40;
   }
 
   html {
-    @apply scroll-smooth font-sans antialiased;
+    @apply scroll-smooth font-sans;
   }
 
   body {
-    @apply bg-background text-foreground transition-colors duration-300;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(3, 105, 161, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(212, 160, 23, 0.05) 0px, transparent 50%);
-    min-height: 100vh;
-  }
-
-  .dark body {
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.1) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(245, 166, 35, 0.1) 0px, transparent 50%);
+    @apply bg-background text-foreground;
+    background-image:
+      linear-gradient(180deg, rgba(229, 241, 255, 0.86), rgba(245, 248, 253, 0.72) 280px, rgba(245, 248, 253, 1) 560px);
   }
 
   h1,
   h2,
   h3 {
-    @apply text-balance font-heading font-extrabold tracking-tight text-foreground;
+    @apply text-balance font-heading font-bold tracking-normal text-foreground;
   }
 
   p {
-    @apply text-pretty leading-relaxed text-muted-foreground;
+    @apply text-pretty;
   }
 }
 
 @layer components {
   .urbanix-container {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
   }
 
   .urbanix-section {
-    @apply py-16 sm:py-24 lg:py-32;
+    @apply py-7 sm:py-10 lg:py-12;
   }
 
   .urbanix-surface {
-    @apply rounded-[2rem] border border-border/50 bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
-    .dark & {
-      @apply border-border/20 shadow-[0_8px_30px_rgb(0,0,0,0.2)];
-    }
-  }
-
-  .price-current {
-    @apply font-extrabold text-foreground;
-  }
-
-  .price-original {
-    @apply text-sm text-muted-foreground/60 line-through;
+    @apply rounded-2xl border border-border/80 bg-card shadow-[0_14px_34px_rgba(17,24,39,0.08)];
   }
 
   .urbanix-glass {
-    @apply border border-white/40 bg-white/70 shadow-sm backdrop-blur-xl transition-all duration-300;
-    .dark & {
-      @apply border-white/10 bg-black/40;
-    }
+    @apply rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm;
   }
 
-  .urbanix-lifestyle-card {
-    @apply relative overflow-hidden rounded-[2.5rem] bg-card p-4 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)];
-    .dark & {
-      @apply hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)];
-    }
+  .urbanix-glow {
+    @apply shadow-[0_0_0_1px_rgba(26,86,219,0.2),0_8px_32px_rgba(26,86,219,0.08)];
+  }
+
+  .urbanix-glow-gold {
+    @apply shadow-[0_0_0_1px_rgba(217,119,6,0.25),0_8px_28px_rgba(217,119,6,0.1)];
+  }
+
+  .price-current {
+    @apply font-bold text-accent;
+  }
+
+  .price-original {
+    @apply text-xs text-muted-foreground line-through;
   }
 }
-
-
