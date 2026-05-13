@@ -1,56 +1,61 @@
 import { signIn } from "@/lib/auth-actions";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { BrandLogo } from "@/components/brand-logo";
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const params = await searchParams;
+  const { error } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex justify-center">
-          <BrandLogo />
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-extrabold text-[#0e5c56]">Urbanix Admin</h1>
+          <p className="mt-1 text-sm text-gray-500">Sign in to manage your store</p>
         </div>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xl">Admin Sign In</CardTitle>
-            <p className="text-sm text-muted-foreground">Sign in to manage your Urbanix store.</p>
-          </CardHeader>
-          <CardContent>
-            {params.error && (
-              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                Invalid email or password. Please try again.
-              </div>
-            )}
-            <form action={signIn} className="grid gap-3">
-              <Input
-                autoComplete="email"
-                autoFocus
+
+        <div className="card p-6">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              Invalid email or password. Please try again.
+            </div>
+          )}
+
+          <form action={signIn} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="field-label">Email</label>
+              <input
+                id="email"
                 name="email"
-                placeholder="urbanixstore.official@gmail.com"
-                required
                 type="email"
-              />
-              <Input
-                autoComplete="current-password"
-                name="password"
-                placeholder="Password"
                 required
-                type="password"
+                autoFocus
+                autoComplete="email"
+                placeholder="admin@urbanix.com"
+                className="field-input"
               />
-              <Button className="w-full" type="submit">
-                Sign In
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="field-label">Password</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="field-input"
+              />
+            </div>
+
+            <button type="submit" className="btn-primary w-full justify-center py-2.5">
+              Sign In
+            </button>
+          </form>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -1,27 +1,46 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@ecommerce/database";
 
-export async function createAdminSupabaseClient() {
-  const cookieStore = await cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+/**
+ * Admin Supabase client — uses the service role key to bypass RLS.
+ * Only use server-side (server actions, API routes, server components).
+ */
+export function createAdminClient() {
+  // Trim to guard against accidental leading/trailing whitespace in env vars
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
-  if (!url || !key) return null;
+  if (!url || !key) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars."
+    );
+  }
 
-  return createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        } catch {
-          // Server Component — ignore
-        }
-      },
-    },
+  return createClient<Database>(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+/**
+ * Upload a file to Supabase Storage.
+ * Returns the public URL of the uploaded file.
+ */
+export async function uploadFile(
+  file: File,
+  bucket: string,
+  path: string
+): Promise<string> {
+  const sb = createAdminClient();
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const filePath = `${path}/${Date.now()}.${ext}`;
+
+  const { error } = await sb.storage.from(bucket).upload(filePath, file, {
+    upsert: true,
+    contentType: file.type,
+  });
+
+  if (error) throw new Error(`Upload failed: ${error.message}`);
+
+  const { data } = sb.storage.from(bucket).getPublicUrl(filePath);
+  return data.publicUrl;
 }
