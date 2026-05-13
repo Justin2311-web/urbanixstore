@@ -49,6 +49,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         {/* Inline blocking script: applies saved theme before first paint to prevent flash */}

@@ -41,9 +41,9 @@ export function CategoryCard({ category }: { category: ProductCategory }) {
   return (
     <Link
       className={cn(
-        "group relative flex min-h-28 flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br p-4",
-        "border border-border/50 shadow-sm",
-        "transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(26,86,219,0.14)]",
+        "group relative flex min-h-32 flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br p-4",
+        "border border-white/70 shadow-[0_12px_32px_rgba(17,37,68,0.08)]",
+        "transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_46px_rgba(26,86,219,0.16)]",
         "dark:border-[rgba(59,158,255,0.14)] dark:hover:border-[rgba(59,158,255,0.32)] dark:hover:shadow-[0_12px_36px_rgba(59,158,255,0.14)]",
         toneAccents[category.tone]
       )}
@@ -57,7 +57,7 @@ export function CategoryCard({ category }: { category: ProductCategory }) {
           </h3>
           <p className="mt-1 text-xs opacity-65">{category.description}</p>
         </div>
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-current/10 ring-1 ring-current/15">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-current/10 ring-1 ring-current/15">
           <Icon className="size-5" />
         </div>
       </div>

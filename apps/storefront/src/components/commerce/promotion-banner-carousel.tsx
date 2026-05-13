@@ -62,7 +62,7 @@ export function PromotionBannerCarousel({
   return (
     <section className="urbanix-container pt-4 sm:pt-7 lg:pt-9">
       <div
-        className="relative overflow-hidden rounded-[1.5rem] bg-card shadow-[0_20px_60px_rgba(12,36,68,0.14)] ring-1 ring-border/60 dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] dark:ring-[rgba(59,158,255,0.12)]"
+        className="relative overflow-hidden rounded-[2rem] bg-card shadow-[0_24px_70px_rgba(12,36,68,0.16)] ring-1 ring-white/70 dark:shadow-[0_24px_80px_rgba(0,0,0,0.5)] dark:ring-[rgba(59,158,255,0.14)]"
         data-banner-carousel
       >
         <Link
@@ -107,7 +107,7 @@ export function PromotionBannerCarousel({
           <Link
             className={buttonVariants({
               className:
-                "absolute bottom-4 left-4 z-20 rounded-full bg-primary px-6 text-white shadow-[0_8px_24px_rgba(26,86,219,0.4)] hover:bg-primary/90 hover:shadow-[0_12px_32px_rgba(26,86,219,0.5)] dark:bg-[#3b9eff] dark:shadow-[0_8px_24px_rgba(59,158,255,0.35)] dark:hover:shadow-[0_12px_32px_rgba(59,158,255,0.5)] sm:bottom-6 sm:left-6",
+                "absolute bottom-4 left-4 z-20 rounded-full bg-linear-to-r from-primary via-[#14c8ff] to-[#7c3cff] px-6 text-white shadow-[0_12px_32px_rgba(26,86,219,0.38)] hover:scale-[1.02] sm:bottom-6 sm:left-6",
               size: "lg",
             })}
             data-banner-button

@@ -16,7 +16,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const hasOptions = (product.variantGroups?.length ?? 0) > 0;
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-2 shadow-[0_8px_24px_rgba(17,37,68,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/30 hover:shadow-[0_18px_48px_rgba(17,37,68,0.13)] dark:border-[rgba(59,158,255,0.12)] dark:bg-card dark:shadow-[0_8px_24px_rgba(0,0,0,0.25)] dark:hover:border-[rgba(59,158,255,0.3)] dark:hover:shadow-[0_18px_48px_rgba(59,158,255,0.12)]">
+    <article className="group relative overflow-hidden rounded-3xl border border-white/75 bg-card/92 p-2 shadow-[0_14px_38px_rgba(17,37,68,0.09)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/28 hover:shadow-[0_24px_60px_rgba(17,37,68,0.16)] dark:border-[rgba(59,158,255,0.14)] dark:bg-[rgba(11,21,40,0.86)] dark:shadow-[0_12px_34px_rgba(0,0,0,0.28)] dark:hover:border-[rgba(59,158,255,0.34)] dark:hover:shadow-[0_24px_60px_rgba(59,158,255,0.14)]">
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent dark:via-[#8bdcff]/50" />
       <div className="absolute left-3 top-3 z-10">
         <PromotionBadge percent={product.promotionPercent} />
       </div>
@@ -31,7 +32,7 @@ export function ProductCard({ product }: ProductCardProps) {
         ) : null}
         {hasOptions ? (
           <div>
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-primary dark:bg-[rgba(59,158,255,0.12)] dark:text-[#3b9eff]">
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-primary dark:bg-[rgba(59,158,255,0.12)] dark:text-[#8bdcff]">
               <LocalizedValue
                 fallback="Options Available"
                 value={{
@@ -50,10 +51,10 @@ export function ProductCard({ product }: ProductCardProps) {
           <LocalizedValue fallback={product.name} value={product.localizedName} />
         </Link>
         <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
-        <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/50 px-2 py-1.5 dark:bg-[rgba(15,30,56,0.8)]">
+        <div className="flex items-center justify-between gap-2 rounded-2xl bg-muted/55 px-2 py-1.5 dark:bg-[rgba(15,30,56,0.82)]">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="size-3 fill-warning text-warning" />
-            <span className="font-semibold text-accent">{product.rating}</span>
+            <span className="font-semibold text-primary dark:text-[#ffd166]">{product.rating}</span>
             <span>({product.sold})</span>
           </div>
           <AddToCartButton

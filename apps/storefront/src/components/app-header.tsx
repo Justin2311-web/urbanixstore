@@ -17,7 +17,7 @@ export async function AppHeader() {
   const announcementEnabled = homepage.announcementEnabled !== false;
   const announcementBg = homepage.announcementBgColor ?? "#1a1a1a";
   const announcementColor = homepage.announcementTextColor ?? "#ffffff";
-  const announcementText = homepage.promotionStripText;
+  const announcementText = settings.freeShippingText?.en ?? homepage.promotionStripText;
   const announcementLink = homepage.announcementLink;
 
   return (
@@ -43,7 +43,7 @@ export async function AppHeader() {
       ) : null}
 
       {/* Sticky header */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-card/90 shadow-[0_4px_20px_rgba(17,37,68,0.07)] backdrop-blur-lg dark:border-[rgba(59,158,255,0.1)] dark:bg-[rgba(11,21,40,0.88)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+      <header className="sticky top-0 z-40 border-b border-white/70 bg-card/82 shadow-[0_12px_36px_rgba(17,37,68,0.09)] backdrop-blur-xl dark:border-[rgba(59,158,255,0.12)] dark:bg-[rgba(7,16,34,0.88)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.42)]">
         <div className="urbanix-container flex h-16 items-center justify-between gap-4">
           <Link className="shrink-0" href="/">
             <BrandLogo logoUrl={settings.logoUrl} storeName={settings.storeName} />
@@ -51,7 +51,7 @@ export async function AppHeader() {
 
           <nav className="hidden items-center gap-0.5 md:flex">
             <Link
-              className={buttonVariants({ size: "sm", variant: "ghost" })}
+              className={buttonVariants({ className: "rounded-full", size: "sm", variant: "ghost" })}
               href="/track-order"
             >
               <PackageSearch className="size-4" />
@@ -70,7 +70,7 @@ export async function AppHeader() {
             <ThemeToggle />
             <Link
               className={buttonVariants({
-                className: "hidden bg-success text-white hover:bg-success/90 lg:inline-flex",
+                className: "hidden rounded-full bg-linear-to-r from-primary to-[#14c8ff] text-white shadow-[0_12px_28px_rgba(26,86,219,0.22)] hover:opacity-92 lg:inline-flex",
                 size: "sm",
               })}
               href={`https://wa.me/${getWhatsAppNumber(settings)}`}
@@ -117,7 +117,7 @@ function AnnouncementMarquee({ text }: { text: string }) {
   return (
     <div className="marquee-track" aria-label={text}>
       {copies.map((copy, i) => (
-        <span key={i} className="px-16 text-xs font-semibold" aria-hidden={i > 0 ? "true" : undefined}>
+        <span key={i} className="whitespace-nowrap px-16 text-xs font-semibold" aria-hidden={i > 0 ? "true" : undefined}>
           {copy}
         </span>
       ))}
@@ -135,7 +135,7 @@ function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-border/60 bg-card/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_28px_rgba(17,37,68,0.1)] backdrop-blur-lg dark:border-[rgba(59,158,255,0.1)] dark:bg-[rgba(11,21,40,0.95)] dark:shadow-[0_-8px_28px_rgba(0,0,0,0.4)] md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-white/60 bg-card/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_36px_rgba(17,37,68,0.14)] backdrop-blur-xl dark:border-[rgba(59,158,255,0.12)] dark:bg-[rgba(7,16,34,0.95)] dark:shadow-[0_-12px_36px_rgba(0,0,0,0.46)] md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
 

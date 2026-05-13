@@ -39,27 +39,27 @@
 }
 
 :root {
-  --background: #f5f7fa;
+  --background: #f2f7ff;
   --foreground: #0d1527;
   --card: #ffffff;
   --card-foreground: #0d1527;
   --popover: #ffffff;
   --popover-foreground: #0d1527;
-  --primary: #1a56db;
+  --primary: #0b63f6;
   --primary-foreground: #ffffff;
   --secondary: #eef3fc;
   --secondary-foreground: #1a3d8f;
   --muted: #f0f4fb;
   --muted-foreground: #5a6e87;
-  --accent: #ea580c;
+  --accent: #f6a80b;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --border: #dde8f6;
   --input: #d8e6f5;
   --ring: #1a56db;
   --success: #059669;
-  --warning: #d97706;
-  --coral: #ea580c;
+  --warning: #f6a80b;
+  --coral: #7c3cff;
   --cream: #fffbeb;
   --radius: 16px;
 }
@@ -67,7 +67,7 @@
 /* ─── Dark theme: token overrides ───────────────────────────────────────── */
 html.dark {
   /* Backgrounds */
-  --background: #060c1a;
+  --background: #050b18;
   --card: #0b1528;
   --popover: #0b1528;
 
@@ -77,7 +77,7 @@ html.dark {
   --popover-foreground: #dde6f5;
 
   /* Primary: electric blue */
-  --primary: #3b9eff;
+  --primary: #2a9dff;
   --primary-foreground: #ffffff;
 
   /* Secondary: deep navy */
@@ -89,7 +89,7 @@ html.dark {
   --muted-foreground: #6b8db5;
 
   /* Accent: vibrant orange */
-  --accent: #fb923c;
+  --accent: #ffd166;
   --accent-foreground: #ffffff;
 
   /* Semantic */
@@ -101,13 +101,16 @@ html.dark {
   --warning: #fbbf24;
 
   /* Custom */
-  --coral: #fb923c;
+  --coral: #a855f7;
   --cream: #0d1b35;
 }
 
 /* Dark body gradient — overrides the inline light gradient */
 html.dark body {
   background-image:
+    radial-gradient(circle at 15% 8%, rgba(42, 157, 255, 0.24), transparent 34rem),
+    radial-gradient(circle at 85% 16%, rgba(168, 85, 247, 0.22), transparent 30rem),
+    radial-gradient(circle at 72% 62%, rgba(34, 211, 238, 0.12), transparent 27rem),
     linear-gradient(
       180deg,
       rgba(4, 10, 24, 0.98),
@@ -173,6 +176,7 @@ html.theme-transitions li {
 .marquee-track {
   display: inline-flex;
   width: max-content;
+  white-space: nowrap;
   animation: urbanix-marquee 35s linear infinite;
   will-change: transform;
 }
@@ -195,7 +199,9 @@ html.theme-transitions li {
   body {
     @apply bg-background text-foreground;
     background-image:
-      linear-gradient(180deg, rgba(229, 241, 255, 0.86), rgba(245, 248, 253, 0.72) 280px, rgba(245, 248, 253, 1) 560px);
+      radial-gradient(circle at 15% 4%, rgba(42, 157, 255, 0.18), transparent 32rem),
+      radial-gradient(circle at 82% 8%, rgba(124, 60, 255, 0.12), transparent 28rem),
+      linear-gradient(180deg, rgba(232, 242, 255, 0.95), rgba(242, 247, 255, 0.76) 340px, rgba(242, 247, 255, 1) 620px);
   }
 
   h1,
@@ -215,15 +221,15 @@ html.theme-transitions li {
   }
 
   .urbanix-section {
-    @apply py-7 sm:py-10 lg:py-12;
+    @apply py-8 sm:py-12 lg:py-16;
   }
 
   .urbanix-surface {
-    @apply rounded-2xl border border-border/80 bg-card shadow-[0_14px_34px_rgba(17,24,39,0.08)];
+    @apply rounded-3xl border border-border/70 bg-card shadow-[0_18px_50px_rgba(17,37,68,0.1)];
   }
 
   .urbanix-glass {
-    @apply rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm;
+    @apply rounded-3xl border border-white/70 bg-white/72 shadow-[0_20px_60px_rgba(17,37,68,0.1)] backdrop-blur-xl dark:border-[rgba(59,158,255,0.16)] dark:bg-[rgba(11,21,40,0.72)] dark:shadow-[0_22px_70px_rgba(0,0,0,0.32)];
   }
 
   .urbanix-glow {
@@ -235,10 +241,48 @@ html.theme-transitions li {
   }
 
   .price-current {
-    @apply font-bold text-accent;
+    @apply font-bold text-primary dark:text-[#ffd166];
   }
 
   .price-original {
     @apply text-xs text-muted-foreground line-through;
+  }
+
+  .urbanix-gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(110deg, #073075 0%, #0b63f6 38%, #14c8ff 64%, #7c3cff 100%);
+  }
+
+  html.dark .urbanix-gradient-text {
+    background-image: linear-gradient(110deg, #ffffff 0%, #7ee7ff 42%, #ffd166 72%, #b88cff 100%);
+  }
+
+  .urbanix-hero-shell {
+    @apply relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 shadow-[0_28px_90px_rgba(17,37,68,0.16)] backdrop-blur-xl dark:border-[rgba(59,158,255,0.18)] dark:bg-[rgba(7,18,42,0.82)] dark:shadow-[0_30px_100px_rgba(0,0,0,0.42)];
+  }
+
+  .urbanix-hero-shell::before,
+  .urbanix-hero-shell::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    border-radius: 999px;
+    filter: blur(34px);
+  }
+
+  .urbanix-hero-shell::before {
+    width: 18rem;
+    height: 18rem;
+    right: -6rem;
+    top: -7rem;
+    background: rgba(20, 200, 255, 0.28);
+  }
+
+  .urbanix-hero-shell::after {
+    width: 16rem;
+    height: 16rem;
+    left: -7rem;
+    bottom: -8rem;
+    background: rgba(124, 60, 255, 0.18);
   }
 }
