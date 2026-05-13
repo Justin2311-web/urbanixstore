@@ -164,6 +164,24 @@ html.theme-transitions li {
   transition-timing-function: ease;
 }
 
+/* ─── Announcement bar marquee ──────────────────────────────────────── */
+@keyframes urbanix-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: urbanix-marquee 35s linear infinite;
+  will-change: transform;
+}
+
+/* Pause on hover for readability */
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 /* ─── Base ───────────────────────────────────────────────────────────── */
 @layer base {
   * {

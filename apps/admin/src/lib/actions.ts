@@ -627,6 +627,12 @@ export async function saveStoreSettings(formData: FormData) {
     tiktok: fd(formData, "tiktok") || "",
     shopee: fd(formData, "shopee") || "",
     lazada: fd(formData, "lazada") || "",
+    // Uploaded logo image URLs for each platform (stored alongside URLs in same JSONB)
+    facebook_logo: fd(formData, "facebook_logo") || "",
+    instagram_logo: fd(formData, "instagram_logo") || "",
+    tiktok_logo: fd(formData, "tiktok_logo") || "",
+    shopee_logo: fd(formData, "shopee_logo") || "",
+    lazada_logo: fd(formData, "lazada_logo") || "",
   };
 
   const payload = {

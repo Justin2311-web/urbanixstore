@@ -69,7 +69,8 @@ export async function StorefrontFooter() {
             <LocalizedValue fallback={settings.storeTagline} value={data.footer.store_tagline} />{" "}
             <LocalizedValue fallback="Curated essentials for small everyday wins." value={data.footer.tagline_extra} />
           </p>
-          {/* Social & marketplace icons — always rendered; greyed when URL not configured */}
+          {/* Social & marketplace icons — show uploaded logo image when available, else SVG fallback.
+              Each icon only renders when a URL is configured. */}
           <div className="flex flex-wrap gap-2">
             {settings.contactEmail ? (
               <a
@@ -81,22 +82,27 @@ export async function StorefrontFooter() {
               </a>
             ) : null}
             {[
-              { href: settings.socialLinks?.facebook ?? "", icon: FacebookIcon, label: "Facebook" },
-              { href: settings.socialLinks?.instagram ?? "", icon: InstagramIcon, label: "Instagram" },
-              { href: settings.socialLinks?.tiktok ?? "", icon: TikTokIcon, label: "TikTok" },
-              { href: settings.platformLinks?.shopee ?? "", icon: ShopeeIcon, label: "Shopee" },
-              { href: settings.platformLinks?.lazada ?? "", icon: LazadaIcon, label: "Lazada" },
-            ].map(({ href, icon: Icon, label }) =>
+              { href: settings.socialLinks?.facebook ?? "", logoUrl: settings.platformLogoUrls?.facebook ?? "", FallbackIcon: FacebookIcon, label: "Facebook" },
+              { href: settings.socialLinks?.instagram ?? "", logoUrl: settings.platformLogoUrls?.instagram ?? "", FallbackIcon: InstagramIcon, label: "Instagram" },
+              { href: settings.socialLinks?.tiktok ?? "", logoUrl: settings.platformLogoUrls?.tiktok ?? "", FallbackIcon: TikTokIcon, label: "TikTok" },
+              { href: settings.platformLinks?.shopee ?? "", logoUrl: settings.platformLogoUrls?.shopee ?? "", FallbackIcon: ShopeeIcon, label: "Shopee" },
+              { href: settings.platformLinks?.lazada ?? "", logoUrl: settings.platformLogoUrls?.lazada ?? "", FallbackIcon: LazadaIcon, label: "Lazada" },
+            ].map(({ href, logoUrl, FallbackIcon, label }) =>
               href ? (
                 <a
                   aria-label={label}
-                  className="flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff]"
+                  className="flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff] overflow-hidden"
                   href={href}
                   key={label}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  <Icon className="size-3.5" />
+                  {logoUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img alt={label} className="size-4 object-contain" src={logoUrl} />
+                  ) : (
+                    <FallbackIcon className="size-3.5" />
+                  )}
                 </a>
               ) : null
             )}

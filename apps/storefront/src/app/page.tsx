@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Truck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { listActivePromotionBanners, listStorefrontCategories, listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { CategoryCard } from "@/components/commerce/category-card";
 import { ProductCard } from "@/components/commerce/product-card";
 import { PromotionBannerCarousel } from "@/components/commerce/promotion-banner-carousel";
 import { LocalizedText } from "@/components/i18n/localized-text";
-import { LocalizedValue } from "@/components/i18n/localized-value";
-import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -49,35 +47,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Promotional CTA banner */}
-      <section className="urbanix-container urbanix-section">
-        <div className="relative grid gap-5 overflow-hidden rounded-3xl p-5 sm:p-7 md:grid-cols-[auto_1fr_auto] md:items-center">
-          {/* Background: dark navy with warm amber glow — energetic & youthful */}
-          <div className="absolute inset-0 bg-[#0d1b35] dark:bg-[#07101f]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_90%_at_15%_50%,rgba(251,146,60,0.18),transparent)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_85%_50%,rgba(59,158,255,0.12),transparent)]" />
-          <div className="absolute right-0 top-0 size-56 rounded-full bg-[rgba(251,146,60,0.06)] blur-3xl" />
-
-          <div className="relative flex size-14 items-center justify-center rounded-2xl bg-[rgba(251,146,60,0.18)] ring-1 ring-[rgba(251,146,60,0.35)]">
-            <Truck className="size-7 text-[#fb923c]" />
-          </div>
-          <div className="relative">
-            <h2 className="text-xl font-extrabold text-white sm:text-2xl">
-              <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
-            </h2>
-            <p className="mt-1 text-sm font-medium text-white/60">Auto-applies from RM{data.settings.freeShippingMinimumAmount} orders. Fast and simple checkout.</p>
-          </div>
-          <Link
-            className={buttonVariants({
-              className: "relative w-fit bg-[#fb923c] text-white font-bold hover:bg-[#f97316] shadow-[0_4px_20px_rgba(251,146,60,0.45)]",
-            })}
-            href="/products"
-          >
-            <LocalizedText fallback={data.homepage.heroButtonText} k={data.homepage.heroButtonText === "Shop Now" ? "common.shopNow" : `hero.${data.homepage.heroButtonText}`} />
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
-      </section>
 
     </main>
   );

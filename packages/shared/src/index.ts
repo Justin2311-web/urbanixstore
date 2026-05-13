@@ -65,6 +65,14 @@ export type StoreSettings = {
     shopee: string;
     lazada: string;
   };
+  /** Uploaded logo image URLs for each social/marketplace platform */
+  platformLogoUrls?: {
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    shopee?: string;
+    lazada?: string;
+  };
   navItems?: AppNavItem[];
   freeShippingText?: LocalizedTextValue;
   storeActive: boolean;

@@ -22,22 +22,22 @@ export async function AppHeader() {
 
   return (
     <>
-      {/* Announcement bar — text comes from admin CMS → banners.promo_strip_text → homepage.promotionStripText */}
+      {/* Announcement bar — scrolling marquee. Text from admin CMS → banners.promo_strip_text */}
       {announcementEnabled && announcementText ? (
         announcementLink ? (
           <Link
-            className="block py-2 text-center text-xs font-semibold transition-opacity hover:opacity-90"
+            className="block overflow-hidden py-2 transition-opacity hover:opacity-90"
             href={announcementLink}
             style={{ backgroundColor: announcementBg, color: announcementColor }}
           >
-            {announcementText}
+            <AnnouncementMarquee text={announcementText} />
           </Link>
         ) : (
           <div
-            className="py-2 text-center text-xs font-semibold"
+            className="overflow-hidden py-2"
             style={{ backgroundColor: announcementBg, color: announcementColor }}
           >
-            {announcementText}
+            <AnnouncementMarquee text={announcementText} />
           </div>
         )
       ) : null}
@@ -108,6 +108,20 @@ export async function AppHeader() {
 
       <MobileBottomNav />
     </>
+  );
+}
+
+/** Renders 4 copies of text in a flex row; CSS animates the row left by -50% for seamless loop */
+function AnnouncementMarquee({ text }: { text: string }) {
+  const copies = [text, text, text, text];
+  return (
+    <div className="marquee-track" aria-label={text}>
+      {copies.map((copy, i) => (
+        <span key={i} className="px-16 text-xs font-semibold" aria-hidden={i > 0 ? "true" : undefined}>
+          {copy}
+        </span>
+      ))}
+    </div>
   );
 }
 

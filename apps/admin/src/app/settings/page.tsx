@@ -3,9 +3,18 @@ export const dynamic = "force-dynamic";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { saveStoreSettings } from "@/lib/actions";
 import { CheckField, Field, SaveButton } from "@/components/admin-form";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { SaveNotice } from "@/components/save-notice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+
+const PLATFORMS = [
+  { key: "facebook", label: "Facebook", placeholder: "https://facebook.com/yourpage" },
+  { key: "instagram", label: "Instagram", placeholder: "https://instagram.com/yourhandle" },
+  { key: "tiktok", label: "TikTok", placeholder: "https://tiktok.com/@yourhandle" },
+  { key: "shopee", label: "Shopee", placeholder: "https://shopee.com.my/yourstore" },
+  { key: "lazada", label: "Lazada", placeholder: "https://www.lazada.com.my/shop/yourstore" },
+] as const;
 
 export default async function SettingsPage({
   searchParams,
@@ -14,6 +23,16 @@ export default async function SettingsPage({
 }) {
   const params = await searchParams;
   const { settings } = await readUrbanixStoreDataAsync();
+
+  function getPlatformUrl(key: string) {
+    if (key === "shopee") return settings.platformLinks?.shopee ?? "";
+    if (key === "lazada") return settings.platformLinks?.lazada ?? "";
+    return (settings.socialLinks as Record<string, string>)[key] ?? "";
+  }
+
+  function getPlatformLogo(key: string) {
+    return (settings.platformLogoUrls as Record<string, string> | undefined)?.[key] ?? "";
+  }
 
   return (
     <main className="urbanix-container urbanix-section">
@@ -25,7 +44,8 @@ export default async function SettingsPage({
       </div>
       <SaveNotice saveError={params.saveError} saved={params.saved} />
       <form action={saveStoreSettings}>
-        <Card>
+        {/* ── Brand & Operations ───────────────────────────────── */}
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Brand & Operations</CardTitle>
           </CardHeader>
@@ -39,17 +59,48 @@ export default async function SettingsPage({
             <Field label="Contact phone"><Input defaultValue={settings.contactPhone} name="contact_phone" /></Field>
             <Field label="Shipping fee (RM)"><Input defaultValue={settings.shippingFee} name="shipping_fee" step="0.01" type="number" /></Field>
             <Field label="Free shipping minimum (RM)"><Input defaultValue={settings.freeShippingMinimumAmount} name="free_shipping_min_amount" step="0.01" type="number" /></Field>
-            <Field label="Facebook URL"><Input defaultValue={settings.socialLinks.facebook} name="facebook" placeholder="https://facebook.com/yourpage" /></Field>
-            <Field label="Instagram URL"><Input defaultValue={settings.socialLinks.instagram} name="instagram" placeholder="https://instagram.com/yourhandle" /></Field>
-            <Field label="TikTok URL"><Input defaultValue={settings.socialLinks.tiktok} name="tiktok" placeholder="https://tiktok.com/@yourhandle" /></Field>
-            <Field label="Shopee store URL"><Input defaultValue={settings.platformLinks?.shopee ?? ""} name="shopee" placeholder="https://shopee.com.my/yourstore" /></Field>
-            <Field label="Lazada store URL"><Input defaultValue={settings.platformLinks?.lazada ?? ""} name="lazada" placeholder="https://www.lazada.com.my/shop/yourstore" /></Field>
             <CheckField defaultChecked={settings.storeActive} label="Store active" name="is_store_active" />
-            <div className="md:col-span-2">
-              <SaveButton />
-            </div>
           </CardContent>
         </Card>
+
+        {/* ── Social & Marketplace Platforms ───────────────────── */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Social & Marketplace Platforms</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Set the URL and upload a logo for each platform. The logo appears in the storefront footer.
+              If URL is empty, that platform is hidden from the footer.
+            </p>
+          </CardHeader>
+          <CardContent className="grid gap-6">
+            {PLATFORMS.map(({ key, label, placeholder }) => (
+              <div key={key} className="rounded-xl border border-border/60 p-4">
+                <h3 className="mb-3 text-sm font-bold text-foreground">{label}</h3>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Field label={`${label} URL`}>
+                    <Input
+                      defaultValue={getPlatformUrl(key)}
+                      name={key}
+                      placeholder={placeholder}
+                    />
+                  </Field>
+                  <Field label="Logo image (optional — shows instead of default icon)">
+                    <ImageUploadField
+                      bucket="logos"
+                      initialUrl={getPlatformLogo(key)}
+                      name={`${key}_logo`}
+                      storagePath={`platforms/${key}`}
+                    />
+                  </Field>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end">
+          <SaveButton />
+        </div>
       </form>
     </main>
   );
