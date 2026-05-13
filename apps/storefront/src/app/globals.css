@@ -39,29 +39,54 @@
 }
 
 :root {
-  --background: #f5f8fd;
-  --foreground: #111827;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #0647a8;
+  --popover-foreground: #0f172a;
+  --primary: #0369a1;
   --primary-foreground: #ffffff;
-  --secondary: #eaf3ff;
-  --secondary-foreground: #062b63;
-  --muted: #eef4fb;
-  --muted-foreground: #5c6b7d;
-  --accent: #ff5a1f;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #475569;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #d4a017;
   --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --border: #dce7f5;
-  --input: #d7e4f3;
-  --ring: #1d7eea;
-  --success: #11985b;
-  --warning: #f5a623;
-  --coral: #ff5a1f;
-  --cream: #fff4e7;
-  --radius: 14px;
+  --destructive: #ef4444;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0369a1;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --coral: #e07a5f;
+  --cream: #fef3c7;
+  --radius: 24px;
+}
+
+.dark {
+  --background: #01040a;
+  --foreground: #f8fafc;
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  --primary: #0ea5e9;
+  --primary-foreground: #ffffff;
+  --secondary: #1e293b;
+  --secondary-foreground: #94a3b8;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #f5a623;
+  --accent-foreground: #ffffff;
+  --destructive: #f43f5e;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #0ea5e9;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --coral: #fb7185;
+  --cream: #1e1b16;
 }
 
 @layer base {
@@ -70,44 +95,71 @@
   }
 
   html {
-    @apply scroll-smooth font-sans;
+    @apply scroll-smooth font-sans antialiased;
   }
 
   body {
-    @apply bg-background text-foreground;
-    background-image:
-      linear-gradient(180deg, rgba(229, 241, 255, 0.86), rgba(245, 248, 253, 0.72) 280px, rgba(245, 248, 253, 1) 560px);
+    @apply bg-background text-foreground transition-colors duration-300;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(3, 105, 161, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(212, 160, 23, 0.05) 0px, transparent 50%);
+    min-height: 100vh;
+  }
+
+  .dark body {
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(245, 166, 35, 0.1) 0px, transparent 50%);
   }
 
   h1,
   h2,
   h3 {
-    @apply text-balance font-heading font-bold tracking-normal text-foreground;
+    @apply text-balance font-heading font-extrabold tracking-tight text-foreground;
   }
 
   p {
-    @apply text-pretty;
+    @apply text-pretty leading-relaxed text-muted-foreground;
   }
 }
 
 @layer components {
   .urbanix-container {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
   .urbanix-section {
-    @apply py-7 sm:py-10 lg:py-12;
+    @apply py-16 sm:py-24 lg:py-32;
   }
 
   .urbanix-surface {
-    @apply rounded-2xl border border-border/80 bg-card shadow-[0_14px_34px_rgba(17,24,39,0.08)];
+    @apply rounded-[2rem] border border-border/50 bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
+    .dark & {
+      @apply border-border/20 shadow-[0_8px_30px_rgb(0,0,0,0.2)];
+    }
   }
 
   .price-current {
-    @apply font-bold text-accent;
+    @apply font-extrabold text-foreground;
   }
 
   .price-original {
-    @apply text-xs text-muted-foreground line-through;
+    @apply text-sm text-muted-foreground/60 line-through;
+  }
+
+  .urbanix-glass {
+    @apply border border-white/40 bg-white/70 shadow-sm backdrop-blur-xl transition-all duration-300;
+    .dark & {
+      @apply border-white/10 bg-black/40;
+    }
+  }
+
+  .urbanix-lifestyle-card {
+    @apply relative overflow-hidden rounded-[2.5rem] bg-card p-4 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)];
+    .dark & {
+      @apply hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)];
+    }
   }
 }
+
+

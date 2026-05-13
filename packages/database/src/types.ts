@@ -80,6 +80,7 @@ export type Database = {
           sold: number | null;
           specifications: Json;
           stock_quantity: number;
+          product_variants: Json | null;
           updated_at: string;
         };
         Insert: {
@@ -106,6 +107,7 @@ export type Database = {
           sold?: number | null;
           specifications?: Json;
           stock_quantity?: number;
+          product_variants?: Json | null;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
@@ -133,6 +135,7 @@ export type Database = {
       };
       orders: {
         Row: {
+          courier: string | null;
           created_at: string;
           customer_email: string | null;
           customer_name: string;
@@ -144,13 +147,16 @@ export type Database = {
           order_status: "pending" | "processing" | "shipped" | "completed" | "cancelled";
           payment_method: "manual" | "whatsapp";
           payment_status: "pending" | "unpaid" | "paid" | "failed" | "refunded";
+          receipt_url: string | null;
           shipping_address: Json;
           shipping_fee: number;
           subtotal: number;
           total_amount: number;
+          tracking_number: string | null;
           updated_at: string;
         };
         Insert: {
+          courier?: string | null;
           created_at?: string;
           customer_email?: string | null;
           customer_name: string;
@@ -162,10 +168,12 @@ export type Database = {
           order_status?: "pending" | "processing" | "shipped" | "completed" | "cancelled";
           payment_method?: "manual" | "whatsapp";
           payment_status?: "pending" | "unpaid" | "paid" | "failed" | "refunded";
+          receipt_url?: string | null;
           shipping_address?: Json;
           shipping_fee?: number;
           subtotal?: number;
           total_amount?: number;
+          tracking_number?: string | null;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
@@ -181,6 +189,7 @@ export type Database = {
           quantity: number;
           total_price: number;
           unit_price: number;
+          selected_variants: Json | null;
         };
         Insert: {
           created_at?: string;
@@ -192,6 +201,7 @@ export type Database = {
           quantity: number;
           total_price: number;
           unit_price: number;
+          selected_variants?: Json | null;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
       };

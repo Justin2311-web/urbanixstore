@@ -565,6 +565,9 @@ function mapProduct({
     stockStatus:
       row.stock_quantity <= 0 ? "out_of_stock" : row.stock_quantity <= 5 ? "low_stock" : "in_stock",
     updatedAt: row.updated_at,
+    productVariants: Array.isArray(row.product_variants)
+      ? (row.product_variants as Array<{ name: string; values: string[] }>)
+      : undefined,
   };
   const pricing = getDisplayPrice(product);
 

@@ -14,7 +14,8 @@ import { StockBadge } from "@/components/commerce/stock-badge";
 
 export function CartItemCard({ line }: { line: CartLine }) {
   const { decrementItem, removeItem, addItem } = useCart();
-  const { product, quantity } = line;
+  const { product, quantity, selectedVariants } = line;
+  const cartKey = line.cartKey ?? product.id;
   const hasStockWarning = product.stockStatus !== "in_stock";
 
   return (
@@ -31,10 +32,15 @@ export function CartItemCard({ line }: { line: CartLine }) {
       </div>
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <h3 className="line-clamp-2 text-sm font-bold">
               <LocalizedValue fallback={product.name} value={product.localizedName} />
             </h3>
+            {selectedVariants && Object.keys(selectedVariants).length > 0 ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {Object.entries(selectedVariants).map(([k, v]) => `${k}: ${v}`).join(" · ")}
+              </p>
+            ) : null}
             <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
             <p className="mt-1 text-xs font-semibold text-muted-foreground">
               Line total: {formatCurrency(line.lineTotal)}
@@ -42,7 +48,7 @@ export function CartItemCard({ line }: { line: CartLine }) {
           </div>
           <Button
             aria-label={`Remove ${product.name}`}
-            onClick={() => removeItem(product.id)}
+            onClick={() => removeItem(cartKey)}
             size="icon-sm"
             type="button"
             variant="outline"
@@ -52,8 +58,8 @@ export function CartItemCard({ line }: { line: CartLine }) {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <QuantitySelector
-            onDecrease={() => decrementItem(product.id)}
-            onIncrease={() => addItem(product.id)}
+            onDecrease={() => decrementItem(cartKey)}
+            onIncrease={() => addItem(product.id, 1, selectedVariants)}
             value={quantity}
           />
           {hasStockWarning ? <StockBadge status={product.stockStatus} /> : null}

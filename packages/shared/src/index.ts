@@ -222,6 +222,8 @@ export type UrbanixProduct = {
   relatedCategory?: string;
   variantGroups?: ProductVariantGroup[];
   variantOptions?: ProductVariantOption[];
+  /** Simple JSONB variant groups from DB: [{name: "Color", values: ["Black","White"]}] */
+  productVariants?: Array<{ name: string; values: string[] }>;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -235,6 +237,10 @@ export type CartLine = {
   product: UrbanixProduct;
   quantity: number;
   lineTotal: number;
+  /** Selected variant values, e.g. {"Color": "Black", "Style": "Premium"} */
+  selectedVariants?: Record<string, string>;
+  /** Unique cart key (productId + variant combo) */
+  cartKey?: string;
 };
 
 export type OrderTotals = {

@@ -14,15 +14,15 @@ export async function StorefrontFooter() {
   const categories = listStorefrontCategories(data);
 
   return (
-    <footer className="mt-8 bg-primary pb-[calc(14rem+env(safe-area-inset-bottom))] text-primary-foreground md:pb-0">
-      <div className="urbanix-container grid gap-8 py-8 md:grid-cols-[1.3fr_2fr_1.3fr]">
-        <div className="flex flex-col gap-4">
-          <BrandLogo inverse logoUrl={settings.logoUrl} storeName={settings.storeName} />
-          <p className="max-w-xs text-sm text-white/75">
+    <footer className="mt-20 border-t border-border/50 bg-secondary/30 pb-[calc(12rem+env(safe-area-inset-bottom))] pt-16 md:pb-16 dark:bg-card/50">
+      <div className="urbanix-container grid gap-12 md:grid-cols-[1.5fr_2fr_1.5fr]">
+        <div className="flex flex-col gap-6">
+          <BrandLogo logoUrl={settings.logoUrl} storeName={settings.storeName} />
+          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
             <LocalizedValue fallback={settings.storeTagline} value={data.footer.store_tagline} />{" "}
             <LocalizedValue fallback="Curated essentials for small everyday wins." value={data.footer.tagline_extra} />
           </p>
-          <div className="flex gap-2 text-white/80">
+          <div className="flex gap-3">
             {[
               { href: settings.contactEmail ? `mailto:${settings.contactEmail}` : "", icon: AtSign, label: "Email" },
               { href: settings.socialLinks.facebook, icon: Send, label: "Facebook" },
@@ -33,18 +33,18 @@ export async function StorefrontFooter() {
             ].map(({ href, icon: Icon, label }) => (
               <Link
                 aria-disabled={!href}
-                className={`flex size-8 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 ${href ? "" : "pointer-events-none opacity-45"}`}
+                className={`flex size-10 items-center justify-center rounded-full border border-border bg-background transition hover:bg-secondary ${href ? "" : "pointer-events-none opacity-45"}`}
                 href={href || "#"}
                 key={label}
               >
                 <span className="sr-only">{label}</span>
-                <Icon className="size-4" />
+                <Icon className="size-4 text-muted-foreground" />
               </Link>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-5 text-sm">
+        <div className="grid grid-cols-3 gap-8">
           <FooterGroup
             links={categories.map((category) => ({
               href: category.href,
@@ -75,38 +75,34 @@ export async function StorefrontFooter() {
           />
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold uppercase text-white">
-            <LocalizedValue fallback="Contact" value={data.footer.contact_title} />
-          </h2>
-          <p className="text-sm text-white/75">
-            <LocalizedValue fallback="Need help choosing? Talk to us directly." value={data.footer.need_help} />
-          </p>
-          <div className="grid gap-1 text-xs font-semibold text-white/75">
-            {settings.contactEmail ? <a href={`mailto:${settings.contactEmail}`}>{settings.contactEmail}</a> : null}
-            {settings.contactPhone ? <a href={`tel:${settings.contactPhone}`}>{settings.contactPhone}</a> : null}
+        <div className="flex flex-col gap-6">
+          <div>
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
+              <LocalizedValue fallback="Newsletter" value={data.footer.contact_title} />
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              <LocalizedValue fallback="Join our community for the latest updates." value={data.footer.need_help} />
+            </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link
-              className={buttonVariants({
-                className: "bg-success text-white hover:bg-success/90",
-              })}
-              href={`https://wa.me/${getWhatsAppNumber(settings)}`}
-            >
-              <MessageCircle />
-              <LocalizedText fallback="WhatsApp" k="common.whatsapp" />
-            </Link>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Input
+                className="h-12 rounded-full border-border bg-white px-5"
+                placeholder="Email address"
+              />
+              <Link className={buttonVariants({ className: "h-12 rounded-full px-6", variant: "default" })} href="/">
+                <LocalizedText fallback="Join" k="common.subscribe" />
+              </Link>
+            </div>
           </div>
-          <div className="mt-2 flex gap-2">
-            <Input
-              className="border-white/20 bg-white text-foreground"
-              placeholder="Enter your email"
-            />
-            <Link className={buttonVariants({ variant: "secondary" })} href="/">
-              <LocalizedText fallback="Subscribe" k="common.subscribe" />
-            </Link>
+          <div className="flex flex-col gap-1.5 text-xs font-bold text-muted-foreground">
+            {settings.contactEmail ? <a className="hover:text-primary" href={`mailto:${settings.contactEmail}`}>{settings.contactEmail}</a> : null}
+            {settings.contactPhone ? <a className="hover:text-primary" href={`tel:${settings.contactPhone}`}>{settings.contactPhone}</a> : null}
           </div>
         </div>
+      </div>
+      <div className="urbanix-container mt-16 border-t border-border/50 pt-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+        © {new Date().getFullYear()} {settings.storeName}. All rights reserved.
       </div>
     </footer>
   );
@@ -124,19 +120,22 @@ function FooterGroup({
   links: Array<{ href: string; label: string; key?: string; localizedLabel?: { en: string; zh?: string; ms?: string } }>;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-bold uppercase text-white">
+    <div className="flex flex-col gap-4">
+      <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
         {titleValue ? <LocalizedValue fallback={title} value={titleValue} /> : <LocalizedText fallback={title} k={titleKey ?? title} />}
       </h2>
-      {links.map((link) => (
-        <Link className="text-xs text-white/75 hover:text-white" href={link.href} key={link.label}>
-          {link.localizedLabel ? (
-            <LocalizedValue fallback={link.label} value={link.localizedLabel} />
-          ) : (
-            <LocalizedText fallback={link.label} k={link.key ?? `category.${link.label}`} />
-          )}
-        </Link>
-      ))}
+      <div className="flex flex-col gap-2.5">
+        {links.map((link) => (
+          <Link className="text-xs font-bold text-muted-foreground transition-colors hover:text-primary" href={link.href} key={link.label}>
+            {link.localizedLabel ? (
+              <LocalizedValue fallback={link.label} value={link.localizedLabel} />
+            ) : (
+              <LocalizedText fallback={link.label} k={link.key ?? `category.${link.label}`} />
+            )}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
+

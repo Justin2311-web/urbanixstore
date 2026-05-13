@@ -80,53 +80,55 @@ export default async function ProductDetailPage({
   const highlightItems = savedHighlightItems.length > 0 ? savedHighlightItems : fallbackHighlightItems;
 
   return (
-    <main className="urbanix-container urbanix-section pb-24">
-      <div className="grid gap-7 lg:grid-cols-[0.9fr_1fr] lg:items-start">
+    <main className="urbanix-container urbanix-section pb-32">
+      <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
         <ProductGallery product={product} />
 
-        <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
+        <section className="flex flex-col gap-8">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
               <StockBadge status={product.stockStatus} />
-              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
+              <span className="rounded-full bg-secondary/60 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 SKU: {product.sku}
               </span>
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold sm:text-4xl">
+              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
                 <LocalizedValue fallback={product.name} value={product.localizedName} />
               </h1>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
                 <LocalizedValue fallback={product.shortDescription} value={product.localizedDescription} />
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <Star className="size-4 fill-warning text-warning" />
-            <span className="font-bold text-accent">{product.rating}</span>
-            <span className="text-muted-foreground">({product.sold} reviews)</span>
-            <span className="rounded-full bg-cream px-3 py-1 text-xs font-bold text-primary">
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex items-center gap-1.5 rounded-full bg-secondary/50 px-4 py-2 font-bold text-muted-foreground">
+              <Star className="size-4 fill-muted-foreground/30 text-muted-foreground/30" />
+              <span className="text-foreground">{product.rating}</span>
+              <span className="opacity-60">({product.sold} reviews)</span>
+            </div>
+            <span className="rounded-full bg-cream/60 px-4 py-2 text-xs font-black uppercase tracking-widest text-primary">
               {product.sold}+ sold
             </span>
           </div>
 
-          <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
+          <div className="urbanix-surface p-8">
             <PriceDisplay
               originalPrice={product.originalPrice}
               price={product.price}
               size="lg"
             />
             {savings > 0 ? (
-              <p className="mt-2 text-sm font-bold text-success">
-                You save {formatCurrency(savings)}
+              <p className="mt-3 text-sm font-bold text-success">
+                Special Price: You save {formatCurrency(savings)}
               </p>
             ) : null}
           </div>
 
           <ProductPurchasePanel product={product} settings={data.settings} />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             {highlightItems.map((item) => (
               <HighlightCard
                 icon={item.icon}
@@ -137,48 +139,52 @@ export default async function ProductDetailPage({
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {trustBadges.map((badge, index) => (
+          <div className="grid grid-cols-2 gap-4">
+            {trustBadges.slice(0, 2).map((badge, index) => (
               <TrustBadge badge={badge} index={index} key={badge.title} />
             ))}
           </div>
         </section>
       </div>
 
-      <section className="urbanix-section">
-        <div className="grid gap-4 lg:grid-cols-3">
+      <section className="urbanix-section mt-12">
+        <div className="grid gap-8 lg:grid-cols-3">
           <InfoPanel title="Description">
             <p>
               <LocalizedValue fallback={product.description} value={product.localizedDescription} />
             </p>
           </InfoPanel>
           <InfoPanel title="Specifications">
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-3">
               {product.specifications.map((spec) => (
-                <li className="flex gap-2" key={spec}>
-                  <Check className="mt-0.5 size-4 text-success" />
+                <li className="flex gap-3" key={spec}>
+                  <div className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-success/10">
+                    <Check className="size-3 text-success" />
+                  </div>
                   {spec}
                 </li>
               ))}
             </ul>
           </InfoPanel>
           <InfoPanel title="Delivery Info">
-            <p>{product.shippingInfo}</p>
-            <p className="mt-3">
-              <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
-            </p>
+            <div className="flex flex-col gap-4">
+              <p>{product.shippingInfo}</p>
+              <div className="rounded-2xl bg-secondary/30 p-4">
+                <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
+              </div>
+            </div>
           </InfoPanel>
         </div>
       </section>
 
       {relatedProducts.length > 0 ? (
-        <section className="urbanix-section pt-0">
-          <div className="mb-4">
-            <h2 className="text-lg font-extrabold uppercase text-primary">
+        <section className="urbanix-section border-t border-border/50 pt-20">
+          <div className="mb-12">
+            <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
               Related Products
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              More curated picks from {product.category}.
+            <p className="mt-2 text-muted-foreground">
+              Handpicked selections from the {product.category} collection.
             </p>
           </div>
           <ProductGrid products={relatedProducts} settings={data.settings} />
@@ -198,12 +204,12 @@ function HighlightCard({
   text: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-      <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-secondary text-primary">
-        <Icon className="size-5" />
+    <div className="urbanix-surface p-6 transition-transform hover:scale-[1.02]">
+      <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-secondary text-primary">
+        <Icon className="size-6" />
       </div>
-      <h2 className="text-sm font-extrabold">{title}</h2>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p>
+      <h2 className="text-base font-extrabold text-foreground">{title}</h2>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{text}</p>
     </div>
   );
 }
@@ -216,9 +222,10 @@ function InfoPanel({
   children: React.ReactNode;
 }) {
   return (
-    <article className="rounded-3xl border border-border/80 bg-card p-5 text-sm leading-6 text-muted-foreground shadow-sm">
-      <h2 className="mb-3 text-lg font-extrabold text-foreground">{title}</h2>
+    <article className="urbanix-surface p-8 text-sm leading-relaxed text-muted-foreground">
+      <h2 className="mb-6 text-xl font-extrabold text-foreground">{title}</h2>
       {children}
     </article>
   );
 }
+

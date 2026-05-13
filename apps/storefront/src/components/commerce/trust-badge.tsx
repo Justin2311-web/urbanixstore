@@ -7,14 +7,15 @@ export function TrustBadge({ badge, index }: { badge: TrustBadgeType; index: num
   const Icon = icons[index] ?? Truck;
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-sm">
-      <div className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary ring-1 ring-primary/10">
-        <Icon className="size-5" />
+    <div className="urbanix-surface flex flex-col items-center gap-6 p-10 text-center transition-transform hover:scale-[1.02]">
+      <div className="flex size-16 items-center justify-center rounded-[1.5rem] bg-secondary text-primary">
+        <Icon className="size-8" />
       </div>
       <div>
-        <div className="text-sm font-bold">{badge.title}</div>
-        <div className="text-xs text-muted-foreground">{badge.description}</div>
+        <div className="text-lg font-extrabold text-foreground">{badge.title}</div>
+        <div className="mt-2 text-sm text-muted-foreground">{badge.description}</div>
       </div>
     </div>
   );
 }
+

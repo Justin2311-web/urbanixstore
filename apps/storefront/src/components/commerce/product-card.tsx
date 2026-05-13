@@ -18,54 +18,46 @@ export function ProductCard({ product, settings }: ProductCardProps) {
   const hasOptions = (product.variantGroups?.length ?? 0) > 0;
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card p-2 shadow-[0_10px_26px_rgba(23,37,38,0.07)] transition hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_42px_rgba(23,37,38,0.12)]">
-      <div className="absolute left-3 top-3 z-10">
+    <article className="urbanix-lifestyle-card group">
+      <div className="absolute left-4 top-4 z-10">
         <PromotionBadge percent={product.promotionPercent} />
       </div>
-      <Link href={`/products/${product.slug}`}>
-        <ProductVisual alt={product.name} imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]} tone={product.imageTone} />
+      <Link className="block overflow-hidden rounded-[1.8rem]" href={`/products/${product.slug}`}>
+        <div className="transition-transform duration-700 ease-out group-hover:scale-110">
+          <ProductVisual alt={product.name} imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]} tone={product.imageTone} />
+        </div>
       </Link>
-      <div className="flex flex-col gap-2 px-1 py-3">
+      <div className="flex flex-col gap-3 px-1 py-4">
         {product.stockStatus !== "in_stock" ? (
           <div>
             <StockBadge status={product.stockStatus} />
           </div>
         ) : null}
-        {hasOptions ? (
-          <div>
-            <span className="rounded-full bg-secondary px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-primary">
-              <LocalizedValue
-                fallback="Options Available"
-                value={{
-                  en: "Options Available",
-                  ms: "Pilihan tersedia",
-                  zh: "可选款式",
-                }}
-              />
-            </span>
-          </div>
-        ) : null}
         <Link
-          className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-foreground hover:text-primary"
+          className="line-clamp-2 min-h-[3rem] text-sm font-extrabold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary"
           href={`/products/${product.slug}`}
         >
           <LocalizedValue fallback={product.name} value={product.localizedName} />
         </Link>
-        <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
-        <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/60 px-2 py-1.5">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Star className="size-3 fill-warning text-warning" />
-            <span className="font-semibold text-accent">{product.rating}</span>
-            <span>({product.sold})</span>
+        <div className="flex items-center justify-between">
+          <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
+          <div className="flex items-center gap-1.5 rounded-full bg-secondary/50 px-3 py-1 text-[10px] font-bold text-muted-foreground">
+            <Star className="size-3 fill-muted-foreground/30 text-muted-foreground/30" />
+            <span>{product.rating}</span>
           </div>
+        </div>
+        <div className="mt-1 flex items-center gap-2">
           <AddToCartButton
+            className="h-11 grow rounded-full font-bold uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-95"
             disabled={product.stockStatus === "out_of_stock"}
             productId={product.id}
             productName={product.name}
-          />
+          >
+            Add to Cart
+          </AddToCartButton>
         </div>
         <ProductWhatsAppButton
-          className="min-h-9 w-full px-2 text-[0.72rem]"
+          className="h-10 w-full rounded-full border border-border bg-transparent text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground"
           product={product}
           settings={settings}
         />
@@ -73,3 +65,4 @@ export function ProductCard({ product, settings }: ProductCardProps) {
     </article>
   );
 }
+

@@ -22,7 +22,7 @@ export function OrderSummaryCard({
         {showItems && lines.length > 0 ? (
           <div className="mb-2 flex flex-col gap-3">
             {lines.map((line) => (
-              <div className="flex items-center gap-3" key={line.product.id}>
+              <div className="flex items-center gap-3" key={line.cartKey ?? line.product.id}>
                 <ProductVisual
                   className="size-14 rounded-xl"
                   imageUrl={line.product.image || line.product.mainImageUrl || line.product.galleryImages?.[0]}
@@ -32,6 +32,11 @@ export function OrderSummaryCard({
                   <div className="truncate text-xs font-bold">
                     <LocalizedValue fallback={line.product.name} value={line.product.localizedName} />
                   </div>
+                  {line.selectedVariants && Object.keys(line.selectedVariants).length > 0 ? (
+                    <div className="text-xs text-muted-foreground">
+                      {Object.entries(line.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                    </div>
+                  ) : null}
                   <div className="text-xs text-muted-foreground">x{line.quantity}</div>
                 </div>
                 <div className="text-xs font-bold">{formatCurrency(line.lineTotal)}</div>

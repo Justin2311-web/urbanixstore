@@ -4,6 +4,7 @@ import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { AppHeader } from "@/components/app-header";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { LanguageProvider } from "@/components/i18n/language-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { StorefrontFooter } from "@/components/storefront-footer";
 import "./globals.css";
 
@@ -48,16 +49,41 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('urbanix-theme');
+                  if (!theme) {
+                    theme = 'light';
+                  }
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full bg-background text-foreground">
-        <LanguageProvider>
-          <CartProvider>
-            <AppHeader />
-            {children}
-            <StorefrontFooter />
-          </CartProvider>
-        </LanguageProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <CartProvider>
+              <AppHeader />
+              {children}
+              <StorefrontFooter />
+            </CartProvider>
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+

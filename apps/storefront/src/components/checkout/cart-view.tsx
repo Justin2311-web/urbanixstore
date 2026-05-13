@@ -4,10 +4,10 @@ import Link from "next/link";
 import { MessageCircle, ShieldCheck } from "lucide-react";
 import {
   calculateOrderTotals,
-  getCartLines,
   type StoreSettings,
   type UrbanixProduct,
 } from "@ecommerce/shared";
+import { buildCartLines } from "@/lib/cart-utils";
 import { WhatsAppOrderAction } from "@/components/account/whatsapp-order-action";
 import { useCart } from "@/components/cart/cart-provider";
 import { CartItemCard } from "@/components/commerce/cart-item-card";
@@ -29,7 +29,7 @@ export function CartView({
 }) {
   const { count, items } = useCart();
   const { language } = useLanguage();
-  const lines = getCartLines(items, products);
+  const lines = buildCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
 
   if (lines.length === 0) {
@@ -56,7 +56,7 @@ export function CartView({
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <section className="flex flex-col gap-4">
           {lines.map((line) => (
-            <CartItemCard key={line.product.id} line={line} />
+            <CartItemCard key={line.cartKey ?? line.product.id} line={line} />
           ))}
         </section>
 

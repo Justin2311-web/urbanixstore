@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@ecommerce/database": "*",
     "@ecommerce/shared": "*",
+    "@supabase/supabase-js": "^2.105.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.14.0",

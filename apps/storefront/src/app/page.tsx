@@ -22,25 +22,25 @@ export default async function Home() {
   const trustBadges = data.homepage.trustBadgeText
     .filter((title) => !title.toLowerCase().includes("return"))
     .map((title) => ({
-      description: title === "Free Shipping" ? `Orders above RM${data.settings.freeShippingMinimumAmount}` : title === "WhatsApp Order" ? "Fast confirmation" : "",
+      description: title === "Free Shipping" ? `Orders above RM${data.settings.freeShippingMinimumAmount}` : title === "WhatsApp Order" ? "Quick and easy confirmation" : "Premium selection for you",
       title,
     }));
 
   return (
-    <main className="pb-20 md:pb-0">
+    <main className="bg-[#fdfcfb] pb-24 md:pb-0">
       <PromotionBannerCarousel
         banners={promotionBanners}
         fallback={{
           ...data.homepage,
-          heroSubtitle: "Shop confidently with WhatsApp ordering, Cloudinary product visuals, and marketplace-ready links.",
+          heroSubtitle: "Simple, elegant, and curated essentials for your modern lifestyle.",
           heroTitle: data.settings.freeShippingText?.en ?? data.homepage.heroTitle,
         }}
         freeShippingText={data.settings.freeShippingText}
       />
 
       <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/categories" title="Shop by Category" titleKey="home.shopByCategory" />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <SectionHeader action="/categories" subtitle="Find exactly what you need in our curated collections." title="Shop by Category" titleKey="home.shopByCategory" />
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {featuredCategories.map((category) => (
             <CategoryCard category={category} key={category.id} />
           ))}
@@ -48,8 +48,8 @@ export default async function Home() {
       </section>
 
       <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/products" title="Featured Picks" titleKey="home.featuredPicks" />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <SectionHeader action="/products" subtitle="Handpicked favorites that we think you'll love." title="Featured Picks" titleKey="home.featuredPicks" />
+        <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
           {featuredProducts.map((product) => (
             <ProductCard key={product.id} product={product} settings={data.settings} />
           ))}
@@ -57,34 +57,36 @@ export default async function Home() {
       </section>
 
       <section className="urbanix-container urbanix-section">
-        <div className="grid gap-5 overflow-hidden rounded-3xl border border-accent/20 bg-linear-to-r from-accent via-[#ff784f] to-[#ff9f43] p-5 text-white shadow-[0_18px_45px_rgba(255,107,74,0.22)] sm:p-6 md:grid-cols-[auto_1fr_auto] md:items-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/25">
-            <Truck className="size-8" />
+        <div className="urbanix-surface flex flex-col items-center justify-between gap-8 p-10 md:flex-row md:p-16">
+          <div className="flex size-20 items-center justify-center rounded-3xl bg-secondary/50">
+            <Truck className="size-10 text-primary" />
           </div>
-          <div>
-            <h2 className="text-2xl font-extrabold text-white">
+          <div className="grow text-center md:text-left">
+            <h2 className="text-3xl font-extrabold text-foreground">
               <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
             </h2>
-            <p className="text-sm font-semibold text-white/85">Auto-applies from RM{data.settings.freeShippingMinimumAmount} orders. WhatsApp ordering stays fast and simple.</p>
+            <p className="mt-2 text-lg text-muted-foreground">Automatically applied at checkout for orders above RM{data.settings.freeShippingMinimumAmount}.</p>
           </div>
           <Link
             className={buttonVariants({
-              className: "w-fit bg-white text-foreground hover:bg-white/90",
+              className: "h-14 rounded-full px-10 text-sm font-black uppercase tracking-widest",
+              size: "lg",
             })}
             href="/products"
           >
-            <LocalizedText fallback={data.homepage.heroButtonText} k={data.homepage.heroButtonText === "Shop Now" ? "common.shopNow" : `hero.${data.homepage.heroButtonText}`} />
+            Explore More
           </Link>
         </div>
       </section>
 
       <section className="urbanix-container urbanix-section">
-        <div className="mb-4">
-          <h2 className="text-lg font-extrabold uppercase text-primary">
-            <LocalizedText fallback="Why Shop With Urbanix Store" k="home.whyShop" />
+        <div className="mb-12 text-center md:text-left">
+          <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
+            <LocalizedText fallback="Why Shop With Urbanix" k="home.whyShop" />
           </h2>
+          <p className="mt-2 text-muted-foreground">We focus on quality, simplicity, and your satisfaction.</p>
         </div>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-4">
           {trustBadges.map((badge, index) => (
             <TrustBadge badge={badge} index={index} key={badge.title} />
           ))}
@@ -94,13 +96,17 @@ export default async function Home() {
   );
 }
 
-function SectionHeader({ action, title, titleKey }: { title: string; titleKey: string; action: string }) {
+function SectionHeader({ action, subtitle, title, titleKey }: { title: string; titleKey: string; action: string; subtitle?: string }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-4">
-      <h2 className="text-lg font-extrabold uppercase text-primary"><LocalizedText fallback={title} k={titleKey} /></h2>
-      <Link className="flex items-center gap-1 text-xs font-bold text-primary" href={action}>
-        <LocalizedText fallback="View all" k="home.viewAll" /> <ArrowRight className="size-3" />
+    <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <div>
+        <h2 className="text-3xl font-extrabold tracking-tight text-foreground"><LocalizedText fallback={title} k={titleKey} /></h2>
+        {subtitle && <p className="mt-1 text-muted-foreground">{subtitle}</p>}
+      </div>
+      <Link className="flex w-fit items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-secondary/30" href={action}>
+        <LocalizedText fallback="View all" k="home.viewAll" /> <ArrowRight className="size-4" />
       </Link>
     </div>
   );
 }
+
