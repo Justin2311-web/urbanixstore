@@ -25,6 +25,7 @@ type CreateOrderPayload = {
   discountAmount: number;
   totalAmount: number;
   paymentMethod: "manual" | "whatsapp";
+  paymentMethodType?: string | null;
   receiptUrl?: string;
   items: Array<{
     productId?: string;
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
       items,
       orderNumber,
       paymentMethod,
+      paymentMethodType,
       receiptUrl,
       shippingAddress,
       shippingFee,
@@ -85,6 +87,7 @@ export async function POST(request: Request) {
         discount_amount: discountAmount,
         total_amount: totalAmount,
         payment_method: paymentMethod,
+        payment_method_type: paymentMethodType || null,
         order_status: "pending",
         payment_status: "pending",
         receipt_url: receiptUrl || null,

@@ -6,8 +6,15 @@ export const revalidate = 0;
 
 export default async function CheckoutPage() {
   const data = await readUrbanixStoreDataAsync();
-  const { payments, settings } = data;
+  const { payments, settings, qrMethods } = data;
   const products = listStorefrontProducts(data);
 
-  return <CheckoutView payments={payments} products={products} settings={settings} />;
+  return (
+    <CheckoutView
+      payments={payments}
+      products={products}
+      settings={settings}
+      qrMethods={qrMethods ?? []}
+    />
+  );
 }

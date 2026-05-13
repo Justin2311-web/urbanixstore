@@ -146,6 +146,7 @@ export type Database = {
           order_number: string;
           order_status: "pending" | "processing" | "shipped" | "completed" | "cancelled";
           payment_method: "manual" | "whatsapp";
+          payment_method_type: string | null;
           payment_status: "pending" | "unpaid" | "paid" | "failed" | "refunded";
           receipt_url: string | null;
           shipping_address: Json;
@@ -167,6 +168,7 @@ export type Database = {
           order_number: string;
           order_status?: "pending" | "processing" | "shipped" | "completed" | "cancelled";
           payment_method?: "manual" | "whatsapp";
+          payment_method_type?: string | null;
           payment_status?: "pending" | "unpaid" | "paid" | "failed" | "refunded";
           receipt_url?: string | null;
           shipping_address?: Json;
@@ -315,6 +317,27 @@ export type Database = {
           whatsapp_order_enabled?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["payment_settings"]["Insert"]>;
+      };
+      qr_payment_methods: {
+        Row: {
+          created_at: string;
+          display_name: string;
+          id: string;
+          instruction_text: string | null;
+          is_active: boolean;
+          qr_image_url: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_name?: string;
+          id: string;
+          instruction_text?: string | null;
+          is_active?: boolean;
+          qr_image_url?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["qr_payment_methods"]["Insert"]>;
       };
       promotion_banners: {
         Row: {

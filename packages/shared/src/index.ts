@@ -72,6 +72,14 @@ export type StoreSettings = {
   maintenanceMessage?: string;
 };
 
+export type QrPaymentMethod = {
+  id: string; // 'bank_qr' | 'ewallet_qr'
+  displayName: string;
+  qrImageUrl: string | null;
+  instructionText: string | null;
+  isActive: boolean;
+};
+
 export type PaymentSettings = {
   manualPaymentEnabled: boolean;
   whatsAppOrderEnabled: boolean;
@@ -82,6 +90,7 @@ export type PaymentSettings = {
   futureGatewayPlaceholder: string;
   providerPlaceholder?: string;
   isEnabled?: boolean;
+  qrMethods?: QrPaymentMethod[];
 };
 
 export type HomepageContent = {
@@ -292,8 +301,10 @@ export type UrbanixOrder = {
   items: CartLine[];
   totals: OrderTotals;
   paymentMethod: PaymentMethod;
+  paymentMethodType?: string | null;
   paymentStatus: "pending" | "unpaid" | "paid" | "failed" | "refunded";
   orderStatus: "pending" | "processing" | "shipped" | "completed" | "cancelled";
+  receiptUrl?: string | null;
   createdAt: string;
   updatedAt?: string;
   customerName?: string;
@@ -584,6 +595,10 @@ export const defaultPaymentSettings: PaymentSettings = {
   futureGatewayPlaceholder: "Online gateway integration placeholder",
   providerPlaceholder: "Online gateway integration placeholder",
   isEnabled: true,
+  qrMethods: [
+    { id: "bank_qr", displayName: "Bank QR Payment", qrImageUrl: null, instructionText: "Scan the QR code to pay via bank transfer.", isActive: true },
+    { id: "ewallet_qr", displayName: "E-wallet QR Payment", qrImageUrl: null, instructionText: "Scan the QR code to pay via e-wallet.", isActive: true },
+  ],
 };
 
 export type UrbanixStoreData = {
@@ -596,6 +611,7 @@ export type UrbanixStoreData = {
   payments: PaymentSettings;
   footer: FooterContent;
   orders: UrbanixOrder[];
+  qrMethods?: QrPaymentMethod[];
 };
 
 export const defaultUrbanixStoreData: UrbanixStoreData = {

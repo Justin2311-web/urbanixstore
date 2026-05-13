@@ -239,7 +239,11 @@ export default async function OrderDetailPage({
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-gray-500">Method</dt>
-                <dd className="font-medium capitalize">{order.payment_method}</dd>
+                <dd className="font-medium capitalize">
+                  {(order as Record<string, unknown>).payment_method_type
+                    ? String((order as Record<string, unknown>).payment_method_type)
+                    : order.payment_method}
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Payment Status</dt>

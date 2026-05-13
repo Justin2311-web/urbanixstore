@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import type { Database } from "@ecommerce/database";
 import { createAdminClient } from "@/lib/supabase";
 import { Flash } from "@/components/flash";
-import { savePaymentSettings } from "@/lib/actions";
+import { ImageUploadField } from "@/components/image-upload-field";
+import { saveQrPaymentMethod } from "@/lib/actions";
+import type { Database } from "@ecommerce/database";
 
-type PaymentRow = Database["public"]["Tables"]["payment_settings"]["Row"];
+type QrRow = Database["public"]["Tables"]["qr_payment_methods"]["Row"];
 
 export default async function PaymentsPage({
   searchParams,
@@ -15,95 +16,111 @@ export default async function PaymentsPage({
   const params = await searchParams;
   const sb = createAdminClient();
 
-  const { data: paymentsRaw } = await sb
-    .from("payment_settings")
-    .select("*")
-    .eq("id", true)
-    .maybeSingle();
-  const payments = paymentsRaw as PaymentRow | null;
+  const { data: qrMethodsRaw } = await sb
+    .from("qr_payment_methods")
+    .select("*");
+
+  const qrMethods = (qrMethodsRaw ?? []) as QrRow[];
+
+  // Ensure we have both default rows even if DB is empty
+  const bankQr = qrMethods.find((m) => m.id === "bank_qr") ?? {
+    id: "bank_qr",
+    display_name: "Bank QR Payment",
+    qr_image_url: null,
+    instruction_text: "Scan the QR code to pay via bank transfer.",
+    is_active: true,
+    created_at: "",
+    updated_at: "",
+  };
+  const ewalletQr = qrMethods.find((m) => m.id === "ewallet_qr") ?? {
+    id: "ewallet_qr",
+    display_name: "E-wallet QR Payment",
+    qr_image_url: null,
+    instruction_text: "Scan the QR code to pay via e-wallet.",
+    is_active: true,
+    created_at: "",
+    updated_at: "",
+  };
 
   return (
     <div>
       <div className="page-header">
         <h1 className="page-title">Payment Settings</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Manage QR payment methods shown to customers at checkout.
+        </p>
       </div>
 
       <Flash saved={params.saved} saveError={params.saveError} />
 
-      <form action={savePaymentSettings}>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">Payment Methods</h2>
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  name="manual_payment_enabled"
-                  type="checkbox"
-                  defaultChecked={payments?.manual_payment_enabled ?? true}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <span className="text-sm font-medium text-gray-700">Manual Bank Transfer</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  name="whatsapp_order_enabled"
-                  type="checkbox"
-                  defaultChecked={payments?.whatsapp_order_enabled ?? true}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <span className="text-sm font-medium text-gray-700">WhatsApp Order</span>
-              </label>
-            </div>
-          </div>
+      <div className="grid gap-8 lg:grid-cols-2">
+        <QrMethodCard method={bankQr} />
+        <QrMethodCard method={ewalletQr} />
+      </div>
+    </div>
+  );
+}
 
-          <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">Bank Transfer Details</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="field-label">Bank Name</label>
-                <input name="bank_name" className="field-input" defaultValue={payments?.bank_name ?? ""} placeholder="e.g. Maybank" />
-              </div>
-              <div>
-                <label className="field-label">Account Name</label>
-                <input name="account_name" className="field-input" defaultValue={payments?.account_name ?? ""} />
-              </div>
-              <div>
-                <label className="field-label">Account Number</label>
-                <input name="account_number" className="field-input" defaultValue={payments?.account_number ?? ""} />
-              </div>
-            </div>
-          </div>
+function QrMethodCard({ method }: { method: QrRow }) {
+  const label = method.id === "bank_qr" ? "🏦 Bank QR Payment" : "📱 E-wallet QR Payment";
 
-          <div className="card p-5 lg:col-span-2">
-            <h2 className="mb-4 font-semibold text-gray-800">Payment Instructions</h2>
-            <textarea
-              name="payment_instruction"
-              className="field-textarea"
-              rows={4}
-              defaultValue={payments?.payment_instruction ?? ""}
-              placeholder="Instructions shown to customers after they place an order…"
-            />
-          </div>
+  return (
+    <div className="card p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-gray-800">{label}</h2>
+      </div>
 
-          <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">Future Gateway</h2>
-            <div>
-              <label className="field-label">Gateway Placeholder / Notes</label>
-              <input
-                name="provider_placeholder"
-                className="field-input"
-                defaultValue={payments?.provider_placeholder ?? ""}
-                placeholder="e.g. Stripe integration coming soon"
-              />
-            </div>
-          </div>
+      <form action={saveQrPaymentMethod} className="space-y-4">
+        <input type="hidden" name="id" value={method.id} />
 
-          <div className="flex items-end">
-            <button type="submit" className="btn-primary">
-              💾 Save Payment Settings
-            </button>
-          </div>
+        {/* Enable/disable toggle */}
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            name="is_active"
+            type="checkbox"
+            defaultChecked={method.is_active}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <span className="text-sm font-medium text-gray-700">Active (shown at checkout)</span>
+        </label>
+
+        {/* Display name */}
+        <div>
+          <label className="field-label">Display Name</label>
+          <input
+            name="display_name"
+            className="field-input"
+            defaultValue={method.display_name}
+            placeholder="e.g. Bank QR Payment"
+          />
         </div>
+
+        {/* QR image upload */}
+        <div>
+          <label className="field-label">QR Code Image</label>
+          <ImageUploadField
+            bucket="banners"
+            storagePath={`qr-codes/${method.id}`}
+            name="qr_image_url"
+            initialUrl={method.qr_image_url}
+          />
+        </div>
+
+        {/* Instruction text */}
+        <div>
+          <label className="field-label">Customer Instructions</label>
+          <textarea
+            name="instruction_text"
+            className="field-textarea"
+            rows={3}
+            defaultValue={method.instruction_text ?? ""}
+            placeholder="Instructions shown to customers when they select this payment method…"
+          />
+        </div>
+
+        <button type="submit" className="btn-primary w-full">
+          💾 Save {method.id === "bank_qr" ? "Bank QR" : "E-wallet QR"}
+        </button>
       </form>
     </div>
   );

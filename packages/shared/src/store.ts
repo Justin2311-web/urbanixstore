@@ -16,6 +16,7 @@ import {
   type ProductVariantGroup,
   type ProductVariantOption,
   type PromotionBanner,
+  type QrPaymentMethod,
   type StoreSettings,
   type StorefrontPage,
   type UrbanixOrder,
@@ -62,6 +63,7 @@ function mergeStoreData(data: Partial<UrbanixStoreData>): UrbanixStoreData {
     footer: { ...defaultUrbanixStoreData.footer, ...data.footer },
     products: data.products ?? defaultUrbanixStoreData.products,
     promotionBanners: data.promotionBanners ?? defaultUrbanixStoreData.promotionBanners,
+    qrMethods: data.qrMethods ?? defaultUrbanixStoreData.qrMethods,
     settings: {
       ...defaultUrbanixStoreData.settings,
       ...data.settings,
@@ -713,6 +715,16 @@ function mapPaymentSettings(row?: Database["public"]["Tables"]["payment_settings
   };
 }
 
+function mapQrPaymentMethod(row: Database["public"]["Tables"]["qr_payment_methods"]["Row"]): QrPaymentMethod {
+  return {
+    displayName: row.display_name,
+    id: row.id,
+    instructionText: row.instruction_text ?? null,
+    isActive: row.is_active,
+    qrImageUrl: row.qr_image_url ?? null,
+  };
+}
+
 export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}): Promise<UrbanixStoreData> {
   // Supabase is the primary source of truth (written to by admin).
   // Google Sheets is a fallback CMS for deployments without Supabase.
@@ -737,6 +749,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     bannersResult,
     paymentsResult,
     promotionBannersResult,
+    qrMethodsResult,
   ] = await Promise.all([
     supabase.from("categories").select("*").order("sort_order", { ascending: true }),
     supabase.from("products").select("*").order("created_at", { ascending: false }),
@@ -745,6 +758,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     supabase.from("banners").select("*").eq("id", true).maybeSingle(),
     supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
     supabase.from("promotion_banners").select("*").order("sort_order", { ascending: true }),
+    supabase.from("qr_payment_methods").select("*"),
   ]);
 
   // Fetch variants separately — graceful fallback if table doesn't exist yet
@@ -767,6 +781,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     banners: bannersResult.error,
     payment_settings: paymentsResult.error,
     promotion_banners: promotionBannersResult.error,
+    qr_payment_methods: qrMethodsResult.error,
   };
   for (const [table, err] of Object.entries(tableErrors)) {
     if (err) {
@@ -854,6 +869,8 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     }
   }
 
+  const qrMethods = (qrMethodsResult.data ?? []).map(mapQrPaymentMethod);
+
   return mergeStoreData({
     categories,
     homepage: mapHomepage(bannersResult.data),
@@ -861,6 +878,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     payments: mapPaymentSettings(paymentsResult.data),
     products,
     promotionBanners: (promotionBannersResult.data ?? []).map(mapPromotionBanner),
+    qrMethods,
     settings: mapStoreSettings(settingsResult.data),
   });
 }

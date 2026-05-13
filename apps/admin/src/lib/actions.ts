@@ -584,6 +584,38 @@ export async function savePaymentSettings(formData: FormData) {
   redirect("/payments?saved=1");
 }
 
+// ─── QR PAYMENT METHODS ───────────────────────────────────────────────────────
+
+export async function saveQrPaymentMethod(formData: FormData) {
+  const sb = createAdminClient();
+  const id = fd(formData, "id"); // 'bank_qr' or 'ewallet_qr'
+
+  if (!id) {
+    redirect("/payments?saveError=Missing+payment+method+id");
+  }
+
+  const payload = {
+    id,
+    display_name: fd(formData, "display_name"),
+    instruction_text: fd(formData, "instruction_text") || null,
+    is_active: fdBool(formData, "is_active"),
+    qr_image_url: fd(formData, "qr_image_url") || null,
+  };
+
+  const { error } = await sb
+    .from("qr_payment_methods")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    console.error("[Admin] saveQrPaymentMethod error:", error);
+    redirect(`/payments?saveError=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidateAll();
+  await revalidateStorefront();
+  redirect("/payments?saved=1");
+}
+
 // ─── STORE SETTINGS ───────────────────────────────────────────────────────────
 
 export async function saveStoreSettings(formData: FormData) {

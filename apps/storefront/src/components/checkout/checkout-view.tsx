@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Landmark, ShieldCheck, Upload, X } from "lucide-react";
-import type { CheckoutCustomer, PaymentSettings, StoreSettings, UrbanixOrder, UrbanixProduct } from "@ecommerce/shared";
+import { ShieldCheck, Upload, X } from "lucide-react";
+import type { CheckoutCustomer, PaymentSettings, QrPaymentMethod, StoreSettings, UrbanixOrder, UrbanixProduct } from "@ecommerce/shared";
 import { calculateOrderTotals } from "@ecommerce/shared";
 import { buildCartLines } from "@/lib/cart-utils";
 import { useCart } from "@/components/cart/cart-provider";
@@ -38,10 +38,12 @@ export function CheckoutView({
   payments,
   products,
   settings,
+  qrMethods = [],
 }: {
   payments: PaymentSettings;
   products: UrbanixProduct[];
   settings: StoreSettings;
+  qrMethods?: QrPaymentMethod[];
 }) {
   const router = useRouter();
   const { clearCart, items } = useCart();
@@ -49,6 +51,13 @@ export function CheckoutView({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Active QR methods — only those enabled in admin
+  const activeQrMethods = qrMethods.filter((m) => m.isActive);
+  const [selectedMethodId, setSelectedMethodId] = useState<string>(
+    activeQrMethods[0]?.id ?? ""
+  );
+  const selectedMethod = activeQrMethods.find((m) => m.id === selectedMethodId) ?? activeQrMethods[0] ?? null;
 
   // Receipt upload state
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -132,7 +141,6 @@ export function CheckoutView({
     setReceiptFile(file);
     setReceiptUrl(null);
 
-    // Show image preview (not for PDFs)
     if (file.type !== "application/pdf") {
       const reader = new FileReader();
       reader.onload = (ev) => setReceiptPreview(ev.target?.result as string);
@@ -154,7 +162,6 @@ export function CheckoutView({
     const ext = file.name.split(".").pop() ?? "jpg";
     const filePath = `receipts/${orderNumber}/${Date.now()}.${ext}`;
 
-    // Get signed upload URL from our API route
     const res = await fetch("/api/signed-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -168,7 +175,6 @@ export function CheckoutView({
 
     const { signedUrl, publicUrl } = await res.json() as { signedUrl: string; publicUrl: string };
 
-    // Upload directly to Supabase Storage (bypasses Vercel body limit)
     const uploadRes = await fetch(signedUrl, {
       method: "PUT",
       body: file,
@@ -233,6 +239,7 @@ export function CheckoutView({
         discountAmount: totals.discount,
         totalAmount: totals.total,
         paymentMethod: "manual" as const,
+        paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
         receiptUrl: finalReceiptUrl ?? undefined,
         items: lines.map((line) => ({
           productId: line.product.id,
@@ -266,11 +273,12 @@ export function CheckoutView({
         orderNumber: orderData.orderNumber ?? orderNumber,
         orderStatus: "pending",
         paymentMethod: "manual",
+        paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
         paymentStatus: "pending",
+        receiptUrl: finalReceiptUrl,
         totals,
       };
 
-      // Sync customer profile in background
       const savedProfile = saveCustomerProfileLocally({
         createdAt: "",
         customerAddress: [
@@ -424,30 +432,56 @@ export function CheckoutView({
               <CardTitle>Payment Method</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-3">
-                <Landmark className="size-6 shrink-0 text-primary" />
-                <div>
-                  <p className="text-sm font-bold">Bank Transfer</p>
-                  <p className="text-xs text-muted-foreground">
-                    {payments.paymentInstruction || "Transfer to our bank account then upload your receipt below."}
-                  </p>
-                </div>
-                <span className="ml-auto size-4 rounded-full border-4 border-primary" />
-              </div>
 
-              {payments.manualPaymentEnabled && (
-                <div className="rounded-2xl border border-warning/30 bg-amber-50 p-4 text-sm">
-                  <div className="font-extrabold text-primary">Bank Transfer Details</div>
-                  <div className="mt-3 grid grid-cols-[110px_1fr] gap-2 text-xs">
-                    <span className="text-muted-foreground">Bank Name</span>
-                    <span className="font-bold">{payments.bankName}</span>
-                    <span className="text-muted-foreground">Account Name</span>
-                    <span className="font-bold">{payments.accountName}</span>
-                    <span className="text-muted-foreground">Account No.</span>
-                    <span className="font-bold">{payments.accountNumber}</span>
-                  </div>
-                  {payments.paymentInstruction && (
-                    <p className="mt-3 text-xs text-muted-foreground">{payments.paymentInstruction}</p>
+              {/* QR method selector */}
+              {activeQrMethods.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {activeQrMethods.map((method) => {
+                    const isSelected = selectedMethodId === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setSelectedMethodId(method.id)}
+                        className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                          isSelected
+                            ? "border-primary/60 bg-primary/5"
+                            : "border-border bg-white hover:border-primary/30 hover:bg-primary/5"
+                        }`}
+                      >
+                        <span className="text-xl">{method.id === "bank_qr" ? "🏦" : "📱"}</span>
+                        <span className="text-sm font-bold">{method.displayName}</span>
+                        <span className={`ml-auto size-4 shrink-0 rounded-full border-4 transition-colors ${
+                          isSelected ? "border-primary" : "border-gray-300"
+                        }`} />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No payment methods available. Please contact the store.</p>
+              )}
+
+              {/* Selected method QR display */}
+              {selectedMethod && (
+                <div className="rounded-2xl border border-warning/30 bg-amber-50 p-4 text-sm space-y-3">
+                  <p className="font-extrabold text-primary">{selectedMethod.displayName}</p>
+                  {selectedMethod.instructionText && (
+                    <p className="text-xs text-muted-foreground">{selectedMethod.instructionText}</p>
+                  )}
+                  {selectedMethod.qrImageUrl ? (
+                    <div className="flex justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={selectedMethod.qrImageUrl}
+                        alt={`${selectedMethod.displayName} QR code`}
+                        className="h-48 w-48 rounded-xl object-contain border border-border bg-white p-2"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-40 items-center justify-center rounded-xl border-2 border-dashed border-border bg-white text-xs text-muted-foreground">
+                      QR code not set up yet. Please contact the store.
+                    </div>
                   )}
                 </div>
               )}
