@@ -1,20 +1,18 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
-import type { StoreSettings, UrbanixProduct } from "@ecommerce/shared";
+import type { UrbanixProduct } from "@ecommerce/shared";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { ProductVisual } from "@/components/commerce/product-visual";
 import { PriceDisplay } from "@/components/commerce/price-display";
-import { ProductWhatsAppButton } from "@/components/commerce/product-whatsapp-button";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
 import { StockBadge } from "@/components/commerce/stock-badge";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 
 type ProductCardProps = {
   product: UrbanixProduct;
-  settings: Pick<StoreSettings, "storeName" | "whatsappNumber">;
 };
 
-export function ProductCard({ product, settings }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
   const hasOptions = (product.variantGroups?.length ?? 0) > 0;
 
   return (
@@ -64,11 +62,6 @@ export function ProductCard({ product, settings }: ProductCardProps) {
             productName={product.name}
           />
         </div>
-        <ProductWhatsAppButton
-          className="min-h-9 w-full px-2 text-[0.72rem]"
-          product={product}
-          settings={settings}
-        />
       </div>
     </article>
   );

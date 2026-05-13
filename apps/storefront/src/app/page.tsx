@@ -4,7 +4,6 @@ import { listActivePromotionBanners, listStorefrontCategories, listStorefrontPro
 import { CategoryCard } from "@/components/commerce/category-card";
 import { ProductCard } from "@/components/commerce/product-card";
 import { PromotionBannerCarousel } from "@/components/commerce/promotion-banner-carousel";
-import { TrustBadge } from "@/components/commerce/trust-badge";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
@@ -19,12 +18,6 @@ export default async function Home() {
   const featuredProducts = products.filter((product) => product.featured).slice(0, 4);
   const featuredCategories = categories.filter((category) => data.homepage.featuredCategoryCards.includes(category.id));
   const promotionBanners = listActivePromotionBanners(data);
-  const trustBadges = data.homepage.trustBadgeText
-    .filter((title) => !title.toLowerCase().includes("return"))
-    .map((title) => ({
-      description: title === "Free Shipping" ? `Orders above RM${data.settings.freeShippingMinimumAmount}` : title === "WhatsApp Order" ? "Fast confirmation" : "",
-      title,
-    }));
 
   return (
     <main className="pb-20 md:pb-0">
@@ -51,7 +44,7 @@ export default async function Home() {
         <SectionHeader action="/products" title="Featured Picks" titleKey="home.featuredPicks" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} settings={data.settings} />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>
@@ -72,7 +65,7 @@ export default async function Home() {
             <h2 className="text-xl font-extrabold text-white sm:text-2xl">
               <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
             </h2>
-            <p className="mt-1 text-sm font-medium text-white/60">Auto-applies from RM{data.settings.freeShippingMinimumAmount} orders. WhatsApp ordering stays fast and simple.</p>
+            <p className="mt-1 text-sm font-medium text-white/60">Auto-applies from RM{data.settings.freeShippingMinimumAmount} orders. Fast and simple checkout.</p>
           </div>
           <Link
             className={buttonVariants({
@@ -86,15 +79,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Trust badges */}
-      <section className="urbanix-container urbanix-section">
-        <SectionHeader action="#" title="Why Shop With Us" titleKey="home.whyShop" />
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-          {trustBadges.map((badge, index) => (
-            <TrustBadge badge={badge} index={index} key={badge.title} />
-          ))}
-        </div>
-      </section>
     </main>
   );
 }

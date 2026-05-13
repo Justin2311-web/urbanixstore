@@ -56,7 +56,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <LocalizedText fallback="Sort" k="products.sort" />: <LocalizedText fallback={activeSort === "price" ? "Price" : activeSort === "newest" ? "Newest" : "Featured"} k={activeSort === "price" ? "products.price" : activeSort === "newest" ? "products.newest" : "products.featured"} />
             </p>
           </div>
-          <ProductGrid products={products} settings={data.settings} />
+          <ProductGrid products={products} />
         </section>
       </div>
     </main>

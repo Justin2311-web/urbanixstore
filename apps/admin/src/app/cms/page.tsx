@@ -5,7 +5,6 @@ import { storefrontNavItems } from "@ecommerce/shared";
 import { saveCmsBanner, saveCmsNavigation } from "@/lib/actions";
 import { CheckField, Field, SaveButton } from "@/components/admin-form";
 import { SaveNotice } from "@/components/save-notice";
-import { PromotionBannersForm } from "@/components/promotion-banners-form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -15,7 +14,7 @@ export default async function CmsPage({
   searchParams: Promise<{ saved?: string; saveError?: string }>;
 }) {
   const params = await searchParams;
-  const { homepage, promotionBanners, settings } = await readUrbanixStoreDataAsync();
+  const { homepage, settings } = await readUrbanixStoreDataAsync();
 
   // Use nav items from DB if available, else fall back to storefrontNavItems
   const navItems = settings.navItems ?? storefrontNavItems;
@@ -23,9 +22,11 @@ export default async function CmsPage({
   return (
     <main className="urbanix-container urbanix-section">
       <div className="mb-6">
-        <h1 className="text-3xl font-extrabold">Website CMS</h1>
+        <h1 className="text-3xl font-extrabold">Homepage</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage the storefront announcement bar, hero banner, promotion banners, and navigation.
+          Manage the storefront announcement bar and navigation.
+          Hero banners and promotion banners are managed in{" "}
+          <a className="font-semibold text-[#0e5c56] hover:underline" href="/banners">Banners</a>.
         </p>
       </div>
 
@@ -35,14 +36,20 @@ export default async function CmsPage({
       <section className="mb-8">
         <h2 className="mb-3 text-xl font-bold">📢 Announcement Bar</h2>
         <form action={saveCmsBanner}>
-          {/* Pass hero fields as hidden so they are not lost */}
+          {/*
+            Pass hero fields as hidden so they are NOT wiped when saving only the
+            announcement bar. IMPORTANT: each name must appear ONCE so formData.get()
+            returns the correct (user-edited) value — no duplicate names.
+          */}
           <input name="heroTitle" type="hidden" value={homepage.heroTitle} />
           <input name="heroSubtitle" type="hidden" value={homepage.heroSubtitle} />
           <input name="heroImage" type="hidden" value={homepage.heroImage} />
           <input name="heroButtonText" type="hidden" value={homepage.heroButtonText} />
           <input name="heroButtonLink" type="hidden" value={homepage.heroButtonLink} />
-          <input name="promotionStripText" type="hidden" value={homepage.promotionStripText} />
           <input name="isActive" type="hidden" value={String(homepage.isActive ?? true)} />
+          {/* NOTE: promotionStripText is intentionally NOT duplicated here as a hidden
+              field — it is the editable field below. Duplicating it caused the old
+              value to override user edits on every save. */}
 
           <Card>
             <CardContent className="grid gap-4 pt-6 md:grid-cols-2">
@@ -67,10 +74,16 @@ export default async function CmsPage({
               </Field>
               <Field label="Background colour">
                 <div className="flex items-center gap-2">
+                  {/*
+                    Color picker is display-only (no name) — the hex Input below is the
+                    single named field. Previously both shared the same name, causing
+                    formData.get() to return the color picker's original value and
+                    silently discard the user's typed hex code on every save.
+                  */}
                   <input
                     className="size-10 cursor-pointer rounded border border-input"
                     defaultValue={homepage.announcementBgColor ?? "#1a1a1a"}
-                    name="announcementBgColor"
+                    id="announcementBgColorPicker"
                     type="color"
                   />
                   <Input
@@ -86,7 +99,7 @@ export default async function CmsPage({
                   <input
                     className="size-10 cursor-pointer rounded border border-input"
                     defaultValue={homepage.announcementTextColor ?? "#ffffff"}
-                    name="announcementTextColor"
+                    id="announcementTextColorPicker"
                     type="color"
                   />
                   <Input
@@ -105,63 +118,6 @@ export default async function CmsPage({
         </form>
       </section>
 
-      {/* ── Hero Banner ────────────────────────────────────────────── */}
-      <section className="mb-8">
-        <h2 className="mb-3 text-xl font-bold">🖼️ Hero Banner</h2>
-        <form action={saveCmsBanner}>
-          {/* Pass announcement fields as hidden so they are not lost */}
-          <input name="announcementEnabled" type="hidden" value={String(homepage.announcementEnabled ?? true)} />
-          <input name="announcementLink" type="hidden" value={homepage.announcementLink ?? ""} />
-          <input name="announcementBgColor" type="hidden" value={homepage.announcementBgColor ?? "#1a1a1a"} />
-          <input name="announcementTextColor" type="hidden" value={homepage.announcementTextColor ?? "#ffffff"} />
-
-          <Card>
-            <CardContent className="grid gap-4 pt-6 md:grid-cols-2">
-              <Field label="Hero title">
-                <Input defaultValue={homepage.heroTitle} name="heroTitle" required />
-              </Field>
-              <Field label="Hero subtitle">
-                <Input defaultValue={homepage.heroSubtitle} name="heroSubtitle" />
-              </Field>
-              <Field label="CTA button text">
-                <Input defaultValue={homepage.heroButtonText} name="heroButtonText" />
-              </Field>
-              <Field label="CTA button link">
-                <Input defaultValue={homepage.heroButtonLink} name="heroButtonLink" />
-              </Field>
-              <Field label="Hero image URL">
-                <Input
-                  defaultValue={homepage.heroImageUrl ?? homepage.heroImage}
-                  name="heroImage"
-                  placeholder="https://… or fan-green"
-                />
-              </Field>
-              <Field label="Promotion strip text">
-                <Input
-                  defaultValue={homepage.promotionStripText}
-                  name="promotionStripText"
-                  placeholder="Free shipping for orders above RM40"
-                />
-              </Field>
-              <CheckField
-                defaultChecked={homepage.isActive ?? true}
-                label="Hero banner active"
-                name="isActive"
-              />
-              <div className="md:col-span-2">
-                <SaveButton label="Save Hero Banner" />
-              </div>
-            </CardContent>
-          </Card>
-        </form>
-      </section>
-
-      {/* ── Promotion Banners ──────────────────────────────────────── */}
-      <section className="mb-8">
-        <h2 className="mb-3 text-xl font-bold">🎯 Promotion Banners</h2>
-        <PromotionBannersForm banners={promotionBanners} />
-      </section>
-
       {/* ── Navigation ─────────────────────────────────────────────── */}
       <section className="mb-8">
         <h2 className="mb-3 text-xl font-bold">🧭 Navigation</h2>
@@ -177,14 +133,12 @@ export default async function CmsPage({
                   <Field label="Label">
                     <Input
                       defaultValue={item.label}
-                      onChange={undefined}
                       name={`nav_label_${i}`}
                     />
                   </Field>
                   <Field label="Link">
                     <Input
                       defaultValue={item.href}
-                      onChange={undefined}
                       name={`nav_href_${i}`}
                     />
                   </Field>

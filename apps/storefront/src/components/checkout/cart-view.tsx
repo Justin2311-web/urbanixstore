@@ -1,24 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import {
   calculateOrderTotals,
   type StoreSettings,
   type UrbanixProduct,
 } from "@ecommerce/shared";
 import { buildCartLines } from "@/lib/cart-utils";
-import { WhatsAppOrderAction } from "@/components/account/whatsapp-order-action";
 import { useCart } from "@/components/cart/cart-provider";
 import { CartItemCard } from "@/components/commerce/cart-item-card";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
-import { useLanguage } from "@/components/i18n/language-provider";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  createCartWhatsAppMessage,
-} from "@/lib/order-links";
 
 export function CartView({
   products,
@@ -28,7 +23,6 @@ export function CartView({
   settings: StoreSettings;
 }) {
   const { count, items } = useCart();
-  const { language } = useLanguage();
   const lines = buildCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
 
@@ -65,18 +59,6 @@ export function CartView({
             <LocalizedValue fallback="Free shipping for orders above RM40" value={settings.freeShippingText} />
           </div>
           <OrderSummaryCard lines={lines} totals={totals} />
-          <WhatsAppOrderAction
-            className={buttonVariants({
-              className: "w-full bg-success text-white hover:bg-success/90",
-              size: "lg",
-            })}
-            lastOrderProduct={lines.map((line) => line.product.name).join(", ")}
-            makeMessage={(customer) => createCartWhatsAppMessage({ customer, language, lines, settings })}
-            settings={settings}
-          >
-            <MessageCircle />
-            Order via WhatsApp
-          </WhatsAppOrderAction>
           <Link
             className={buttonVariants({
               className: "w-full",

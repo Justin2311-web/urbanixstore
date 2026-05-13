@@ -21,7 +21,6 @@ import { ProductGallery } from "@/components/commerce/product-gallery";
 import { ProductGrid } from "@/components/commerce/product-grid";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { StockBadge } from "@/components/commerce/stock-badge";
-import { TrustBadge } from "@/components/commerce/trust-badge";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 
 export const dynamic = "force-dynamic";
@@ -49,12 +48,6 @@ export default async function ProductDetailPage({
       ? product.originalPrice - product.price
       : 0;
   const isPortableFan = getCategoryIdByName(product.category) === "portable-fans";
-  const trustBadges = data.homepage.trustBadgeText
-    .filter((title) => !title.toLowerCase().includes("return"))
-    .map((title) => ({
-      description: title === "Free Shipping" ? `Orders above RM${data.settings.freeShippingMinimumAmount}` : title === "WhatsApp Order" ? "Fast confirmation" : "",
-      title,
-    }));
   const savedHighlightIcons = [Sparkles, Truck, LockKeyhole, ShieldCheck];
   const savedHighlightItems = (product.highlights ?? [])
     .filter(Boolean)
@@ -126,7 +119,7 @@ export default async function ProductDetailPage({
             ) : null}
           </div>
 
-          <ProductPurchasePanel product={product} settings={data.settings} />
+          <ProductPurchasePanel product={product} />
 
           <div className="grid grid-cols-2 gap-4">
             {highlightItems.map((item) => (
@@ -139,11 +132,6 @@ export default async function ProductDetailPage({
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {trustBadges.slice(0, 2).map((badge, index) => (
-              <TrustBadge badge={badge} index={index} key={badge.title} />
-            ))}
-          </div>
         </section>
       </div>
 
@@ -187,7 +175,7 @@ export default async function ProductDetailPage({
               Handpicked selections from the {product.category} collection.
             </p>
           </div>
-          <ProductGrid products={relatedProducts} settings={data.settings} />
+          <ProductGrid products={relatedProducts} />
         </section>
       ) : null}
     </main>

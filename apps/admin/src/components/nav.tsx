@@ -9,11 +9,11 @@ const links = [
   { href: "/", label: "Dashboard", icon: "📊" },
   { href: "/products", label: "Products", icon: "📦" },
   { href: "/categories", label: "Categories", icon: "🗂️" },
-  { href: "/promotions", label: "Promotions", icon: "🎯" },
+  { href: "/banners", label: "Banners", icon: "🖼️" },
   { href: "/inventory", label: "Inventory", icon: "🏷️" },
   { href: "/orders", label: "Orders", icon: "🛒" },
   { href: "/customers", label: "Customers", icon: "👥" },
-  { href: "/homepage", label: "Homepage", icon: "🏠" },
+  { href: "/cms", label: "Homepage", icon: "🏠" },
   { href: "/payments", label: "Payments", icon: "💳" },
   { href: "/settings", label: "Settings", icon: "⚙️" },
 ];

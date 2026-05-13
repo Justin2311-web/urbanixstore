@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AtSign, MessageCircle } from "lucide-react";
+import { AtSign } from "lucide-react";
 import { listStorefrontCategories, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocalizedText } from "@/components/i18n/localized-text";
@@ -136,17 +136,16 @@ export async function StorefrontFooter() {
             {settings.contactEmail ? <a className="hover:text-[#3b9eff] transition-colors" href={`mailto:${settings.contactEmail}`}>{settings.contactEmail}</a> : null}
             {settings.contactPhone ? <a className="hover:text-[#3b9eff] transition-colors" href={`tel:${settings.contactPhone}`}>{settings.contactPhone}</a> : null}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link
-              className={buttonVariants({
-                className: "bg-success text-white hover:bg-success/90",
-              })}
+          {settings.whatsappNumber && (
+            <a
+              className="text-xs font-semibold text-[#6b8db5] hover:text-[#3b9eff] transition-colors"
               href={`https://wa.me/${getWhatsAppNumber(settings)}`}
+              rel="noreferrer"
+              target="_blank"
             >
-              <MessageCircle />
-              <LocalizedText fallback="WhatsApp" k="common.whatsapp" />
-            </Link>
-          </div>
+              WhatsApp: {settings.whatsappNumber}
+            </a>
+          )}
           <div className="mt-2 flex gap-2">
             <Input
               className="border-[rgba(59,158,255,0.2)] bg-[rgba(59,158,255,0.06)] text-[#c8d8ef] placeholder:text-[#4a6a8a] focus:border-[rgba(59,158,255,0.4)]"
