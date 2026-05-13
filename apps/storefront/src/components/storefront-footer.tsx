@@ -69,25 +69,37 @@ export async function StorefrontFooter() {
             <LocalizedValue fallback={settings.storeTagline} value={data.footer.store_tagline} />{" "}
             <LocalizedValue fallback="Curated essentials for small everyday wins." value={data.footer.tagline_extra} />
           </p>
+          {/* Social & marketplace icons — always rendered; greyed when URL not configured */}
           <div className="flex flex-wrap gap-2">
+            {settings.contactEmail ? (
+              <a
+                aria-label="Email"
+                className="flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff]"
+                href={`mailto:${settings.contactEmail}`}
+              >
+                <AtSign className="size-3.5" />
+              </a>
+            ) : null}
             {[
-              { href: settings.contactEmail ? `mailto:${settings.contactEmail}` : "", icon: AtSign, label: "Email" },
-              { href: settings.socialLinks.facebook, icon: FacebookIcon, label: "Facebook" },
-              { href: settings.socialLinks.instagram, icon: InstagramIcon, label: "Instagram" },
-              { href: settings.socialLinks.tiktok, icon: TikTokIcon, label: "TikTok" },
+              { href: settings.socialLinks?.facebook ?? "", icon: FacebookIcon, label: "Facebook" },
+              { href: settings.socialLinks?.instagram ?? "", icon: InstagramIcon, label: "Instagram" },
+              { href: settings.socialLinks?.tiktok ?? "", icon: TikTokIcon, label: "TikTok" },
               { href: settings.platformLinks?.shopee ?? "", icon: ShopeeIcon, label: "Shopee" },
               { href: settings.platformLinks?.lazada ?? "", icon: LazadaIcon, label: "Lazada" },
-            ].filter(({ href, label }) => href || label === "Email").map(({ href, icon: Icon, label }) => (
-              <Link
-                aria-disabled={!href}
-                className={`flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff] ${href ? "" : "pointer-events-none opacity-35"}`}
-                href={href || "#"}
-                key={label}
-              >
-                <span className="sr-only">{label}</span>
-                <Icon className="size-3.5" />
-              </Link>
-            ))}
+            ].map(({ href, icon: Icon, label }) =>
+              href ? (
+                <a
+                  aria-label={label}
+                  className="flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff]"
+                  href={href}
+                  key={label}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <Icon className="size-3.5" />
+                </a>
+              ) : null
+            )}
           </div>
         </div>
 

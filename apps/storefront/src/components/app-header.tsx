@@ -6,7 +6,6 @@ import { CartCountBadge } from "@/components/cart/cart-count-badge";
 import { SearchBar } from "@/components/commerce/search-bar";
 import { LanguageSelector } from "@/components/i18n/language-selector";
 import { LocalizedText } from "@/components/i18n/localized-text";
-import { LocalizedValue } from "@/components/i18n/localized-value";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { getWhatsAppNumber } from "@/lib/order-links";
@@ -23,24 +22,22 @@ export async function AppHeader() {
 
   return (
     <>
-      {/* Announcement bar */}
-      {announcementEnabled ? (
+      {/* Announcement bar — text comes from admin CMS → banners.promo_strip_text → homepage.promotionStripText */}
+      {announcementEnabled && announcementText ? (
         announcementLink ? (
           <Link
             className="block py-2 text-center text-xs font-semibold transition-opacity hover:opacity-90"
             href={announcementLink}
             style={{ backgroundColor: announcementBg, color: announcementColor }}
           >
-            <LocalizedValue fallback={announcementText} value={settings.freeShippingText} />
-            &nbsp;·&nbsp; WhatsApp {settings.whatsappNumber}
+            {announcementText}
           </Link>
         ) : (
           <div
             className="py-2 text-center text-xs font-semibold"
             style={{ backgroundColor: announcementBg, color: announcementColor }}
           >
-            <LocalizedValue fallback={announcementText} value={settings.freeShippingText} />
-            &nbsp;·&nbsp; WhatsApp {settings.whatsappNumber}
+            {announcementText}
           </div>
         )
       ) : null}
