@@ -1,87 +1,154 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { formatCurrency } from "@ecommerce/shared";
-import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/admin-form";
+import { createAdminClient } from "@/lib/supabase";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { Flash } from "@/components/flash";
+
+type OrderRow = {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  subtotal: number;
+  total_amount: number;
+  order_status: string;
+  payment_status: string;
+  payment_method: string;
+  created_at: string;
+};
+
+const ORDER_STATUSES = ["pending", "processing", "shipped", "completed", "cancelled"] as const;
+const PAYMENT_STATUSES = ["pending", "unpaid", "paid", "failed", "refunded"] as const;
+
+const statusColors: Record<string, string> = {
+  pending: "badge-pending",
+  processing: "badge-shipped",
+  shipped: "badge-shipped",
+  completed: "badge-paid",
+  cancelled: "badge-cancelled",
+};
+
+const paymentColors: Record<string, string> = {
+  paid: "badge-paid",
+  unpaid: "badge-inactive",
+  pending: "badge-pending",
+  failed: "badge-cancelled",
+  refunded: "badge-inactive",
+};
 
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; paymentStatus?: string; orderStatus?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    saveError?: string;
+    status?: string;
+    q?: string;
+  }>;
 }) {
   const params = await searchParams;
-  let orders: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["orders"] = [];
-  let settings: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["settings"];
-  try {
-    const data = await readUrbanixStoreDataAsync({ includeOrders: true });
-    orders = data.orders;
-    settings = data.settings;
-  } catch (error) {
-    console.error("[Admin] Orders page data error:", error);
-    const { defaultUrbanixStoreData } = await import("@ecommerce/shared");
-    settings = defaultUrbanixStoreData.settings;
-  }
-  const query = (params.q ?? "").trim().toLowerCase();
-  const visibleOrders = orders.filter((order) => {
-    const searchMatches =
-      !query ||
-      order.orderNumber.toLowerCase().includes(query) ||
-      order.customer.fullName.toLowerCase().includes(query) ||
-      order.customer.phone.toLowerCase().includes(query);
-    const paymentMatches = !params.paymentStatus || order.paymentStatus === params.paymentStatus;
-    const orderMatches = !params.orderStatus || order.orderStatus === params.orderStatus;
+  const sb = createAdminClient();
 
-    return searchMatches && paymentMatches && orderMatches;
-  });
+  let query = sb
+    .from("orders")
+    .select("id, order_number, customer_name, customer_phone, customer_email, subtotal, total_amount, order_status, payment_status, payment_method, created_at")
+    .order("created_at", { ascending: false });
+
+  if (params.status && params.status !== "all") {
+    query = query.eq("order_status", params.status);
+  }
+  if (params.q) {
+    query = query.or(`order_number.ilike.%${params.q}%,customer_name.ilike.%${params.q}%,customer_phone.ilike.%${params.q}%`);
+  }
+
+  const { data: ordersRaw } = await query;
+  const orders = ordersRaw as OrderRow[] | null;
 
   return (
-    <main className="urbanix-container urbanix-section">
-      <div className="mb-6">
-        <h1 className="text-3xl font-extrabold">Orders</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review payment status, fulfillment status, and customer details.
-        </p>
+    <div>
+      <div className="page-header">
+        <h1 className="page-title">Orders</h1>
+        <span className="text-sm text-gray-500">{(orders ?? []).length} orders</span>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <form className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto]" action="/orders">
-            <Input defaultValue={params.q} name="q" placeholder="Search orders..." />
-            <Select defaultValue={params.paymentStatus ?? ""} name="paymentStatus">
-              <option value="">All payment</option>
-              {["pending", "unpaid", "paid", "failed", "refunded"].map((status) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </Select>
-            <Select defaultValue={params.orderStatus ?? ""} name="orderStatus">
-              <option value="">All orders</option>
-              {["pending", "processing", "shipped", "completed", "cancelled"].map((status) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </Select>
-            <Button type="submit">Filter</Button>
-          </form>
-          {visibleOrders.map((order) => (
-            <div className="grid gap-3 rounded-xl bg-muted/60 p-4 md:grid-cols-[1fr_1fr_120px_120px_110px_90px]" key={order.id}>
-              <div className="font-bold">{order.orderNumber}</div>
-              <div className="text-sm text-muted-foreground">{order.customer.fullName}</div>
-              <Badge variant={order.paymentStatus === "paid" ? "secondary" : "outline"}>{order.paymentStatus}</Badge>
-              <Badge variant={order.orderStatus === "completed" ? "secondary" : "outline"}>{order.orderStatus}</Badge>
-              <div className="font-bold">{formatCurrency(order.totals.total)}</div>
-              <Link className="text-sm font-bold text-primary" href={`/orders/${order.id}`}>View</Link>
-              <a className="text-sm font-bold text-success md:col-start-6" href={`https://wa.me/${order.customer.phone || settings.whatsappNumber}`} target="_blank">WhatsApp</a>
-            </div>
+
+      <Flash saved={params.saved} saveError={params.saveError} />
+
+      {/* Filters */}
+      <form className="mb-4 flex flex-wrap gap-3">
+        <input
+          name="q"
+          defaultValue={params.q}
+          placeholder="Search order # or customer…"
+          className="field-input max-w-xs"
+        />
+        <select name="status" defaultValue={params.status ?? "all"} className="field-select w-40">
+          <option value="all">All statuses</option>
+          {ORDER_STATUSES.map((s) => (
+            <option key={s} value={s}>{s}</option>
           ))}
-          {visibleOrders.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">No matching orders yet. Storefront checkout will add orders here.</p> : null}
-        </CardContent>
-      </Card>
-    </main>
+        </select>
+        <button type="submit" className="btn-secondary">Filter</button>
+      </form>
+
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b border-gray-100 bg-gray-50">
+              <tr>
+                <th className="table-th">Order #</th>
+                <th className="table-th">Customer</th>
+                <th className="table-th">Date</th>
+                <th className="table-th">Total</th>
+                <th className="table-th">Order Status</th>
+                <th className="table-th">Payment</th>
+                <th className="table-th"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(orders ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={7} className="table-td text-center text-gray-400 py-10">
+                    No orders found.
+                  </td>
+                </tr>
+              )}
+              {(orders ?? []).map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50">
+                  <td className="table-td font-mono text-sm font-semibold">
+                    {order.order_number}
+                  </td>
+                  <td className="table-td">
+                    <p className="font-medium text-gray-900">{order.customer_name}</p>
+                    <p className="text-xs text-gray-400">{order.customer_phone}</p>
+                  </td>
+                  <td className="table-td text-gray-500 text-xs">{formatDate(order.created_at)}</td>
+                  <td className="table-td font-semibold">{formatCurrency(Number(order.total_amount))}</td>
+                  <td className="table-td">
+                    <span className={statusColors[order.order_status] ?? "badge-inactive"}>
+                      {order.order_status}
+                    </span>
+                  </td>
+                  <td className="table-td">
+                    <span className={paymentColors[order.payment_status] ?? "badge-inactive"}>
+                      {order.payment_status}
+                    </span>
+                  </td>
+                  <td className="table-td text-right">
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="btn-secondary text-xs px-3 py-1.5"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }

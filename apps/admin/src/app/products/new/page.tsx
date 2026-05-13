@@ -1,25 +1,42 @@
 export const dynamic = "force-dynamic";
 
-import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
+import { createAdminClient } from "@/lib/supabase";
 import { ProductForm } from "@/components/product-form";
+import { Flash } from "@/components/flash";
+import Link from "next/link";
 
-export default async function AddProductPage() {
-  let categories: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["categories"] = [];
-  try {
-    const data = await readUrbanixStoreDataAsync();
-    categories = data.categories;
-  } catch {
-    const { defaultUrbanixStoreData } = await import("@ecommerce/shared");
-    categories = defaultUrbanixStoreData.categories;
-  }
+type CategoryOption = { id: string; name: string };
+
+export default async function NewProductPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saveError?: string }>;
+}) {
+  const params = await searchParams;
+  const sb = createAdminClient();
+
+  const { data: categoriesRaw } = await sb
+    .from("categories")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("sort_order");
+  const categories = categoriesRaw as CategoryOption[] | null;
 
   return (
-    <main className="urbanix-container urbanix-section">
-      <div className="mb-6">
-        <h1 className="text-3xl font-extrabold">Add Product</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create a storefront-ready Urbanix product.</p>
+    <div>
+      <div className="page-header">
+        <div>
+          <div className="mb-1 text-sm text-gray-500">
+            <Link href="/products" className="hover:underline">Products</Link>
+            {" › "}New Product
+          </div>
+          <h1 className="page-title">Add New Product</h1>
+        </div>
       </div>
-      <ProductForm categories={categories} />
-    </main>
+
+      <Flash saveError={params.saveError} />
+
+      <ProductForm categories={categories ?? []} />
+    </div>
   );
 }

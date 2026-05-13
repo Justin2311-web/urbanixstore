@@ -1,70 +1,144 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { formatCurrency } from "@ecommerce/shared";
-import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
-import { SaveNotice } from "@/components/save-notice";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { buttonVariants } from "@/components/ui/button";
+import { createAdminClient } from "@/lib/supabase";
+import { formatCurrency } from "@/lib/utils";
+import { Flash } from "@/components/flash";
+
+type ProductRow = {
+  id: string;
+  name: string;
+  sku: string;
+  slug: string;
+  price: number;
+  stock_quantity: number;
+  is_active: boolean;
+  is_featured: boolean;
+  main_image_url: string | null;
+  categories: { name: string } | null;
+};
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; saveError?: string; q?: string }>;
 }) {
   const params = await searchParams;
-  let products: Awaited<ReturnType<typeof readUrbanixStoreDataAsync>>["products"] = [];
-  try {
-    const data = await readUrbanixStoreDataAsync();
-    products = data.products;
-  } catch {
-    const { defaultUrbanixStoreData } = await import("@ecommerce/shared");
-    products = defaultUrbanixStoreData.products;
+  const sb = createAdminClient();
+
+  let query = sb
+    .from("products")
+    .select("id, name, sku, slug, price, stock_quantity, is_active, is_featured, main_image_url, categories(name)")
+    .order("created_at", { ascending: false });
+
+  if (params.q) {
+    query = query.or(`name.ilike.%${params.q}%,sku.ilike.%${params.q}%`);
   }
 
+  const { data: productsRaw, error } = await query;
+  const products = productsRaw as ProductRow[] | null;
+
+  if (error) console.error("[Admin] Products list error:", error);
+
   return (
-    <main className="urbanix-container urbanix-section">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold">Products</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage Urbanix product listings, prices, promotions, and stock.
-          </p>
-        </div>
-        <Link className={buttonVariants({ variant: "secondary" })} href="/products/new">New Product</Link>
+    <div>
+      <div className="page-header">
+        <h1 className="page-title">Products</h1>
+        <Link href="/products/new" className="btn-primary">
+          + Add Product
+        </Link>
       </div>
-      <SaveNotice saved={params.saved} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Product Catalog</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Input placeholder="Search products..." />
-          <div className="overflow-hidden rounded-2xl border">
-            {products.map((product) => (
-              <div
-                className="grid gap-3 border-b bg-card p-4 last:border-b-0 md:grid-cols-[1fr_120px_120px_100px_80px]"
-                key={product.id}
-              >
-                <div>
-                  <div className="font-bold">{product.name}</div>
-                  <div className="text-xs text-muted-foreground">{product.category}</div>
-                </div>
-                <div className="text-sm font-bold text-accent">{formatCurrency(product.promotionPrice ?? product.price)}</div>
-                <Badge variant={product.promotionPrice ? "destructive" : "secondary"}>
-                  {product.promotionPrice ? "Promo" : "Regular"}
-                </Badge>
-                <Badge variant={product.status === "inactive" ? "outline" : "secondary"}>
-                  {product.status === "inactive" ? "Inactive" : "Active"}
-                </Badge>
-                <Link className="text-sm font-bold text-primary" href={`/products/${product.id}/edit`}>Edit</Link>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </main>
+
+      <Flash saved={params.saved} saveError={params.saveError} />
+
+      {/* Search */}
+      <form className="mb-4">
+        <input
+          name="q"
+          defaultValue={params.q}
+          placeholder="Search by name or SKU…"
+          className="field-input max-w-xs"
+        />
+      </form>
+
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b border-gray-100 bg-gray-50">
+              <tr>
+                <th className="table-th">Product</th>
+                <th className="table-th">SKU</th>
+                <th className="table-th">Category</th>
+                <th className="table-th">Price</th>
+                <th className="table-th">Stock</th>
+                <th className="table-th">Status</th>
+                <th className="table-th"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(products ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={7} className="table-td text-center text-gray-400 py-10">
+                    No products found.{" "}
+                    <Link href="/products/new" className="text-[#0e5c56] underline">
+                      Add one.
+                    </Link>
+                  </td>
+                </tr>
+              )}
+              {(products ?? []).map((p) => (
+                <tr key={p.id} className="hover:bg-gray-50">
+                  <td className="table-td">
+                    <div className="flex items-center gap-3">
+                      {p.main_image_url ? (
+                        <img
+                          src={p.main_image_url}
+                          alt={p.name}
+                          className="h-10 w-10 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-400">
+                          No img
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-gray-900 max-w-[180px] truncate">{p.name}</p>
+                        <p className="text-xs text-gray-400">{p.slug}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="table-td font-mono text-xs">{p.sku}</td>
+                  <td className="table-td text-gray-500">
+                    {p.categories?.name ?? "—"}
+                  </td>
+                  <td className="table-td font-semibold">{formatCurrency(Number(p.price))}</td>
+                  <td className="table-td">
+                    <span className={p.stock_quantity <= 0 ? "text-red-600 font-semibold" : p.stock_quantity <= 5 ? "text-yellow-600 font-semibold" : "text-gray-700"}>
+                      {p.stock_quantity}
+                    </span>
+                  </td>
+                  <td className="table-td">
+                    <span className={p.is_active ? "badge-active" : "badge-inactive"}>
+                      {p.is_active ? "Active" : "Inactive"}
+                    </span>
+                    {p.is_featured && (
+                      <span className="ml-1 badge-shipped">Featured</span>
+                    )}
+                  </td>
+                  <td className="table-td text-right">
+                    <Link
+                      href={`/products/${p.id}/edit`}
+                      className="btn-secondary text-xs px-3 py-1.5"
+                    >
+                      Edit
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
