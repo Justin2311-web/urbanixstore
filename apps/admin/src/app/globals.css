@@ -1,107 +1,89 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans), "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
-  --font-heading: var(--font-sans);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-coral: var(--coral);
-  --color-cream: var(--cream);
-  --radius-sm: calc(var(--radius) - 6px);
-  --radius-md: calc(var(--radius) - 4px);
-  --radius-lg: calc(var(--radius) - 2px);
-  --radius-xl: var(--radius);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 16px);
-}
-
-:root {
-  --background: #f7f6f2;
-  --foreground: #1f2937;
-  --card: #ffffff;
-  --card-foreground: #1f2937;
-  --popover: #ffffff;
-  --popover-foreground: #1f2937;
-  --primary: #0e5c56;
-  --primary-foreground: #ffffff;
-  --secondary: #e8f3ef;
-  --secondary-foreground: #0e3f3b;
-  --muted: #f0efeb;
-  --muted-foreground: #667085;
-  --accent: #ff6b4a;
-  --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #17a589;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --coral: #ff6b4a;
-  --cream: #fff7ef;
-  --radius: 18px;
-}
 
 @layer base {
-  * {
-    @apply border-border outline-ring/40;
-  }
-
-  html {
-    @apply scroll-smooth font-sans;
+  *, *::before, *::after {
+    box-sizing: border-box;
   }
 
   body {
-    @apply bg-background text-foreground;
-  }
-
-  h1,
-  h2,
-  h3 {
-    @apply text-balance font-heading font-bold tracking-normal text-foreground;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: #f3f4f6;
+    color: #111827;
+    margin: 0;
   }
 }
 
+/* Admin form field styling */
 @layer components {
-  .urbanix-container {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  .field-label {
+    @apply block text-sm font-semibold text-gray-700 mb-1;
   }
 
-  .urbanix-section {
-    @apply py-7 sm:py-10 lg:py-12;
+  .field-input {
+    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#0e5c56] focus:outline-none focus:ring-2 focus:ring-[#0e5c56]/20;
   }
 
-  .urbanix-surface {
-    @apply rounded-2xl border border-border/80 bg-card shadow-[0_16px_45px_rgba(15,23,42,0.08)];
+  .field-textarea {
+    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#0e5c56] focus:outline-none focus:ring-2 focus:ring-[#0e5c56]/20 resize-y min-h-[80px];
   }
 
-  .price-current {
-    @apply font-bold text-accent;
+  .field-select {
+    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#0e5c56] focus:outline-none focus:ring-2 focus:ring-[#0e5c56]/20 appearance-none cursor-pointer;
   }
 
-  .price-original {
-    @apply text-xs text-muted-foreground line-through;
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-[#0e5c56] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#0a4a44] focus:outline-none focus:ring-2 focus:ring-[#0e5c56]/30 disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 focus:outline-none;
+  }
+
+  .card {
+    @apply rounded-xl border border-gray-200 bg-white shadow-sm;
+  }
+
+  .table-th {
+    @apply px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500;
+  }
+
+  .table-td {
+    @apply px-4 py-3 text-sm text-gray-700;
+  }
+
+  .badge-active {
+    @apply inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700;
+  }
+
+  .badge-inactive {
+    @apply inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600;
+  }
+
+  .badge-pending {
+    @apply inline-flex rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700;
+  }
+
+  .badge-paid {
+    @apply inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700;
+  }
+
+  .badge-shipped {
+    @apply inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700;
+  }
+
+  .badge-cancelled {
+    @apply inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600;
+  }
+
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-gray-900;
   }
 }

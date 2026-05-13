@@ -1,46 +1,34 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Poppins } from "next/font/google";
-import { AppHeader } from "@/components/app-header";
+import { Sidebar, MobileNav } from "@/components/nav";
 import "./globals.css";
-
-const poppins = Poppins({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Urbanix Admin",
-  description: "Business owner dashboard for Urbanix Store.",
-};
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-export const fetchCache = "force-no-store";
+
+export const metadata: Metadata = {
+  title: "Urbanix Admin",
+  description: "Admin dashboard for Urbanix Store.",
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html
-      lang="en"
-      className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-background text-foreground">
-        <AppHeader />
-        <div className="lg:pl-64">
-          <div className="sticky top-0 z-30 hidden h-14 items-center justify-between border-b bg-card px-6 lg:flex">
-            <p className="text-sm font-bold text-muted-foreground">Admin Dashboard</p>
-            <p className="text-xs font-semibold text-muted-foreground">Urbanix Store</p>
+    <html lang="en" className="h-full">
+      <body className="h-full bg-gray-100">
+        {/* Desktop sidebar layout */}
+        <div className="flex h-full">
+          <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-56 lg:flex-col">
+            <Sidebar />
           </div>
-          {children}
+
+          {/* Main content */}
+          <div className="flex min-h-screen flex-1 flex-col lg:pl-56">
+            <MobileNav />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+          </div>
         </div>
       </body>
     </html>

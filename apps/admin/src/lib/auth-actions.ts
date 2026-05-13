@@ -3,14 +3,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-const BYPASS_COOKIE = "admin_bypass_session";
-const BYPASS_VALUE = "urbanix-admin-ok";
+import { BYPASS_COOKIE, BYPASS_VALUE } from "@/lib/auth-constants";
 
 async function getSupabaseClient() {
   const cookieStore = await cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!url || !key) return null;
 
@@ -32,9 +32,11 @@ export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  // Always check env-var credentials as a bypass (works with or without Supabase)
-  const adminEmail = process.env.ADMIN_EMAIL ?? "urbanixstore.official@gmail.com";
+  // Env-var bypass credentials — works without Supabase Auth
+  const adminEmail =
+    process.env.ADMIN_EMAIL ?? "urbanixstore.official@gmail.com";
   const adminPassword = process.env.ADMIN_PASSWORD ?? "UrbanixAdmin2026!";
+
   if (email === adminEmail && password === adminPassword) {
     const cookieStore = await cookies();
     cookieStore.set(BYPASS_COOKIE, BYPASS_VALUE, {
@@ -47,14 +49,14 @@ export async function signIn(formData: FormData) {
     redirect("/");
   }
 
+  // Fallback: try Supabase Auth
   const supabase = await getSupabaseClient();
-
   if (!supabase) {
-    redirect("/login?error=invalid");
+    redirect("/login?error=1");
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect("/login?error=invalid");
+  if (error) redirect("/login?error=1");
   redirect("/");
 }
 
@@ -65,4 +67,3 @@ export async function signOut() {
   if (supabase) await supabase.auth.signOut();
   redirect("/login");
 }
-

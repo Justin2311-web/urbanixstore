@@ -1,125 +1,147 @@
 export const dynamic = "force-dynamic";
 
-import { formatCurrency } from "@ecommerce/shared";
-import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
-type CustomerSummary = {
-  name: string;
-  email: string;
-  phone: string;
-  orderCount: number;
-  totalSpent: number;
-  lastOrderDate: string;
-  lastOrderStatus: string;
+type OrderRow = {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  total_amount: number;
+  created_at: string;
 };
 
-export default async function CustomersPage() {
-  let data;
-  try {
-    data = await readUrbanixStoreDataAsync({ includeOrders: true });
-  } catch {
-    data = (await import("@ecommerce/shared")).defaultUrbanixStoreData;
+export default async function CustomersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const params = await searchParams;
+  const sb = createAdminClient();
+
+  // Derive customers from orders — group by phone number
+  let query = sb
+    .from("orders")
+    .select("id, order_number, customer_name, customer_phone, customer_email, total_amount, created_at")
+    .order("created_at", { ascending: false });
+
+  if (params.q) {
+    query = query.or(
+      `customer_name.ilike.%${params.q}%,customer_phone.ilike.%${params.q}%,customer_email.ilike.%${params.q}%`
+    );
   }
 
-  // Derive customer list from orders
-  const customerMap = new Map<string, CustomerSummary>();
+  const { data: ordersRaw } = await query;
+  const orders = ordersRaw as OrderRow[] | null;
 
-  for (const order of data.orders) {
-    const email = order.customer?.email ?? order.customerEmail ?? "";
-    const phone = order.customer?.phone ?? order.customerPhone ?? "";
-    const name = order.customer?.fullName ?? order.customerName ?? "Unknown";
-    const key = email || phone || name;
+  // Group by phone number to create "customers"
+  const customerMap = new Map<
+    string,
+    {
+      name: string;
+      phone: string;
+      email: string | null;
+      orderCount: number;
+      totalSpent: number;
+      lastOrder: string;
+      latestOrderId: string;
+    }
+  >();
 
-    if (!key) continue;
-
+  for (const order of orders ?? []) {
+    const key = order.customer_phone;
     const existing = customerMap.get(key);
-    const orderTotal = order.totals?.total ?? order.totalAmount ?? 0;
 
     if (existing) {
-      existing.orderCount += 1;
-      existing.totalSpent += orderTotal;
-      if (order.createdAt > existing.lastOrderDate) {
-        existing.lastOrderDate = order.createdAt;
-        existing.lastOrderStatus = order.orderStatus;
+      existing.orderCount++;
+      existing.totalSpent += Number(order.total_amount);
+      if (order.created_at > existing.lastOrder) {
+        existing.lastOrder = order.created_at;
+        existing.latestOrderId = order.id;
+        if (order.customer_email) existing.email = order.customer_email;
       }
     } else {
       customerMap.set(key, {
-        name,
-        email,
-        phone,
+        name: order.customer_name,
+        phone: order.customer_phone,
+        email: order.customer_email,
         orderCount: 1,
-        totalSpent: orderTotal,
-        lastOrderDate: order.createdAt,
-        lastOrderStatus: order.orderStatus,
+        totalSpent: Number(order.total_amount),
+        lastOrder: order.created_at,
+        latestOrderId: order.id,
       });
     }
   }
 
   const customers = [...customerMap.values()].sort(
-    (a, b) => b.totalSpent - a.totalSpent
+    (a, b) => new Date(b.lastOrder).getTime() - new Date(a.lastOrder).getTime()
   );
 
   return (
-    <main className="urbanix-container urbanix-section">
-      <div className="mb-6">
-        <h1 className="text-3xl font-extrabold">Customers</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {customers.length} unique customer{customers.length !== 1 ? "s" : ""} derived from order history.
-        </p>
+    <div>
+      <div className="page-header">
+        <h1 className="page-title">Customers</h1>
+        <span className="text-sm text-gray-500">{customers.length} unique customers</span>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer List</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {customers.length === 0 && (
-            <p className="px-6 py-8 text-center text-sm text-muted-foreground">No customer data yet. Orders will populate this list.</p>
-          )}
-          <div className="overflow-hidden">
-            {customers.map((customer, i) => (
-              <div
-                className="grid gap-3 border-b bg-card px-6 py-4 last:border-b-0 md:grid-cols-[1fr_120px_120px_100px_80px]"
-                key={i}
-              >
-                <div>
-                  <div className="font-bold">{customer.name}</div>
-                  <div className="text-xs text-muted-foreground">{customer.email || customer.phone}</div>
-                  {customer.email && customer.phone && (
-                    <div className="text-xs text-muted-foreground">{customer.phone}</div>
-                  )}
-                </div>
-                <div className="flex flex-col justify-center">
-                  <div className="text-sm font-bold">{customer.orderCount}</div>
-                  <div className="text-xs text-muted-foreground">orders</div>
-                </div>
-                <div className="flex flex-col justify-center">
-                  <div className="text-sm font-bold text-accent">{formatCurrency(customer.totalSpent)}</div>
-                  <div className="text-xs text-muted-foreground">total spent</div>
-                </div>
-                <Badge
-                  className="h-fit w-fit self-center"
-                  variant={customer.lastOrderStatus === "completed" ? "secondary" : "outline"}
-                >
-                  {customer.lastOrderStatus}
-                </Badge>
-                {customer.phone && (
-                  <a
-                    className="self-center text-sm font-bold text-success hover:underline"
-                    href={`https://wa.me/${customer.phone.replace(/\D/g, "")}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    WhatsApp
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </main>
+      <form className="mb-4">
+        <input
+          name="q"
+          defaultValue={params.q}
+          placeholder="Search by name, phone, or email…"
+          className="field-input max-w-xs"
+        />
+      </form>
+
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b border-gray-100 bg-gray-50">
+              <tr>
+                <th className="table-th">Customer</th>
+                <th className="table-th">Phone</th>
+                <th className="table-th">Email</th>
+                <th className="table-th">Orders</th>
+                <th className="table-th">Total Spent</th>
+                <th className="table-th">Last Order</th>
+                <th className="table-th"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {customers.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="table-td text-center text-gray-400 py-10">
+                    No customers found.
+                  </td>
+                </tr>
+              )}
+              {customers.map((c) => (
+                <tr key={c.phone} className="hover:bg-gray-50">
+                  <td className="table-td font-medium text-gray-900">{c.name}</td>
+                  <td className="table-td font-mono text-sm">{c.phone}</td>
+                  <td className="table-td text-gray-500 text-xs">{c.email ?? "—"}</td>
+                  <td className="table-td text-center">
+                    <span className="badge-shipped">{c.orderCount}</span>
+                  </td>
+                  <td className="table-td font-semibold">{formatCurrency(c.totalSpent)}</td>
+                  <td className="table-td text-gray-500 text-xs">{formatDate(c.lastOrder)}</td>
+                  <td className="table-td text-right">
+                    <Link
+                      href={`/orders/${c.latestOrderId}`}
+                      className="btn-secondary text-xs px-3 py-1.5"
+                    >
+                      Latest Order
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }

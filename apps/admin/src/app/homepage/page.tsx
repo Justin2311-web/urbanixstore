@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
-import { saveHomepage } from "@/lib/admin-actions";
-import { Field, SaveButton, TextArea } from "@/components/admin-form";
-import { SaveNotice } from "@/components/save-notice";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Database } from "@ecommerce/database";
+import { createAdminClient } from "@/lib/supabase";
+import { Flash } from "@/components/flash";
+import { saveHomepage } from "@/lib/actions";
+import { HeroImageField } from "@/components/hero-image-field";
+
+type BannerRow = Database["public"]["Tables"]["banners"]["Row"];
 
 export default async function HomepagePage({
   searchParams,
@@ -13,51 +14,116 @@ export default async function HomepagePage({
   searchParams: Promise<{ saved?: string; saveError?: string }>;
 }) {
   const params = await searchParams;
-  const { homepage } = await readUrbanixStoreDataAsync();
+  const sb = createAdminClient();
+
+  const { data: bannerRaw } = await sb
+    .from("banners")
+    .select("*")
+    .eq("id", true)
+    .maybeSingle();
+  const banner = bannerRaw as BannerRow | null;
 
   return (
-    <main className="urbanix-container urbanix-section">
-      <div className="mb-6">
-        <h1 className="text-3xl font-extrabold">Banner / Homepage Content</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Update the storefront hero, featured categories, strip, and trust text.</p>
+    <div>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Homepage / Banner</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Edit the hero banner shown on the storefront homepage.
+          </p>
+        </div>
       </div>
-      <SaveNotice saveError={params.saveError} saved={params.saved} />
+
+      <Flash saved={params.saved} saveError={params.saveError} />
+
       <form action={saveHomepage}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Homepage Content</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <Field label="Hero title">
-              <Input defaultValue={homepage.heroTitle} name="heroTitle" />
-            </Field>
-            <Field label="Hero subtitle">
-              <Input defaultValue={homepage.heroSubtitle} name="heroSubtitle" />
-            </Field>
-            <Field label="Hero button text">
-              <Input defaultValue={homepage.heroButtonText} name="heroButtonText" />
-            </Field>
-            <Field label="Hero button link">
-              <Input defaultValue={homepage.heroButtonLink} name="heroButtonLink" />
-            </Field>
-            <Field label="Hero image / tone">
-              <Input defaultValue={homepage.heroImage} name="heroImage" />
-            </Field>
-            <Field label="Promotion strip text">
-              <Input defaultValue={homepage.promotionStripText} name="promotionStripText" />
-            </Field>
-            <Field label="Featured category cards, one id per line">
-              <TextArea defaultValue={homepage.featuredCategoryCards.join("\n")} name="featuredCategoryCards" />
-            </Field>
-            <Field label="Trust badge text, one per line">
-              <TextArea defaultValue={homepage.trustBadgeText.join("\n")} name="trustBadgeText" />
-            </Field>
-            <div className="md:col-span-2">
-              <SaveButton />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-5 lg:col-span-2">
+            <div className="card p-5">
+              <h2 className="mb-4 font-semibold text-gray-800">Hero Banner</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="field-label">Hero Title *</label>
+                  <input
+                    name="hero_title"
+                    required
+                    className="field-input"
+                    defaultValue={banner?.hero_title ?? ""}
+                    placeholder="e.g. Free Shipping for Orders Above RM40"
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label">Hero Subtitle</label>
+                  <input
+                    name="hero_subtitle"
+                    className="field-input"
+                    defaultValue={banner?.hero_subtitle ?? ""}
+                    placeholder="Tagline under the title"
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label">Hero Image</label>
+                  <HeroImageField initialUrl={banner?.hero_image_url} />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="field-label">Button Text</label>
+                    <input
+                      name="hero_button_text"
+                      className="field-input"
+                      defaultValue={banner?.hero_button_text ?? ""}
+                      placeholder="Shop Now"
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label">Button Link</label>
+                    <input
+                      name="hero_button_link"
+                      className="field-input"
+                      defaultValue={banner?.hero_button_link ?? ""}
+                      placeholder="/products"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="field-label">Promo Strip Text</label>
+                  <input
+                    name="promo_strip_text"
+                    className="field-input"
+                    defaultValue={banner?.promo_strip_text ?? ""}
+                    placeholder="Free shipping · COD available · WhatsApp orders"
+                  />
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="space-y-5">
+            <div className="card p-5">
+              <h2 className="mb-4 font-semibold text-gray-800">Visibility</h2>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  name="is_active"
+                  type="checkbox"
+                  defaultChecked={banner?.is_active ?? true}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <span className="text-sm font-medium text-gray-700">Banner active</span>
+              </label>
+            </div>
+
+            <div className="card p-5">
+              <button type="submit" className="btn-primary w-full justify-center py-2.5">
+                💾 Save Homepage
+              </button>
+            </div>
+          </div>
+        </div>
       </form>
-    </main>
+    </div>
   );
 }
