@@ -79,7 +79,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             emptyActionLabel="Contact Us"
             emptyTitle="No matching products yet"
             products={products}
-            settings={data.settings}
           />
         </section>
       </div>
