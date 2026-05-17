@@ -69,7 +69,7 @@ export default async function ProductDetailPage({
   return (
     <main className="urbanix-container py-8 pb-24 sm:py-10">
       {/* ── Main product section: image left, info right ── */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.15fr] lg:items-start lg:gap-10">
+      <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-start lg:gap-8">
         {/* Left: gallery with auto-slide + arrows */}
         <ProductGallery product={product} />
 
