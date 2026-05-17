@@ -12,11 +12,9 @@ import {
   Wind,
 } from "lucide-react";
 import {
-  formatCurrency,
   getCategoryIdByName,
 } from "@ecommerce/shared";
 import { listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
-import { PriceDisplay } from "@/components/commerce/price-display";
 import { ProductGallery } from "@/components/commerce/product-gallery";
 import { ProductGrid } from "@/components/commerce/product-grid";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
@@ -43,10 +41,6 @@ export default async function ProductDetailPage({
   const relatedProducts = products
     .filter((item) => item.category === product.category && item.id !== product.id)
     .slice(0, 4);
-  const savings =
-    product.originalPrice && product.originalPrice > product.price
-      ? product.originalPrice - product.price
-      : 0;
   const isPortableFan = getCategoryIdByName(product.category) === "portable-fans";
   const savedHighlightIcons = [Sparkles, Truck, LockKeyhole, ShieldCheck];
   const savedHighlightItems = (product.highlights ?? [])
@@ -106,19 +100,7 @@ export default async function ProductDetailPage({
             </span>
           </div>
 
-          <div className="urbanix-surface p-8">
-            <PriceDisplay
-              originalPrice={product.originalPrice}
-              price={product.price}
-              size="lg"
-            />
-            {savings > 0 ? (
-              <p className="mt-3 text-sm font-bold text-success">
-                Special Price: You save {formatCurrency(savings)}
-              </p>
-            ) : null}
-          </div>
-
+          {/* Price display + variant selector live in ProductPurchasePanel (client component) */}
           <ProductPurchasePanel product={product} settings={data.settings} />
 
           <div className="grid grid-cols-2 gap-4">

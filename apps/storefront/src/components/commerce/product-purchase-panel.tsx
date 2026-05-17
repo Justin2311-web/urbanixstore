@@ -3,9 +3,17 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExternalLink, ShoppingBag, ShoppingCart, Store } from "lucide-react";
-import { formatCurrency, type StoreSettings, type UrbanixProduct } from "@ecommerce/shared";
+import {
+  formatCurrency,
+  getVariantEffectivePrice,
+  type ProductVariantEntry,
+  type StoreSettings,
+  type UrbanixProduct,
+} from "@ecommerce/shared";
 import { useCart } from "@/components/cart/cart-provider";
+import { PriceDisplay } from "@/components/commerce/price-display";
 import { QuantitySelector } from "@/components/commerce/quantity-selector";
+import { StockBadge } from "@/components/commerce/stock-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 export function ProductPurchasePanel({
@@ -18,32 +26,70 @@ export function ProductPurchasePanel({
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
   const router = useRouter();
-  const isOutOfStock = product.stockStatus === "out_of_stock";
+
   const shopeeUrl = product.shopeeUrl || settings.platformLinks?.shopee || "";
   const lazadaUrl = product.lazadaUrl || settings.platformLinks?.lazada || "";
 
-  // Simple JSONB variants from DB: [{name: "Color", values: ["Black","White"]}]
-  const variantGroups = product.productVariants ?? [];
-  const hasVariants = variantGroups.length > 0;
+  // ── New flat variant list (per-variant pricing) ────────────────────────────
+  const variants: ProductVariantEntry[] = product.variants ?? [];
+  const hasNewVariants = variants.length > 0;
+  const isSingleVariant = hasNewVariants && variants.length === 1;
 
-  // Selected values: { "Color": "Black", "Style": "Premium" }
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  // ── Legacy simple variant groups (old format, no per-variant pricing) ──────
+  const legacyVariantGroups = product.productVariants ?? [];
+  const hasLegacyVariants = !hasNewVariants && legacyVariantGroups.length > 0;
+
+  // ── Selected variant state ─────────────────────────────────────────────────
+  // For new-format variants, auto-select the first one.
+  // For single-variant products, we always use the only variant (no UI shown).
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariantEntry | null>(
+    hasNewVariants ? variants[0] : null
+  );
+
+  // ── Legacy variant selection state (for old-format products) ──────────────
+  const [selectedLegacy, setSelectedLegacy] = useState<Record<string, string>>({});
+
+  const allLegacySelected = useMemo(() => {
+    if (!hasLegacyVariants) return true;
+    return legacyVariantGroups.every((group) => Boolean(selectedLegacy[group.name]));
+  }, [hasLegacyVariants, legacyVariantGroups, selectedLegacy]);
+
   const [validationMessage, setValidationMessage] = useState("");
 
-  const allVariantsSelected = useMemo(() => {
-    if (!hasVariants) return true;
-    return variantGroups.every((group) => Boolean(selectedVariants[group.name]));
-  }, [hasVariants, variantGroups, selectedVariants]);
+  // ── Derived pricing from selected variant ──────────────────────────────────
+  const variantPricing = useMemo(() => {
+    if (selectedVariant) return getVariantEffectivePrice(selectedVariant);
+    return null;
+  }, [selectedVariant]);
 
-  function handleSelect(groupName: string, value: string) {
-    setSelectedVariants((current) => ({ ...current, [groupName]: value }));
-    setValidationMessage("");
-  }
+  const displayPrice = variantPricing?.price ?? product.price;
+  const displayOriginalPrice = variantPricing?.originalPrice ?? product.originalPrice;
+  const displayPromotionPercent = variantPricing?.promotionPercent ?? product.promotionPercent;
+
+  // ── Stock status from selected variant ────────────────────────────────────
+  const selectedStockQty = selectedVariant
+    ? selectedVariant.stockQuantity
+    : (product.stockQuantity ?? 0);
+  const stockStatus: UrbanixProduct["stockStatus"] =
+    selectedStockQty <= 0
+      ? "out_of_stock"
+      : selectedStockQty <= 5
+        ? "low_stock"
+        : "in_stock";
+  const isOutOfStock = stockStatus === "out_of_stock";
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   function validate(): boolean {
-    if (hasVariants && !allVariantsSelected) {
-      const missing = variantGroups
-        .filter((g) => !selectedVariants[g.name])
+    // New-format: must have a selected variant (always true since we default to first)
+    if (hasNewVariants && !selectedVariant) {
+      setValidationMessage("Please select a variant.");
+      return false;
+    }
+    // Legacy format: must have all group selections
+    if (hasLegacyVariants && !allLegacySelected) {
+      const missing = legacyVariantGroups
+        .filter((g) => !selectedLegacy[g.name])
         .map((g) => g.name)
         .join(", ");
       setValidationMessage(`Please select: ${missing}`);
@@ -53,28 +99,122 @@ export function ProductPurchasePanel({
     return true;
   }
 
+  function buildCartVariants(): Record<string, string> | undefined {
+    if (hasNewVariants && selectedVariant) {
+      // Use a special "variant" key to store the selected variant name
+      return { variant: selectedVariant.name };
+    }
+    if (hasLegacyVariants) return selectedLegacy;
+    return undefined;
+  }
+
   function handleAddToCart() {
     if (isOutOfStock || !validate()) return;
-    addItem(product.id, quantity, hasVariants ? selectedVariants : undefined);
+    addItem(product.id, quantity, buildCartVariants());
   }
 
   function handleBuyNow() {
     if (isOutOfStock || !validate()) return;
-    addItem(product.id, quantity, hasVariants ? selectedVariants : undefined);
+    addItem(product.id, quantity, buildCartVariants());
     router.push("/checkout");
   }
 
+  const savings =
+    displayOriginalPrice && displayOriginalPrice > displayPrice
+      ? displayOriginalPrice - displayPrice
+      : 0;
+
   return (
     <div className="flex flex-col gap-3">
-      {hasVariants ? (
+
+      {/* ── Price display (updates on variant selection) ── */}
+      <div className="urbanix-surface p-6">
+        <PriceDisplay originalPrice={displayOriginalPrice} price={displayPrice} size="lg" />
+        {displayPromotionPercent ? (
+          <p className="mt-1 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">
+            {displayPromotionPercent}% OFF
+          </p>
+        ) : null}
+        {savings > 0 ? (
+          <p className="mt-2 text-sm font-bold text-success">
+            You save {formatCurrency(savings)}
+          </p>
+        ) : null}
+      </div>
+
+      {/* ── Variant selector — new flat format ── */}
+      {hasNewVariants && !isSingleVariant ? (
+        <div className="rounded-3xl border border-primary/15 bg-white p-4 shadow-sm">
+          <p className="mb-3 text-sm font-extrabold text-foreground">Select Option</p>
+          <div className="flex flex-wrap gap-2">
+            {variants.map((v) => {
+              const isSelected = selectedVariant?.name === v.name;
+              const vPricing = getVariantEffectivePrice(v);
+              const outOfStock = v.stockQuantity <= 0;
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`relative rounded-2xl border px-4 py-2 text-sm font-bold transition ${
+                    outOfStock
+                      ? "cursor-not-allowed border-border/40 bg-muted/40 text-muted-foreground opacity-60"
+                      : isSelected
+                        ? "border-primary bg-primary text-white shadow-[0_10px_24px_rgba(13,99,206,0.18)]"
+                        : "border-border bg-card text-foreground hover:border-primary/45 hover:bg-secondary"
+                  }`}
+                  disabled={outOfStock}
+                  key={v.name}
+                  onClick={() => {
+                    setSelectedVariant(v);
+                    setValidationMessage("");
+                  }}
+                  type="button"
+                  title={outOfStock ? "Out of stock" : `${v.name} — ${formatCurrency(vPricing.price)}`}
+                >
+                  {v.name}
+                  {outOfStock && (
+                    <span className="ml-1.5 text-xs font-normal opacity-70">sold out</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected variant details */}
+          {selectedVariant && (
+            <div className="mt-3 rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">SKU: {selectedVariant.sku}</span>
+              {" · "}
+              <StockStatus qty={selectedVariant.stockQuantity} />
+            </div>
+          )}
+
+          {validationMessage ? (
+            <p className="mt-3 rounded-2xl bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
+              {validationMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* ── Single variant — show SKU + stock only (no selector) ── */}
+      {hasNewVariants && isSingleVariant && selectedVariant ? (
+        <div className="rounded-xl border border-border/60 bg-secondary/30 px-4 py-3 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">SKU: {selectedVariant.sku}</span>
+          {" · "}
+          <StockStatus qty={selectedVariant.stockQuantity} />
+        </div>
+      ) : null}
+
+      {/* ── Legacy variant selector (old-format products) ── */}
+      {hasLegacyVariants ? (
         <div className="rounded-3xl border border-primary/15 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-4">
-            {variantGroups.map((group) => (
+            {legacyVariantGroups.map((group) => (
               <div className="flex flex-col gap-2" key={group.name}>
                 <p className="text-sm font-extrabold text-foreground">{group.name}</p>
                 <div className="flex flex-wrap gap-2">
                   {group.values.map((value) => {
-                    const selected = selectedVariants[group.name] === value;
+                    const selected = selectedLegacy[group.name] === value;
                     return (
                       <button
                         aria-pressed={selected}
@@ -84,7 +224,10 @@ export function ProductPurchasePanel({
                             : "border-border bg-card text-foreground hover:border-primary/45 hover:bg-secondary"
                         }`}
                         key={value}
-                        onClick={() => handleSelect(group.name, value)}
+                        onClick={() => {
+                          setSelectedLegacy((current) => ({ ...current, [group.name]: value }));
+                          setValidationMessage("");
+                        }}
                         type="button"
                       >
                         {value}
@@ -103,6 +246,10 @@ export function ProductPurchasePanel({
         </div>
       ) : null}
 
+      {/* ── Stock badge ── */}
+      <StockBadge status={stockStatus} />
+
+      {/* ── Qty + Add to cart ── */}
       <div className="grid grid-cols-[auto_1fr] gap-3">
         <QuantitySelector
           disabled={isOutOfStock}
@@ -147,6 +294,12 @@ export function ProductPurchasePanel({
       </div>
     </div>
   );
+}
+
+function StockStatus({ qty }: { qty: number }) {
+  if (qty <= 0) return <span className="font-semibold text-destructive">Out of stock</span>;
+  if (qty <= 5) return <span className="font-semibold text-warning">Low stock ({qty} left)</span>;
+  return <span className="font-semibold text-success">In stock ({qty})</span>;
 }
 
 function MarketplaceButton({

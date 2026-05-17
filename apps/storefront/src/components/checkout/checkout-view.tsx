@@ -244,9 +244,11 @@ export function CheckoutView({
         items: lines.map((line) => ({
           productId: line.product.id,
           productName: line.product.name,
+          // Product-level SKU (base); variant SKU not yet separately stored on CartLine
           productSku: line.product.sku,
           quantity: line.quantity,
-          unitPrice: line.product.price,
+          // Unit price derived from lineTotal (which already reflects variant-level pricing)
+          unitPrice: line.quantity > 0 ? line.lineTotal / line.quantity : line.product.price,
           totalPrice: line.lineTotal,
           selectedVariants: line.selectedVariants ?? null,
         })),

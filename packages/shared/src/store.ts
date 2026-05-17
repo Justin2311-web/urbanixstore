@@ -6,6 +6,7 @@ import {
   defaultUrbanixStoreData,
   getCategoryIdByName,
   getDisplayPrice,
+  getVariantEffectivePrice,
   platformConfig,
   type CheckoutCustomer,
   type FooterContent,
@@ -13,6 +14,7 @@ import {
   type LocalizedTextValue,
   type PaymentSettings,
   type ProductCategory,
+  type ProductVariantEntry,
   type ProductVariantGroup,
   type ProductVariantOption,
   type PromotionBanner,
@@ -186,6 +188,29 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Detects whether a parsed JSONB array is in the new per-variant pricing format
+ * ({name, sku, originalPrice, ...}) versus the old group format ({name, values}).
+ */
+function parseProductVariantEntries(raw: unknown): {
+  variants: ProductVariantEntry[] | undefined;
+  productVariants: Array<{ name: string; values: string[] }> | undefined;
+} {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { variants: undefined, productVariants: undefined };
+  }
+  const first = raw[0] as Record<string, unknown>;
+  if (typeof first.originalPrice === "number") {
+    // New format
+    return { variants: raw as ProductVariantEntry[], productVariants: undefined };
+  }
+  // Old format: [{name, values}]
+  return {
+    variants: undefined,
+    productVariants: raw as Array<{ name: string; values: string[] }>,
+  };
 }
 
 function groupProductVariants(options: ProductVariantOption[]): ProductVariantGroup[] {
@@ -543,6 +568,14 @@ function mapProduct({
   const category = row.category_id ? categoriesById.get(row.category_id) : undefined;
   const galleryImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
   const variantOptions = variantsByProductId?.get(row.id) ?? [];
+
+  // Parse product_variants JSONB — could be new format (with originalPrice) or old (with values)
+  const { variants: newVariants, productVariants: legacyVariants } = parseProductVariantEntries(row.product_variants);
+
+  // Derive pricing from the first variant (new format), or fall back to product-level columns
+  const defaultVariant = newVariants && newVariants.length > 0 ? newVariants[0] : undefined;
+  const variantPricing = defaultVariant ? getVariantEffectivePrice(defaultVariant) : undefined;
+
   const product: UrbanixProduct = {
     category: category?.name ?? "Uncategorized",
     categoryId: category?.id,
@@ -559,9 +592,9 @@ function mapProduct({
     isFeatured: row.is_featured,
     mainImageUrl: row.main_image_url ?? "",
     name: row.name,
-    normalPrice: Number(row.price),
-    originalPrice: Number(row.price),
-    price: Number(row.price),
+    normalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
+    originalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
+    price: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
     productImages: galleryImages.map((imageUrl, index) => ({
       imageUrl,
       isPrimary: index === 0,
@@ -569,7 +602,9 @@ function mapProduct({
     })),
     promotionEndDate: row.promotion_end_at ?? "",
     promotionEndAt: row.promotion_end_at ?? "",
-    promotionPrice: row.promotion_price === null ? undefined : Number(row.promotion_price),
+    promotionPrice: defaultVariant
+      ? (defaultVariant.promotionPrice ?? undefined)
+      : row.promotion_price === null ? undefined : Number(row.promotion_price),
     promotionStartDate: row.promotion_start_at ?? "",
     promotionStartAt: row.promotion_start_at ?? "",
     rating: Number(row.rating ?? 0),
@@ -577,20 +612,39 @@ function mapProduct({
     returnNote: "",
     shippingInfo: "Free shipping applies for orders above RM40. Delivery details are confirmed during order chat.",
     shortDescription: row.short_description ?? "",
+    // Product-level SKU stays as the base SKU; variant SKUs are on each entry
     sku: row.sku,
     slug: row.slug,
     sold: row.sold ?? 0,
     specifications: asStringArray(row.specifications),
     status: row.is_active ? "active" : "inactive",
-    stockQuantity: row.stock_quantity,
-    stockStatus:
-      row.stock_quantity <= 0 ? "out_of_stock" : row.stock_quantity <= 5 ? "low_stock" : "in_stock",
+    // Stock comes from first variant if available, otherwise product-level
+    stockQuantity: defaultVariant ? defaultVariant.stockQuantity : row.stock_quantity,
+    stockStatus: (() => {
+      const qty = defaultVariant ? defaultVariant.stockQuantity : row.stock_quantity;
+      return qty <= 0 ? "out_of_stock" : qty <= 5 ? "low_stock" : "in_stock";
+    })(),
     updatedAt: row.updated_at,
     variantGroups: variantOptions.length > 0 ? groupProductVariants(variantOptions) : undefined,
     variantOptions: variantOptions.length > 0 ? variantOptions : undefined,
+    // New flat variant entries (new format)
+    variants: newVariants,
+    // Legacy simple variant groups (old format)
+    productVariants: legacyVariants ?? undefined,
   };
-  const pricing = getDisplayPrice(product);
 
+  // For new-format variants: apply variant-level pricing directly.
+  // For old-format / no variants: fall back to getDisplayPrice (handles promo dates).
+  if (variantPricing) {
+    return {
+      ...product,
+      price: variantPricing.price,
+      originalPrice: variantPricing.originalPrice,
+      promotionPercent: variantPricing.promotionPercent,
+    };
+  }
+
+  const pricing = getDisplayPrice(product);
   return {
     ...product,
     originalPrice: pricing.originalPrice,

@@ -202,6 +202,41 @@ export type ProductVariantOption = {
   sortOrder: number;
 };
 
+/**
+ * Per-variant pricing entry — the new source of truth for price, stock, and SKU.
+ * Stored as a JSONB array in the `product_variants` column.
+ */
+export type ProductVariantEntry = {
+  name: string;           // Display label: "Black", "White", "Default", etc.
+  sku: string;            // Variant-level SKU
+  originalPrice: number;  // Full / normal price
+  promotionPrice?: number | null;  // Sale price — effective when > 0 and < originalPrice
+  stockQuantity: number;
+};
+
+/**
+ * Returns the effective display price for a single variant.
+ * Uses promotionPrice when it is set, positive, and lower than originalPrice.
+ */
+export function getVariantEffectivePrice(variant: ProductVariantEntry): {
+  price: number;
+  originalPrice?: number;
+  promotionPercent?: number;
+} {
+  const { originalPrice, promotionPrice } = variant;
+  const hasPromo =
+    typeof promotionPrice === "number" &&
+    promotionPrice > 0 &&
+    promotionPrice < originalPrice;
+  return {
+    price: hasPromo ? (promotionPrice as number) : originalPrice,
+    originalPrice: hasPromo ? originalPrice : undefined,
+    promotionPercent: hasPromo
+      ? Math.round(((originalPrice - (promotionPrice as number)) / originalPrice) * 100)
+      : undefined,
+  };
+}
+
 export type ProductVariantGroup = {
   id: string;
   optionName: string;
@@ -259,8 +294,10 @@ export type UrbanixProduct = {
   relatedCategory?: string;
   variantGroups?: ProductVariantGroup[];
   variantOptions?: ProductVariantOption[];
-  /** Simple JSONB variant groups from DB: [{name: "Color", values: ["Black","White"]}] */
+  /** Simple JSONB variant groups from DB (legacy format): [{name: "Color", values: ["Black","White"]}] */
   productVariants?: Array<{ name: string; values: string[] }>;
+  /** Per-variant pricing entries (new format): [{name, sku, originalPrice, promotionPrice, stockQuantity}] */
+  variants?: ProductVariantEntry[];
   createdAt?: string;
   updatedAt?: string;
 };

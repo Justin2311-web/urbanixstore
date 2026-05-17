@@ -5,12 +5,22 @@ import { saveProduct, createSignedUploadUrl } from "@/lib/actions";
 
 type Category = { id: string; name: string };
 
+/** Per-variant pricing entry as stored in product_variants JSONB (new format) */
+type VariantEntry = {
+  name: string;
+  sku: string;
+  originalPrice: string;   // string for input binding
+  promotionPrice: string;  // string for input binding — empty = no promo
+  stockQuantity: string;   // string for input binding
+};
+
 type ExistingProduct = {
   id: string;
   name: string;
   sku: string;
   slug: string;
   category_id: string | null;
+  /** Legacy product-level price — used to seed default variant for old products */
   price: number;
   promotion_price: number | null;
   promotion_start_at: string | null;
@@ -25,12 +35,47 @@ type ExistingProduct = {
   shipping_info: string | null;
   return_note: string | null;
   rating: number | null;
-  product_variants: Array<{ name: string; values: string[] }> | null;
+  /** New-format variant entries (with originalPrice). Null/empty → auto-seed from legacy price. */
+  variant_entries: Array<{
+    name: string;
+    sku: string;
+    originalPrice: number;
+    promotionPrice?: number | null;
+    stockQuantity: number;
+  }> | null;
   images: Array<{ image_url: string; sort_order: number }>;
 };
 
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function makeDefaultVariant(product?: ExistingProduct): VariantEntry {
+  return {
+    name: "Default",
+    sku: product?.sku ?? "",
+    originalPrice: product?.price ? String(product.price) : "",
+    promotionPrice: product?.promotion_price ? String(product.promotion_price) : "",
+    stockQuantity: product?.stock_quantity != null ? String(product.stock_quantity) : "0",
+  };
+}
+
+function validateVariants(variants: VariantEntry[]): Record<number, string> {
+  const errors: Record<number, string> = {};
+  variants.forEach((v, i) => {
+    const messages: string[] = [];
+    if (!v.name.trim()) messages.push("Name is required");
+    if (!v.sku.trim()) messages.push("SKU is required");
+    const op = parseFloat(v.originalPrice);
+    if (!v.originalPrice.trim() || isNaN(op) || op <= 0) messages.push("Original price must be > 0");
+    const pp = v.promotionPrice.trim() ? parseFloat(v.promotionPrice) : null;
+    if (pp !== null && (isNaN(pp) || pp <= 0)) messages.push("Promotion price must be > 0");
+    if (pp !== null && !isNaN(op) && pp >= op) messages.push("Promotion price must be less than original price");
+    const qty = parseInt(v.stockQuantity, 10);
+    if (isNaN(qty) || qty < 0) messages.push("Stock quantity must be 0 or more");
+    if (messages.length > 0) errors[i] = messages.join(". ");
+  });
+  return errors;
 }
 
 export function ProductForm({
@@ -50,40 +95,71 @@ export function ProductForm({
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Variant groups state: each entry is {name, values (as comma-separated string for editing)}
-  const [variantGroups, setVariantGroups] = useState<Array<{ name: string; valuesText: string }>>(
-    (product?.product_variants ?? []).map((g) => ({
-      name: g.name,
-      valuesText: g.values.join(", "),
-    }))
-  );
+  // ── Variant entries (new per-variant pricing format) ─────────────────────────
+  const [variantEntries, setVariantEntries] = useState<VariantEntry[]>(() => {
+    if (product?.variant_entries && product.variant_entries.length > 0) {
+      return product.variant_entries.map((v) => ({
+        name: v.name,
+        sku: v.sku,
+        originalPrice: String(v.originalPrice),
+        promotionPrice: v.promotionPrice ? String(v.promotionPrice) : "",
+        stockQuantity: String(v.stockQuantity),
+      }));
+    }
+    // Auto-seed a default variant from the legacy product-level price
+    return [makeDefaultVariant(product)];
+  });
+  const [variantErrors, setVariantErrors] = useState<Record<number, string>>({});
 
-  function addVariantGroup() {
-    setVariantGroups((prev) => [...prev, { name: "", valuesText: "" }]);
+  function addVariant() {
+    setVariantEntries((prev) => [
+      ...prev,
+      { name: "", sku: "", originalPrice: "", promotionPrice: "", stockQuantity: "0" },
+    ]);
   }
 
-  function removeVariantGroup(index: number) {
-    setVariantGroups((prev) => prev.filter((_, i) => i !== index));
+  function addDefaultVariant() {
+    setVariantEntries((prev) => [...prev, makeDefaultVariant()]);
   }
 
-  function updateVariantGroup(index: number, field: "name" | "valuesText", value: string) {
-    setVariantGroups((prev) =>
-      prev.map((g, i) => (i === index ? { ...g, [field]: value } : g))
+  function removeVariant(index: number) {
+    setVariantEntries((prev) => prev.filter((_, i) => i !== index));
+    setVariantErrors((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const n = Number(k);
+        if (n < index) next[n] = v;
+        else if (n > index) next[n - 1] = v;
+      });
+      return next;
+    });
+  }
+
+  function updateVariant(
+    index: number,
+    field: keyof VariantEntry,
+    value: string
+  ) {
+    setVariantEntries((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v))
     );
+    // Clear error for this variant when user edits it
+    setVariantErrors((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
   }
 
-  /** Serialise current variant groups to the JSONB format for the hidden input */
-  function buildVariantsJson(): string {
-    const groups = variantGroups
-      .map((g) => ({
-        name: g.name.trim(),
-        values: g.valuesText
-          .split(/[,\n]/)
-          .map((v) => v.trim())
-          .filter(Boolean),
-      }))
-      .filter((g) => g.name && g.values.length > 0);
-    return groups.length > 0 ? JSON.stringify(groups) : "";
+  function buildVariantEntriesJson(): string {
+    const entries = variantEntries.map((v) => ({
+      name: v.name.trim(),
+      sku: v.sku.trim(),
+      originalPrice: parseFloat(v.originalPrice) || 0,
+      promotionPrice: v.promotionPrice.trim() ? parseFloat(v.promotionPrice) || null : null,
+      stockQuantity: parseInt(v.stockQuantity, 10) || 0,
+    }));
+    return JSON.stringify(entries);
   }
 
   function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -100,9 +176,8 @@ export function ProductForm({
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
 
-    const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+    const MAX_SIZE = 10 * 1024 * 1024;
 
-    // Validate each file before touching the server
     for (const file of files) {
       if (!file.type.startsWith("image/")) {
         setImageError(`"${file.name}" is not an image file.`);
@@ -110,9 +185,7 @@ export function ProductForm({
         return;
       }
       if (file.size > MAX_SIZE) {
-        setImageError(
-          `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. Maximum is 10 MB.`
-        );
+        setImageError(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. Maximum is 10 MB.`);
         e.target.value = "";
         return;
       }
@@ -120,9 +193,7 @@ export function ProductForm({
 
     const slotsAvailable = 9 - keptImages.length;
     if (files.length > slotsAvailable) {
-      setImageError(
-        `Only ${slotsAvailable} more image slot${slotsAvailable === 1 ? "" : "s"} available (max 9 total).`
-      );
+      setImageError(`Only ${slotsAvailable} more image slot${slotsAvailable === 1 ? "" : "s"} available (max 9 total).`);
       e.target.value = "";
       return;
     }
@@ -140,55 +211,60 @@ export function ProductForm({
         const ext = file.name.split(".").pop() ?? "jpg";
         const filePath = `products/${productId}/${Date.now()}-${i}.${ext}`;
 
-        // 1. Get signed upload URL (tiny server-action request — no file data)
-        const { signedUrl, publicUrl } = await createSignedUploadUrl(
-          "product-images",
-          filePath
-        );
+        const { signedUrl, publicUrl } = await createSignedUploadUrl("product-images", filePath);
 
-        // 2. PUT file directly to Supabase Storage (bypasses Vercel body limit)
         const res = await fetch(signedUrl, {
           method: "PUT",
           body: file,
           headers: { "Content-Type": file.type },
         });
 
-        if (!res.ok) {
-          throw new Error(`Upload failed for "${file.name}": ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`Upload failed for "${file.name}": ${res.statusText}`);
 
         newUrls.push(publicUrl);
         setUploadProgress(Math.round(((i + 1) / files.length) * 100));
       }
 
-      // Add newly uploaded URLs to the kept-images list so they're submitted with the form
       setKeptImages((prev) => [...prev, ...newUrls]);
     } catch (err: unknown) {
-      setImageError(
-        err instanceof Error ? err.message : "Upload failed. Please try again."
-      );
+      setImageError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {
       setUploadingImages(false);
       e.target.value = "";
     }
   }
 
-  return (
-    <form action={saveProduct}>
-      {/* Hidden: product DB ID (UUID) */}
-      <input type="hidden" name="product_db_id" value={product?.id ?? ""} />
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    // Client-side variant validation before allowing native form submit
+    if (variantEntries.length === 0) {
+      e.preventDefault();
+      setVariantErrors({ 0: "At least one variant is required." });
+      return;
+    }
+    const errors = validateVariants(variantEntries);
+    if (Object.keys(errors).length > 0) {
+      e.preventDefault();
+      setVariantErrors(errors);
+      // Scroll to variants section
+      document.getElementById("variants-section")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    setVariantErrors({});
+  }
 
+  return (
+    <form action={saveProduct} onSubmit={handleSubmit}>
+      {/* Hidden: product DB ID */}
+      <input type="hidden" name="product_db_id" value={product?.id ?? ""} />
       {/* Hidden: slug */}
       <input type="hidden" name="slug" value={slugValue} />
-
       {/* Hidden: kept image URLs */}
       <input type="hidden" name="kept_image_count" value={keptImages.length} />
       {keptImages.map((url, i) => (
         <input key={url} type="hidden" name={`kept_image_${i}`} value={url} />
       ))}
-
-      {/* Hidden: product variants JSON */}
-      <input type="hidden" name="product_variants" value={buildVariantsJson()} />
+      {/* Hidden: serialised variant entries (new pricing format) */}
+      <input type="hidden" name="variant_entries" value={buildVariantEntriesJson()} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ── Main column ─────────────────────────────────── */}
@@ -210,7 +286,7 @@ export function ProductForm({
               </div>
 
               <div>
-                <label className="field-label">SKU *</label>
+                <label className="field-label">Product SKU *</label>
                 <input
                   name="sku"
                   required
@@ -265,68 +341,182 @@ export function ProductForm({
             </div>
           </div>
 
-          {/* Pricing */}
-          <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">Pricing</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+          {/* ── Product Variants & Pricing (moved here from old Pricing position) ── */}
+          <div id="variants-section" className="card p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <label className="field-label">Normal Price (RM) *</label>
-                <input
-                  name="price"
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  className="field-input"
-                  defaultValue={product?.price}
-                  placeholder="0.00"
-                />
+                <h2 className="font-semibold text-gray-800">Product Variants & Pricing</h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Every product needs at least one variant. For single-option products, use a
+                  &quot;Default&quot; variant. Price, promotion price, SKU, and stock are set per variant.
+                </p>
               </div>
-
-              <div>
-                <label className="field-label">
-                  Promotion Price (RM){" "}
-                  <span className="text-xs font-normal text-gray-400">optional</span>
-                </label>
-                <input
-                  name="promotion_price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="field-input"
-                  defaultValue={product?.promotion_price ?? ""}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label className="field-label">Promo Start Date</label>
-                <input
-                  name="promotion_start_at"
-                  type="datetime-local"
-                  className="field-input"
-                  defaultValue={
-                    product?.promotion_start_at
-                      ? new Date(product.promotion_start_at).toISOString().slice(0, 16)
-                      : ""
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="field-label">Promo End Date</label>
-                <input
-                  name="promotion_end_at"
-                  type="datetime-local"
-                  className="field-input"
-                  defaultValue={
-                    product?.promotion_end_at
-                      ? new Date(product.promotion_end_at).toISOString().slice(0, 16)
-                      : ""
-                  }
-                />
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={addDefaultVariant}
+                  className="rounded-lg border border-[#0e5c56]/30 bg-[#e8f3ef] px-3 py-1.5 text-xs font-semibold text-[#0e5c56] hover:bg-[#d0e9e3]"
+                >
+                  + Default
+                </button>
+                <button
+                  type="button"
+                  onClick={addVariant}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  + Add Variant
+                </button>
               </div>
             </div>
+
+            {variantEntries.length === 0 ? (
+              <div className="rounded-lg border-2 border-dashed border-red-200 bg-red-50 px-4 py-4 text-center">
+                <p className="text-xs font-semibold text-red-600">
+                  ⚠ At least one variant is required. Click <strong>+ Default</strong> to add one.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {variantEntries.map((variant, index) => (
+                  <div
+                    key={index}
+                    className={`rounded-xl border p-4 ${
+                      variantErrors[index]
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-200 bg-gray-50"
+                    }`}
+                  >
+                    {/* Variant header */}
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-[#0e5c56]/10 px-2.5 py-0.5 text-xs font-bold text-[#0e5c56]">
+                        Variant {index + 1}
+                      </span>
+                      {variantEntries.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeVariant(index)}
+                          className="rounded-lg border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Error message */}
+                    {variantErrors[index] && (
+                      <div className="mb-3 rounded-lg bg-red-100 px-3 py-2 text-xs font-semibold text-red-700">
+                        ⚠ {variantErrors[index]}
+                      </div>
+                    )}
+
+                    {/* Variant fields */}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="field-label">
+                          Variant Name *{" "}
+                          <span className="text-xs font-normal text-gray-400">
+                            e.g. Black, White, Default
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={variant.name}
+                          onChange={(e) => updateVariant(index, "name", e.target.value)}
+                          placeholder="e.g. Black"
+                          className="field-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">
+                          Variant SKU *
+                        </label>
+                        <input
+                          type="text"
+                          value={variant.sku}
+                          onChange={(e) => updateVariant(index, "sku", e.target.value)}
+                          placeholder="e.g. URB-001-BLK"
+                          className="field-input font-mono text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">
+                          Original Price (RM) *
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={variant.originalPrice}
+                          onChange={(e) => updateVariant(index, "originalPrice", e.target.value)}
+                          placeholder="0.00"
+                          className="field-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">
+                          Promotion Price (RM){" "}
+                          <span className="text-xs font-normal text-gray-400">optional</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={variant.promotionPrice}
+                          onChange={(e) => updateVariant(index, "promotionPrice", e.target.value)}
+                          placeholder="0.00 — leave empty for no promo"
+                          className="field-input"
+                        />
+                        {variant.promotionPrice && variant.originalPrice && (
+                          <p className="mt-0.5 text-xs text-[#0e5c56]">
+                            {(() => {
+                              const op = parseFloat(variant.originalPrice);
+                              const pp = parseFloat(variant.promotionPrice);
+                              if (!isNaN(op) && !isNaN(pp) && pp > 0 && pp < op) {
+                                const pct = Math.round(((op - pp) / op) * 100);
+                                return `${pct}% off`;
+                              }
+                              return null;
+                            })()}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="field-label">Stock Quantity *</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={variant.stockQuantity}
+                          onChange={(e) => updateVariant(index, "stockQuantity", e.target.value)}
+                          placeholder="0"
+                          className="field-input"
+                        />
+                        {(() => {
+                          const qty = parseInt(variant.stockQuantity, 10);
+                          if (isNaN(qty) || qty <= 0)
+                            return <p className="mt-0.5 text-xs text-red-500">Out of stock</p>;
+                          if (qty <= 5)
+                            return <p className="mt-0.5 text-xs text-amber-600">Low stock ({qty} left)</p>;
+                          return <p className="mt-0.5 text-xs text-green-600">In stock ({qty})</p>;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {variantEntries.length > 0 && (
+              <div className="mt-3 rounded-lg border border-[#0e5c56]/20 bg-[#e8f3ef]/60 px-4 py-3">
+                <p className="text-xs font-semibold text-[#0e5c56]">
+                  💡 Storefront shows the first variant&apos;s price by default. Price updates
+                  dynamically when a customer selects a different variant.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -411,86 +601,6 @@ export function ProductForm({
               </div>
             </div>
           </div>
-
-          {/* Product Variants */}
-          <div className="card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-gray-800">Product Variants</h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Add options customers must choose (e.g. Color, Size). Leave empty for single-option products.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={addVariantGroup}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                + Add Group
-              </button>
-            </div>
-
-            {variantGroups.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-gray-200 px-4 py-3 text-center text-xs text-gray-400">
-                No variant groups yet. Click <strong>+ Add Group</strong> to add one.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {variantGroups.map((group, index) => (
-                  <div
-                    key={index}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-3"
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={group.name}
-                        onChange={(e) => updateVariantGroup(index, "name", e.target.value)}
-                        placeholder="Group name (e.g. Color, Size, Style)"
-                        className="field-input flex-1 text-sm font-semibold"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeVariantGroup(index)}
-                        className="rounded-lg border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                        aria-label="Remove variant group"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-500">
-                        Values <span className="font-normal">(comma or newline-separated)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={group.valuesText}
-                        onChange={(e) => updateVariantGroup(index, "valuesText", e.target.value)}
-                        placeholder="e.g. Black, White, Blue"
-                        className="field-input text-sm"
-                      />
-                      {group.valuesText.trim() && (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {group.valuesText
-                            .split(/[,\n]/)
-                            .map((v) => v.trim())
-                            .filter(Boolean)
-                            .map((v) => (
-                              <span
-                                key={v}
-                                className="rounded-full border border-[#0e5c56]/20 bg-[#e8f3ef] px-2 py-0.5 text-xs font-semibold text-[#0e5c56]"
-                              >
-                                {v}
-                              </span>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* ── Side column ──────────────────────────────────── */}
@@ -524,31 +634,47 @@ export function ProductForm({
             </div>
           </div>
 
-          {/* Inventory */}
-          <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">Inventory</h2>
-            <div>
-              <label className="field-label">Stock Quantity</label>
-              <input
-                name="stock_quantity"
-                type="number"
-                min="0"
-                className="field-input"
-                defaultValue={product?.stock_quantity ?? 0}
-              />
+          {/* Variant summary */}
+          {variantEntries.length > 0 && (
+            <div className="card p-5">
+              <h2 className="mb-3 font-semibold text-gray-800">Variant Summary</h2>
+              <div className="space-y-2">
+                {variantEntries.map((v, i) => {
+                  const op = parseFloat(v.originalPrice);
+                  const pp = v.promotionPrice ? parseFloat(v.promotionPrice) : null;
+                  const price = pp && !isNaN(pp) && pp > 0 && pp < op ? pp : op;
+                  const qty = parseInt(v.stockQuantity, 10);
+                  return (
+                    <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs">
+                      <p className="font-bold text-gray-700">{v.name || `Variant ${i + 1}`}</p>
+                      <p className="text-gray-500">
+                        {!isNaN(price) ? `RM${price.toFixed(2)}` : "—"}{" "}
+                        {pp && !isNaN(pp) && pp < op ? (
+                          <span className="text-gray-400 line-through">RM{op.toFixed(2)}</span>
+                        ) : null}
+                        {" · "}
+                        {isNaN(qty) || qty <= 0 ? (
+                          <span className="text-red-500">Out of stock</span>
+                        ) : (
+                          <span className={qty <= 5 ? "text-amber-600" : "text-green-600"}>
+                            {qty} in stock
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Images */}
           <div className="card p-5">
             <h2 className="mb-4 font-semibold text-gray-800">
               Images{" "}
-              <span className="text-xs font-normal text-gray-400">
-                ({keptImages.length}/9)
-              </span>
+              <span className="text-xs font-normal text-gray-400">({keptImages.length}/9)</span>
             </h2>
 
-            {/* Current images */}
             {keptImages.length > 0 && (
               <div className="mb-4">
                 <p className="mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -581,7 +707,6 @@ export function ProductForm({
               </div>
             )}
 
-            {/* Add new images — uploaded directly to Supabase, URL appended to kept list */}
             {keptImages.length < 9 && (
               <div>
                 <input
@@ -593,7 +718,6 @@ export function ProductForm({
                   onChange={handleFileChange}
                 />
 
-                {/* Upload progress bar */}
                 {uploadingImages && (
                   <div className="mt-1.5 flex items-center gap-2">
                     <div className="h-1.5 flex-1 rounded-full bg-gray-200">
@@ -606,10 +730,7 @@ export function ProductForm({
                   </div>
                 )}
 
-                {/* Error message */}
-                {imageError && (
-                  <p className="mt-1 text-xs text-red-600">⚠ {imageError}</p>
-                )}
+                {imageError && <p className="mt-1 text-xs text-red-600">⚠ {imageError}</p>}
 
                 {!imageError && !uploadingImages && (
                   <p className="mt-1.5 text-xs text-gray-400">
@@ -622,10 +743,7 @@ export function ProductForm({
 
           {/* Save button */}
           <div className="card p-5 space-y-3">
-            <button
-              type="submit"
-              className="btn-primary w-full justify-center py-2.5"
-            >
+            <button type="submit" className="btn-primary w-full justify-center py-2.5">
               {isEdit ? "💾 Save Changes" : "✨ Create Product"}
             </button>
           </div>

@@ -188,11 +188,6 @@ export async function saveProduct(formData: FormData) {
   const sku = fd(formData, "sku");
   const slug = fd(formData, "slug") || slugify(name);
   const category_id = fd(formData, "category_id") || null; // UUID from category dropdown
-  const price = fdNum(formData, "price");
-  const promotion_price = fdNum(formData, "promotion_price") || null;
-  const promotion_start_at = dateOrNull(fd(formData, "promotion_start_at"));
-  const promotion_end_at = dateOrNull(fd(formData, "promotion_end_at"));
-  const stock_quantity = fdNum(formData, "stock_quantity");
   const is_active = fdBool(formData, "is_active");
   const is_featured = fdBool(formData, "is_featured");
   const short_description = fd(formData, "short_description") || null;
@@ -203,31 +198,53 @@ export async function saveProduct(formData: FormData) {
   const return_note = fd(formData, "return_note") || null;
   const rating = fdNum(formData, "rating") || null;
 
-  // Product variants: JSON string from hidden input, e.g. [{"name":"Color","values":["Black","White"]}]
-  const variantsRaw = fd(formData, "product_variants");
-  let product_variants: Array<{ name: string; values: string[] }> | null = null;
-  if (variantsRaw) {
+  // ── Per-variant pricing entries (new format) ──────────────────────────────
+  // Submitted as a JSON array from the hidden input "variant_entries":
+  // [{"name":"Black","sku":"URB-BLK","originalPrice":49.90,"promotionPrice":39.90,"stockQuantity":10},...]
+  type VariantEntryPayload = {
+    name: string;
+    sku: string;
+    originalPrice: number;
+    promotionPrice: number | null;
+    stockQuantity: number;
+  };
+
+  const variantEntriesRaw = fd(formData, "variant_entries");
+  let variantEntries: VariantEntryPayload[] = [];
+  if (variantEntriesRaw) {
     try {
-      product_variants = JSON.parse(variantsRaw) as Array<{ name: string; values: string[] }>;
+      variantEntries = JSON.parse(variantEntriesRaw) as VariantEntryPayload[];
     } catch {
-      // Invalid JSON — ignore
+      // Invalid JSON — treat as no entries
     }
   }
 
   if (!name) redirect("/products?saveError=Product+name+is+required");
   if (!sku) redirect("/products?saveError=SKU+is+required");
   if (!slug) redirect("/products?saveError=Slug+is+required");
-  if (price <= 0) redirect(`/products?saveError=Price+must+be+greater+than+0`);
+  if (variantEntries.length === 0) {
+    redirect("/products?saveError=At+least+one+variant+with+pricing+is+required");
+  }
+
+  // Derive product-level price/stock/sku from the first variant for backward compatibility
+  // (DB columns kept for fallback; source of truth is now product_variants JSONB)
+  const firstVariant = variantEntries[0];
+  const price = firstVariant.originalPrice;
+  const promotion_price = firstVariant.promotionPrice && firstVariant.promotionPrice > 0
+    ? firstVariant.promotionPrice
+    : null;
+  const stock_quantity = firstVariant.stockQuantity;
 
   const payload = {
     name,
     sku,
     slug,
     category_id: category_id || null,
+    // Legacy columns — kept in sync with first variant for any old code that still reads them
     price,
-    promotion_price: promotion_price && promotion_price > 0 ? promotion_price : null,
-    promotion_start_at,
-    promotion_end_at,
+    promotion_price,
+    promotion_start_at: null,
+    promotion_end_at: null,
     stock_quantity,
     is_active,
     is_featured,
@@ -238,7 +255,8 @@ export async function saveProduct(formData: FormData) {
     shipping_info,
     return_note,
     rating: rating || null,
-    product_variants: (product_variants ?? null) as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["product_variants"],
+    // Store the full new-format variant array in product_variants JSONB
+    product_variants: variantEntries as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["product_variants"],
   };
 
   let finalProductId = productDbId;

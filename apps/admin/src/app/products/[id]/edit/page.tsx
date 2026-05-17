@@ -44,6 +44,19 @@ export default async function EditProductPage({
 
   if (!product) notFound();
 
+  // Parse product_variants JSONB — detect new format (with originalPrice) vs old (with values)
+  const rawVariants = Array.isArray(product.product_variants) ? product.product_variants : [];
+  type NewVariant = { name: string; sku: string; originalPrice: number; promotionPrice?: number | null; stockQuantity: number };
+  type OldVariant = { name: string; values: string[] };
+
+  const isNewFormat =
+    rawVariants.length > 0 &&
+    typeof (rawVariants[0] as Record<string, unknown>).originalPrice === "number";
+
+  const variantEntries: NewVariant[] | null = isNewFormat
+    ? (rawVariants as NewVariant[])
+    : null; // null → form will auto-seed from legacy price
+
   // Build product shape for the form
   const formProduct = {
     id: product.id,
@@ -51,6 +64,7 @@ export default async function EditProductPage({
     sku: product.sku,
     slug: product.slug,
     category_id: product.category_id,
+    // Legacy price fields — used to seed default variant for old products
     price: Number(product.price),
     promotion_price: product.promotion_price ? Number(product.promotion_price) : null,
     promotion_start_at: product.promotion_start_at,
@@ -65,11 +79,13 @@ export default async function EditProductPage({
     shipping_info: product.shipping_info,
     return_note: product.return_note,
     rating: product.rating,
-    product_variants: Array.isArray(product.product_variants)
-      ? (product.product_variants as Array<{ name: string; values: string[] }>)
-      : null,
+    // New-format variant entries (null → form seeds default from legacy price)
+    variant_entries: variantEntries,
     images: (product.product_images ?? []).sort((a, b) => a.sort_order - b.sort_order),
   };
+
+  // Suppress "declared but never read" for OldVariant (used only for JSONB detection)
+  void (null as unknown as OldVariant);
 
   return (
     <div>

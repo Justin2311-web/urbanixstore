@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import type { CartLine } from "@ecommerce/shared";
 import { formatCurrency } from "@ecommerce/shared";
 import { useCart } from "@/components/cart/cart-provider";
+import { getCartItemDisplayPricing } from "@/lib/cart-utils";
 import { Button } from "@/components/ui/button";
 import { ProductVisual } from "@/components/commerce/product-visual";
 import { LocalizedValue } from "@/components/i18n/localized-value";
@@ -16,7 +17,32 @@ export function CartItemCard({ line }: { line: CartLine }) {
   const { decrementItem, removeItem, addItem } = useCart();
   const { product, quantity, selectedVariants } = line;
   const cartKey = line.cartKey ?? product.id;
-  const hasStockWarning = product.stockStatus !== "in_stock";
+
+  // Resolve variant-level price for display
+  const { price: displayPrice, originalPrice: displayOriginalPrice } =
+    getCartItemDisplayPricing(product, selectedVariants);
+
+  // Determine stock status from selected variant (new format) or product-level (old)
+  const selectedVariantEntry =
+    product.variants && selectedVariants?.variant
+      ? product.variants.find((v) => v.name === selectedVariants.variant)
+      : product.variants?.[0];
+  const stockStatus = selectedVariantEntry
+    ? selectedVariantEntry.stockQuantity <= 0
+      ? ("out_of_stock" as const)
+      : selectedVariantEntry.stockQuantity <= 5
+        ? ("low_stock" as const)
+        : ("in_stock" as const)
+    : product.stockStatus;
+  const hasStockWarning = stockStatus !== "in_stock";
+
+  // Show variant name (new format) or key=value pairs (legacy format)
+  const variantLabel =
+    selectedVariants?.variant
+      ? selectedVariants.variant
+      : selectedVariants && Object.keys(selectedVariants).length > 0
+        ? Object.entries(selectedVariants).map(([k, v]) => `${k}: ${v}`).join(" · ")
+        : null;
 
   return (
     <article className="grid grid-cols-[96px_1fr] gap-4 rounded-2xl border border-border/80 bg-card p-3 shadow-sm">
@@ -27,7 +53,13 @@ export function CartItemCard({ line }: { line: CartLine }) {
           tone={product.imageTone}
         />
         <div className="absolute left-2 top-2">
-          <PromotionBadge percent={product.promotionPercent} />
+          <PromotionBadge
+            percent={
+              displayOriginalPrice && displayOriginalPrice > displayPrice
+                ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)
+                : undefined
+            }
+          />
         </div>
       </div>
       <div className="flex min-w-0 flex-col gap-3">
@@ -36,12 +68,10 @@ export function CartItemCard({ line }: { line: CartLine }) {
             <h3 className="line-clamp-2 text-sm font-bold">
               <LocalizedValue fallback={product.name} value={product.localizedName} />
             </h3>
-            {selectedVariants && Object.keys(selectedVariants).length > 0 ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {Object.entries(selectedVariants).map(([k, v]) => `${k}: ${v}`).join(" · ")}
-              </p>
+            {variantLabel ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">{variantLabel}</p>
             ) : null}
-            <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
+            <PriceDisplay originalPrice={displayOriginalPrice} price={displayPrice} />
             <p className="mt-1 text-xs font-semibold text-muted-foreground">
               Line total: {formatCurrency(line.lineTotal)}
             </p>
@@ -62,7 +92,7 @@ export function CartItemCard({ line }: { line: CartLine }) {
             onIncrease={() => addItem(product.id, 1, selectedVariants)}
             value={quantity}
           />
-          {hasStockWarning ? <StockBadge status={product.stockStatus} /> : null}
+          {hasStockWarning ? <StockBadge status={stockStatus} /> : null}
         </div>
       </div>
     </article>
