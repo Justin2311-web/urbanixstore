@@ -17,6 +17,9 @@ type VariantEntry = {
 type ExistingProduct = {
   id: string;
   name: string;
+  name_en: string;
+  name_zh: string;
+  name_ms: string;
   sku: string;
   slug: string;
   category_id: string | null;
@@ -29,7 +32,13 @@ type ExistingProduct = {
   is_active: boolean;
   is_featured: boolean;
   short_description: string | null;
+  short_description_en: string;
+  short_description_zh: string;
+  short_description_ms: string;
   description: string | null;
+  description_en: string;
+  description_zh: string;
+  description_ms: string;
   highlights: string[];
   specifications: string[];
   shipping_info: string | null;
@@ -86,8 +95,22 @@ export function ProductForm({
   product?: ExistingProduct;
 }) {
   const isEdit = Boolean(product?.id);
-  const [nameValue, setNameValue] = useState(product?.name ?? "");
+  const [nameValue, setNameValue] = useState(product?.name_en ?? product?.name ?? "");
   const [slugValue, setSlugValue] = useState(product?.slug ?? "");
+  // Multilingual name
+  const [nameZh, setNameZh] = useState(product?.name_zh ?? "");
+  const [nameMs, setNameMs] = useState(product?.name_ms ?? "");
+  // Multilingual short description
+  const [shortDescEn, setShortDescEn] = useState(product?.short_description_en ?? product?.short_description ?? "");
+  const [shortDescZh, setShortDescZh] = useState(product?.short_description_zh ?? "");
+  const [shortDescMs, setShortDescMs] = useState(product?.short_description_ms ?? "");
+  // Multilingual full description
+  const [descEn, setDescEn] = useState(product?.description_en ?? product?.description ?? "");
+  const [descZh, setDescZh] = useState(product?.description_zh ?? "");
+  const [descMs, setDescMs] = useState(product?.description_ms ?? "");
+  // Active language tab for multilingual sections
+  const [nameLang, setNameLang] = useState<"en" | "zh" | "ms">("en");
+  const [descLang, setDescLang] = useState<"en" | "zh" | "ms">("en");
   const [keptImages, setKeptImages] = useState(
     product?.images.map((i) => i.image_url) ?? []
   );
@@ -258,6 +281,18 @@ export function ProductForm({
       <input type="hidden" name="product_db_id" value={product?.id ?? ""} />
       {/* Hidden: slug */}
       <input type="hidden" name="slug" value={slugValue} />
+      {/* Hidden: multilingual name */}
+      <input type="hidden" name="name_en" value={nameValue} />
+      <input type="hidden" name="name_zh" value={nameZh} />
+      <input type="hidden" name="name_ms" value={nameMs} />
+      {/* Hidden: multilingual short description */}
+      <input type="hidden" name="short_description_en" value={shortDescEn} />
+      <input type="hidden" name="short_description_zh" value={shortDescZh} />
+      <input type="hidden" name="short_description_ms" value={shortDescMs} />
+      {/* Hidden: multilingual full description */}
+      <input type="hidden" name="description_en" value={descEn} />
+      <input type="hidden" name="description_zh" value={descZh} />
+      <input type="hidden" name="description_ms" value={descMs} />
       {/* Hidden: kept image URLs */}
       <input type="hidden" name="kept_image_count" value={keptImages.length} />
       {keptImages.map((url, i) => (
@@ -274,15 +309,57 @@ export function ProductForm({
           <div className="card p-5">
             <h2 className="mb-4 font-semibold text-gray-800">Basic Information</h2>
             <div className="grid gap-4 sm:grid-cols-2">
+
+              {/* ── Multilingual Product Name ── */}
               <div className="sm:col-span-2">
-                <label className="field-label">Product Name *</label>
-                <input
-                  name="name"
-                  required
-                  className="field-input"
-                  value={nameValue}
-                  onChange={handleNameChange}
-                />
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Product Name *</label>
+                  <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                    {(["en", "zh", "ms"] as const).map((lang) => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => setNameLang(lang)}
+                        className={`rounded px-2.5 py-0.5 text-xs font-bold transition ${
+                          nameLang === lang
+                            ? "bg-[#0e5c56] text-white"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {lang === "en" ? "EN" : lang === "zh" ? "中文" : "BM"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {nameLang === "en" && (
+                  <input
+                    name="name"
+                    required
+                    className="field-input"
+                    placeholder="English product name"
+                    value={nameValue}
+                    onChange={handleNameChange}
+                  />
+                )}
+                {nameLang === "zh" && (
+                  <input
+                    className="field-input"
+                    placeholder="中文产品名称"
+                    value={nameZh}
+                    onChange={(e) => setNameZh(e.target.value)}
+                  />
+                )}
+                {nameLang === "ms" && (
+                  <input
+                    className="field-input"
+                    placeholder="Nama produk dalam Bahasa Malaysia"
+                    value={nameMs}
+                    onChange={(e) => setNameMs(e.target.value)}
+                  />
+                )}
+                <p className="mt-1 text-[11px] text-gray-400">
+                  {nameLang === "en" ? "Required. Used as default name." : "Optional. Falls back to EN if empty."}
+                </p>
               </div>
 
               <div>
@@ -521,28 +598,98 @@ export function ProductForm({
 
           {/* Description */}
           <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">Description</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-800">Description</h2>
+              <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                {(["en", "zh", "ms"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setDescLang(lang)}
+                    className={`rounded px-2.5 py-0.5 text-xs font-bold transition ${
+                      descLang === lang
+                        ? "bg-[#0e5c56] text-white"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {lang === "en" ? "EN" : lang === "zh" ? "中文" : "BM"}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-4">
+              {/* Short Description */}
               <div>
-                <label className="field-label">Short Description</label>
-                <textarea
-                  name="short_description"
-                  className="field-textarea"
-                  rows={2}
-                  defaultValue={product?.short_description ?? ""}
-                  placeholder="Brief product summary shown in product cards"
-                />
+                <label className="field-label">
+                  Short Description{" "}
+                  <span className="text-xs font-normal text-gray-400">
+                    ({descLang === "en" ? "English" : descLang === "zh" ? "中文" : "Bahasa Malaysia"})
+                  </span>
+                </label>
+                {descLang === "en" && (
+                  <textarea
+                    className="field-textarea"
+                    rows={2}
+                    placeholder="Brief product summary shown in product cards"
+                    value={shortDescEn}
+                    onChange={(e) => setShortDescEn(e.target.value)}
+                  />
+                )}
+                {descLang === "zh" && (
+                  <textarea
+                    className="field-textarea"
+                    rows={2}
+                    placeholder="简短产品摘要（产品卡片显示）"
+                    value={shortDescZh}
+                    onChange={(e) => setShortDescZh(e.target.value)}
+                  />
+                )}
+                {descLang === "ms" && (
+                  <textarea
+                    className="field-textarea"
+                    rows={2}
+                    placeholder="Ringkasan produk pendek (ditunjukkan dalam kad produk)"
+                    value={shortDescMs}
+                    onChange={(e) => setShortDescMs(e.target.value)}
+                  />
+                )}
               </div>
 
+              {/* Full Description */}
               <div>
-                <label className="field-label">Full Description</label>
-                <textarea
-                  name="description"
-                  className="field-textarea"
-                  rows={5}
-                  defaultValue={product?.description ?? ""}
-                  placeholder="Detailed product description"
-                />
+                <label className="field-label">
+                  Full Description{" "}
+                  <span className="text-xs font-normal text-gray-400">
+                    ({descLang === "en" ? "English" : descLang === "zh" ? "中文" : "Bahasa Malaysia"})
+                  </span>
+                </label>
+                {descLang === "en" && (
+                  <textarea
+                    className="field-textarea"
+                    rows={6}
+                    placeholder="Detailed product description"
+                    value={descEn}
+                    onChange={(e) => setDescEn(e.target.value)}
+                  />
+                )}
+                {descLang === "zh" && (
+                  <textarea
+                    className="field-textarea"
+                    rows={6}
+                    placeholder="详细产品说明"
+                    value={descZh}
+                    onChange={(e) => setDescZh(e.target.value)}
+                  />
+                )}
+                {descLang === "ms" && (
+                  <textarea
+                    className="field-textarea"
+                    rows={6}
+                    placeholder="Penerangan produk terperinci"
+                    value={descMs}
+                    onChange={(e) => setDescMs(e.target.value)}
+                  />
+                )}
               </div>
 
               <div>

@@ -540,6 +540,17 @@ function localCategoryTone(slug: string): ProductCategory["tone"] {
 }
 
 function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): ProductCategory {
+  const rowC = row as typeof row & {
+    name_en?: string | null;
+    name_zh?: string | null;
+    name_ms?: string | null;
+  };
+  const baseName = row.name;
+  const localizedName: LocalizedTextValue = {
+    en: rowC.name_en?.trim() || baseName,
+    zh: rowC.name_zh?.trim() || rowC.name_en?.trim() || baseName,
+    ms: rowC.name_ms?.trim() || rowC.name_en?.trim() || baseName,
+  };
   return {
     active: row.is_active,
     description: row.description ?? "",
@@ -547,7 +558,8 @@ function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): Pr
     id: row.slug,
     imageUrl: row.image_url ?? "",
     isActive: row.is_active,
-    name: row.name,
+    localizedName,
+    name: rowC.name_en?.trim() || baseName,
     slug: row.slug,
     sortOrder: row.sort_order,
     tone: (row.tone as ProductCategory["tone"] | null) ?? localCategoryTone(row.slug),
@@ -576,13 +588,46 @@ function mapProduct({
   const defaultVariant = newVariants && newVariants.length > 0 ? newVariants[0] : undefined;
   const variantPricing = defaultVariant ? getVariantEffectivePrice(defaultVariant) : undefined;
 
+  // Typed row with multilingual columns
+  const rowX = row as typeof row & {
+    name_en?: string | null;
+    name_zh?: string | null;
+    name_ms?: string | null;
+    short_description_en?: string | null;
+    short_description_zh?: string | null;
+    short_description_ms?: string | null;
+    description_en?: string | null;
+    description_zh?: string | null;
+    description_ms?: string | null;
+  };
+
+  const baseName = row.name;
+  const baseShortDesc = row.short_description ?? "";
+  const baseDesc = row.description ?? "";
+
+  const localizedName: LocalizedTextValue = {
+    en: rowX.name_en?.trim() || baseName,
+    zh: rowX.name_zh?.trim() || rowX.name_en?.trim() || baseName,
+    ms: rowX.name_ms?.trim() || rowX.name_en?.trim() || baseName,
+  };
+  const localizedDescription: LocalizedTextValue = {
+    en: rowX.description_en?.trim() || baseDesc,
+    zh: rowX.description_zh?.trim() || rowX.description_en?.trim() || baseDesc,
+    ms: rowX.description_ms?.trim() || rowX.description_en?.trim() || baseDesc,
+  };
+  const localizedShortDescription: LocalizedTextValue = {
+    en: rowX.short_description_en?.trim() || baseShortDesc,
+    zh: rowX.short_description_zh?.trim() || rowX.short_description_en?.trim() || baseShortDesc,
+    ms: rowX.short_description_ms?.trim() || rowX.short_description_en?.trim() || baseShortDesc,
+  };
+
   const product: UrbanixProduct = {
     category: category?.name ?? "Uncategorized",
     categoryId: category?.id,
     createdAt: row.created_at,
-    description: row.description ?? "",
+    description: baseDesc,
     featured: row.is_featured,
-    fullDescription: row.description ?? "",
+    fullDescription: baseDesc,
     galleryImages,
     highlights: asStringArray(row.highlights),
     id: row.slug,
@@ -590,8 +635,11 @@ function mapProduct({
     imageTone: (row.image_tone as UrbanixProduct["imageTone"] | null) ?? "fan-green",
     isActive: row.is_active,
     isFeatured: row.is_featured,
+    localizedDescription,
+    localizedName,
+    localizedShortDescription,
     mainImageUrl: row.main_image_url ?? "",
-    name: row.name,
+    name: rowX.name_en?.trim() || row.name,
     normalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
     originalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
     price: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
@@ -609,9 +657,9 @@ function mapProduct({
     promotionStartAt: row.promotion_start_at ?? "",
     rating: Number(row.rating ?? 0),
     relatedCategory: category?.id,
-    returnNote: "",
-    shippingInfo: "Free shipping applies for orders above RM40. Delivery details are confirmed during order chat.",
-    shortDescription: row.short_description ?? "",
+    returnNote: row.return_note ?? "",
+    shippingInfo: row.shipping_info ?? "Free shipping applies for orders above RM40.",
+    shortDescription: rowX.short_description_en?.trim() || baseShortDesc,
     // Product-level SKU stays as the base SKU; variant SKUs are on each entry
     sku: row.sku,
     slug: row.slug,

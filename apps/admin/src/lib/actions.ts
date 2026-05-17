@@ -190,8 +190,19 @@ export async function saveProduct(formData: FormData) {
   const category_id = fd(formData, "category_id") || null; // UUID from category dropdown
   const is_active = fdBool(formData, "is_active");
   const is_featured = fdBool(formData, "is_featured");
-  const short_description = fd(formData, "short_description") || null;
-  const description = fd(formData, "description") || null;
+  // ── Multilingual fields ───────────────────────────────────────────────────
+  const name_en = fd(formData, "name_en") || name || null;
+  const name_zh = fd(formData, "name_zh") || null;
+  const name_ms = fd(formData, "name_ms") || null;
+  const short_description = fd(formData, "short_description_en") || fd(formData, "short_description") || null;
+  const short_description_en = fd(formData, "short_description_en") || null;
+  const short_description_zh = fd(formData, "short_description_zh") || null;
+  const short_description_ms = fd(formData, "short_description_ms") || null;
+  const description = fd(formData, "description_en") || fd(formData, "description") || null;
+  const description_en = fd(formData, "description_en") || null;
+  const description_zh = fd(formData, "description_zh") || null;
+  const description_ms = fd(formData, "description_ms") || null;
+  // ─────────────────────────────────────────────────────────────────────────
   const highlights = fdLines(formData, "highlights");
   const specifications = fdLines(formData, "specifications");
   const shipping_info = fd(formData, "shipping_info") || null;
@@ -236,7 +247,10 @@ export async function saveProduct(formData: FormData) {
   const stock_quantity = firstVariant.stockQuantity;
 
   const payload = {
-    name,
+    name: name_en || name,
+    name_en,
+    name_zh,
+    name_ms,
     sku,
     slug,
     category_id: category_id || null,
@@ -249,7 +263,13 @@ export async function saveProduct(formData: FormData) {
     is_active,
     is_featured,
     short_description,
+    short_description_en,
+    short_description_zh,
+    short_description_ms,
     description,
+    description_en,
+    description_zh,
+    description_ms,
     highlights: highlights as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["highlights"],
     specifications: specifications as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["specifications"],
     shipping_info,

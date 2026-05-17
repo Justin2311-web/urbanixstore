@@ -89,7 +89,7 @@ export default async function ProductDetailPage({
               <LocalizedValue fallback={product.name} value={product.localizedName} />
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              <LocalizedValue fallback={product.shortDescription} value={product.localizedDescription} />
+              <LocalizedValue fallback={product.shortDescription} value={product.localizedShortDescription ?? product.localizedDescription} />
             </p>
           </div>
 

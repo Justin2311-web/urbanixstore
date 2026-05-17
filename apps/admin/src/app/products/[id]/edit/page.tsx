@@ -11,6 +11,15 @@ import { deleteProduct } from "@/lib/actions";
 type CategoryOption = { id: string; name: string };
 type ProductWithImages = Database["public"]["Tables"]["products"]["Row"] & {
   product_images: Array<{ image_url: string; sort_order: number }>;
+  name_en?: string | null;
+  name_zh?: string | null;
+  name_ms?: string | null;
+  short_description_en?: string | null;
+  short_description_zh?: string | null;
+  short_description_ms?: string | null;
+  description_en?: string | null;
+  description_zh?: string | null;
+  description_ms?: string | null;
 };
 
 export default async function EditProductPage({
@@ -28,7 +37,7 @@ export default async function EditProductPage({
     sb
       .from("products")
       .select(
-        "id, name, sku, slug, category_id, price, promotion_price, promotion_start_at, promotion_end_at, stock_quantity, is_active, is_featured, short_description, description, highlights, specifications, shipping_info, return_note, rating, main_image_url, product_variants, product_images(image_url, sort_order)"
+        "id, name, name_en, name_zh, name_ms, sku, slug, category_id, price, promotion_price, promotion_start_at, promotion_end_at, stock_quantity, is_active, is_featured, short_description, short_description_en, short_description_zh, short_description_ms, description, description_en, description_zh, description_ms, highlights, specifications, shipping_info, return_note, rating, main_image_url, product_variants, product_images(image_url, sort_order)"
       )
       .eq("id", id)
       .single(),
@@ -60,7 +69,10 @@ export default async function EditProductPage({
   // Build product shape for the form
   const formProduct = {
     id: product.id,
-    name: product.name,
+    name: product.name_en || product.name,
+    name_en: product.name_en || product.name || "",
+    name_zh: product.name_zh || "",
+    name_ms: product.name_ms || "",
     sku: product.sku,
     slug: product.slug,
     category_id: product.category_id,
@@ -72,12 +84,18 @@ export default async function EditProductPage({
     stock_quantity: product.stock_quantity,
     is_active: product.is_active,
     is_featured: product.is_featured,
-    short_description: product.short_description,
-    description: product.description,
+    short_description: product.short_description_en || product.short_description || "",
+    short_description_en: product.short_description_en || product.short_description || "",
+    short_description_zh: product.short_description_zh || "",
+    short_description_ms: product.short_description_ms || "",
+    description: product.description_en || product.description || "",
+    description_en: product.description_en || product.description || "",
+    description_zh: product.description_zh || "",
+    description_ms: product.description_ms || "",
     highlights: Array.isArray(product.highlights) ? (product.highlights as string[]) : [],
     specifications: Array.isArray(product.specifications) ? (product.specifications as string[]) : [],
-    shipping_info: product.shipping_info,
-    return_note: product.return_note,
+    shipping_info: product.shipping_info || "",
+    return_note: product.return_note || "",
     rating: product.rating,
     // New-format variant entries (null → form seeds default from legacy price)
     variant_entries: variantEntries,

@@ -254,6 +254,7 @@ export type UrbanixProduct = {
   category: string;
   sku: string;
   shortDescription: string;
+  localizedShortDescription?: LocalizedTextValue;
   description: string;
   localizedDescription?: LocalizedTextValue;
   specifications: string[];
