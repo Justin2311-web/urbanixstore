@@ -112,14 +112,16 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
         ) : null}
       </div>
 
-      {/* ── Thumbnails — horizontal scroll strip, compact squares ── */}
+      {/* ── Thumbnails ──
+           Mobile  : 4-column grid → 2 rows for 8 images, wraps cleanly for more
+           sm (640px+): horizontal scroll strip (existing desktop behaviour)        ── */}
       {thumbItems.length > 1 ? (
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+        <div className="grid grid-cols-4 gap-1.5 sm:flex sm:gap-1.5 sm:overflow-x-auto sm:pb-0.5">
           {thumbItems.map((item, index) => (
             <button
               aria-label={`View product image ${index + 1}`}
               className={cn(
-                "shrink-0 w-[3.25rem] rounded-lg border bg-card p-0.5 transition hover:border-primary/40",
+                "rounded-lg border bg-card p-0.5 transition hover:border-primary/40 sm:w-[3.25rem] sm:shrink-0",
                 activeIndex === index
                   ? "border-primary ring-2 ring-primary/15"
                   : "border-border"
