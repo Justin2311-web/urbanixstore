@@ -10,9 +10,10 @@ import { LocalizedValue } from "@/components/i18n/localized-value";
 
 type ProductCardProps = {
   product: UrbanixProduct;
+  compact?: boolean;
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ compact = false, product }: ProductCardProps) {
   const hasOptions = (product.variantGroups?.length ?? 0) > 0;
 
   return (
@@ -24,13 +25,13 @@ export function ProductCard({ product }: ProductCardProps) {
       <Link href={`/products/${product.slug}`}>
         <ProductVisual alt={product.name} imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]} tone={product.imageTone} />
       </Link>
-      <div className="flex flex-col gap-2 px-1 py-3">
+      <div className={`flex flex-col gap-2 px-1 ${compact ? "py-2" : "py-3"}`}>
         {product.stockStatus !== "in_stock" ? (
           <div>
             <StockBadge status={product.stockStatus} />
           </div>
         ) : null}
-        {hasOptions ? (
+        {hasOptions && !compact ? (
           <div>
             <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-primary dark:bg-[rgba(59,158,255,0.12)] dark:text-[#8bdcff]">
               <LocalizedValue
@@ -45,7 +46,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         ) : null}
         <Link
-          className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-foreground hover:text-primary"
+          className={`line-clamp-2 text-foreground hover:text-primary ${compact ? "text-xs font-bold leading-snug" : "min-h-10 text-sm font-bold leading-snug"}`}
           href={`/products/${product.slug}`}
         >
           <LocalizedValue fallback={product.name} value={product.localizedName} />
@@ -55,7 +56,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="size-3 fill-warning text-warning" />
             <span className="font-semibold text-primary dark:text-[#ffd166]">{product.rating}</span>
-            <span>({product.sold})</span>
+            {!compact ? <span>({product.sold})</span> : null}
           </div>
           <AddToCartButton
             disabled={product.stockStatus === "out_of_stock"}

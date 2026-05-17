@@ -89,7 +89,16 @@ export default async function Home() {
                     <p className="line-clamp-2 text-sm font-black text-foreground transition group-hover:text-primary">
                       <LocalizedValue fallback={product.name} value={product.localizedName} />
                     </p>
-                    <p className="mt-2 text-lg font-black text-primary dark:text-[#ffd166]">{formatCurrency(product.price)}</p>
+                    <div className="mt-2">
+                      {product.originalPrice && product.originalPrice > product.price ? (
+                        <p className="text-[0.68rem] leading-none text-muted-foreground line-through">
+                          {formatCurrency(product.originalPrice)}
+                        </p>
+                      ) : null}
+                      <p className="text-base font-black text-primary dark:text-[#ffd166]">
+                        {formatCurrency(product.price)}
+                      </p>
+                    </div>
                     {product.variantGroups?.length ? (
                       <p className="mt-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-muted-foreground">Options Available</p>
                     ) : null}

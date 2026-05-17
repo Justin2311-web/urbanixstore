@@ -144,7 +144,7 @@ export function ProductPurchasePanel({
 
       {/* ── Variant selector — new flat format ── */}
       {hasNewVariants && !isSingleVariant ? (
-        <div className="rounded-3xl border border-primary/15 bg-white p-4 shadow-sm">
+        <div className="rounded-3xl border border-primary/15 bg-card p-4 shadow-sm dark:border-[rgba(59,158,255,0.18)]">
           <p className="mb-3 text-sm font-extrabold text-foreground">Select Option</p>
           <div className="flex flex-wrap gap-2">
             {variants.map((v) => {
@@ -207,7 +207,7 @@ export function ProductPurchasePanel({
 
       {/* ── Legacy variant selector (old-format products) ── */}
       {hasLegacyVariants ? (
-        <div className="rounded-3xl border border-primary/15 bg-white p-4 shadow-sm">
+        <div className="rounded-3xl border border-primary/15 bg-card p-4 shadow-sm dark:border-[rgba(59,158,255,0.18)]">
           <div className="flex flex-col gap-4">
             {legacyVariantGroups.map((group) => (
               <div className="flex flex-col gap-2" key={group.name}>
