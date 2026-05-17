@@ -32,10 +32,19 @@ export type Database = {
         Row: {
           created_at: string;
           description: string | null;
+          description_en: string | null;
+          description_ms: string | null;
+          description_zh: string | null;
           id: string;
           image_url: string | null;
+          image_url_en: string | null;
+          image_url_ms: string | null;
+          image_url_zh: string | null;
           is_active: boolean;
           name: string;
+          name_en: string | null;
+          name_ms: string | null;
+          name_zh: string | null;
           slug: string;
           sort_order: number;
           tone: string | null;
@@ -44,10 +53,19 @@ export type Database = {
         Insert: {
           created_at?: string;
           description?: string | null;
+          description_en?: string | null;
+          description_ms?: string | null;
+          description_zh?: string | null;
           id?: string;
           image_url?: string | null;
+          image_url_en?: string | null;
+          image_url_ms?: string | null;
+          image_url_zh?: string | null;
           is_active?: boolean;
           name: string;
+          name_en?: string | null;
+          name_ms?: string | null;
+          name_zh?: string | null;
           slug: string;
           sort_order?: number;
           tone?: string | null;

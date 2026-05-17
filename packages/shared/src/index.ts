@@ -117,6 +117,8 @@ export type HomepageContent = {
   announcementLink?: string;
   announcementBgColor?: string;
   announcementTextColor?: string;
+  localizedPromoStripText?: LocalizedTextValue;
+  localizedAnnouncementText?: LocalizedTextValue;
 };
 
 export type PromotionBanner = {
@@ -160,6 +162,7 @@ export type ProductCategory = {
   id: string;
   name: string;
   localizedName?: LocalizedTextValue;
+  localizedDescription?: LocalizedTextValue;
   slug?: string;
   href: string;
   description: string;
@@ -180,7 +183,11 @@ export type ProductCategory = {
     | "sun"
     | "dark"
     | "fan-green"
-    | "fan-orange";
+    | "fan-orange"
+    | "tech-blue"
+    | "neon-cyan"
+    | "coral-red"
+    | "premium-gold";
   active?: boolean;
   isActive?: boolean;
   sortOrder?: number;
@@ -257,6 +264,9 @@ export type UrbanixProduct = {
   localizedShortDescription?: LocalizedTextValue;
   description: string;
   localizedDescription?: LocalizedTextValue;
+  localizedImages?: { en: string[]; zh: string[]; ms: string[] };
+  localizedHighlights?: { en: string[]; zh: string[]; ms: string[] };
+  localizedSpecifications?: { en: string[]; zh: string[]; ms: string[] };
   specifications: string[];
   shippingInfo: string;
   returnNote: string;

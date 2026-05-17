@@ -147,6 +147,29 @@ function asStringArray(value: Json | undefined): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
+/** Parse a TEXT column that stores a JSON array of image URLs */
+function parseImageArray(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((u): u is string => typeof u === "string") : [];
+  } catch {
+    return value.startsWith("http") ? [value] : [];
+  }
+}
+
+/** Parse a JSONB column that may be multilingual {en:[...], zh:[...], ms:[...]} or a flat string[] */
+function parseMultilingualArray(value: Json | undefined | null): { en: string[]; zh: string[]; ms: string[] } | null {
+  if (!value || Array.isArray(value)) return null;
+  const obj = value as Record<string, unknown>;
+  if (!Array.isArray(obj.en)) return null;
+  return {
+    en: asStringArray(obj.en as Json),
+    zh: asStringArray((obj.zh as Json) ?? []),
+    ms: asStringArray((obj.ms as Json) ?? []),
+  };
+}
+
 function localized(en: string, zh?: string, ms?: string): LocalizedTextValue {
   return {
     en: en.trim(),
@@ -544,12 +567,23 @@ function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): Pr
     name_en?: string | null;
     name_zh?: string | null;
     name_ms?: string | null;
+    description_en?: string | null;
+    description_zh?: string | null;
+    description_ms?: string | null;
+    image_url_en?: string | null;
+    image_url_zh?: string | null;
+    image_url_ms?: string | null;
   };
   const baseName = row.name;
   const localizedName: LocalizedTextValue = {
     en: rowC.name_en?.trim() || baseName,
     zh: rowC.name_zh?.trim() || rowC.name_en?.trim() || baseName,
     ms: rowC.name_ms?.trim() || rowC.name_en?.trim() || baseName,
+  };
+  const localizedDescription: LocalizedTextValue = {
+    en: rowC.description_en?.trim() || row.description || "",
+    zh: rowC.description_zh?.trim() || rowC.description_en?.trim() || row.description || "",
+    ms: rowC.description_ms?.trim() || rowC.description_en?.trim() || row.description || "",
   };
   return {
     active: row.is_active,
@@ -558,6 +592,7 @@ function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): Pr
     id: row.slug,
     imageUrl: row.image_url ?? "",
     isActive: row.is_active,
+    localizedDescription,
     localizedName,
     name: rowC.name_en?.trim() || baseName,
     slug: row.slug,
@@ -599,6 +634,9 @@ function mapProduct({
     description_en?: string | null;
     description_zh?: string | null;
     description_ms?: string | null;
+    main_image_url_en?: string | null;
+    main_image_url_zh?: string | null;
+    main_image_url_ms?: string | null;
   };
 
   const baseName = row.name;
@@ -621,6 +659,25 @@ function mapProduct({
     ms: rowX.short_description_ms?.trim() || rowX.short_description_en?.trim() || baseShortDesc,
   };
 
+  // Parse multilingual image arrays (stored as JSON strings in TEXT columns)
+  const imgEn = parseImageArray(rowX.main_image_url_en);
+  const imgZh = parseImageArray(rowX.main_image_url_zh);
+  const imgMs = parseImageArray(rowX.main_image_url_ms);
+  const localizedImages = (imgEn.length > 0 || imgZh.length > 0 || imgMs.length > 0) ? {
+    en: imgEn,
+    zh: imgZh.length > 0 ? imgZh : imgEn,
+    ms: imgMs.length > 0 ? imgMs : imgEn,
+  } : undefined;
+
+  // Parse multilingual highlights/specs (stored as {en:[...], zh:[...], ms:[...]} JSONB)
+  const highlightsMulti = parseMultilingualArray(row.highlights);
+  const specsMulti = parseMultilingualArray(row.specifications);
+
+  // For gallery: prefer EN images array, fall back to product_images table, fall back to main_image_url
+  const resolvedGalleryImages = imgEn.length > 0
+    ? imgEn
+    : (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
+
   const product: UrbanixProduct = {
     category: category?.name ?? "Uncategorized",
     categoryId: category?.id,
@@ -628,22 +685,25 @@ function mapProduct({
     description: baseDesc,
     featured: row.is_featured,
     fullDescription: baseDesc,
-    galleryImages,
-    highlights: asStringArray(row.highlights),
+    galleryImages: resolvedGalleryImages,
+    highlights: highlightsMulti?.en ?? asStringArray(row.highlights),
     id: row.slug,
-    image: row.main_image_url ?? galleryImages[0] ?? "",
+    image: row.main_image_url ?? imgEn[0] ?? resolvedGalleryImages[0] ?? "",
     imageTone: (row.image_tone as UrbanixProduct["imageTone"] | null) ?? "fan-green",
     isActive: row.is_active,
     isFeatured: row.is_featured,
     localizedDescription,
+    localizedHighlights: highlightsMulti ?? undefined,
+    localizedImages,
     localizedName,
     localizedShortDescription,
-    mainImageUrl: row.main_image_url ?? "",
+    localizedSpecifications: specsMulti ?? undefined,
+    mainImageUrl: row.main_image_url ?? imgEn[0] ?? "",
     name: rowX.name_en?.trim() || row.name,
     normalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
     originalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
     price: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
-    productImages: galleryImages.map((imageUrl, index) => ({
+    productImages: resolvedGalleryImages.map((imageUrl, index) => ({
       imageUrl,
       isPrimary: index === 0,
       sortOrder: index,
@@ -664,7 +724,7 @@ function mapProduct({
     sku: row.sku,
     slug: row.slug,
     sold: row.sold ?? 0,
-    specifications: asStringArray(row.specifications),
+    specifications: specsMulti?.en ?? asStringArray(row.specifications),
     status: row.is_active ? "active" : "inactive",
     // Stock comes from first variant if available, otherwise product-level
     stockQuantity: defaultVariant ? defaultVariant.stockQuantity : row.stock_quantity,
@@ -762,6 +822,11 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
 
   const r = row as Record<string, unknown>;
 
+  const promoTextEn = (typeof r.promo_strip_text_en === "string" && r.promo_strip_text_en) ? r.promo_strip_text_en : (typeof row.promo_strip_text === "string" ? row.promo_strip_text : "") || defaultUrbanixStoreData.homepage.promotionStripText;
+  const promoTextZh = (typeof r.promo_strip_text_zh === "string" && r.promo_strip_text_zh) ? r.promo_strip_text_zh : promoTextEn;
+  const promoTextMs = (typeof r.promo_strip_text_ms === "string" && r.promo_strip_text_ms) ? r.promo_strip_text_ms : promoTextEn;
+  const localizedPromoStripText: LocalizedTextValue = { en: promoTextEn, zh: promoTextZh, ms: promoTextMs };
+
   return {
     announcementBgColor: typeof r.announcement_bg_color === "string" ? r.announcement_bg_color : defaultUrbanixStoreData.homepage.announcementBgColor,
     announcementEnabled: typeof r.announcement_enabled === "boolean" ? r.announcement_enabled : true,
@@ -775,6 +840,7 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
     heroSubtitle: row.hero_subtitle ?? "",
     heroTitle: row.hero_title,
     isActive: row.is_active,
+    localizedPromoStripText,
     promotionStripText: typeof row.promo_strip_text === "string" && row.promo_strip_text
       ? row.promo_strip_text
       : defaultUrbanixStoreData.homepage.promotionStripText,
@@ -787,6 +853,32 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
 
 function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners"]["Row"]): PromotionBanner {
   const targetUrl = row.target_url ?? "/products";
+  const r = row as typeof row & {
+    title_en?: string | null;
+    title_zh?: string | null;
+    title_ms?: string | null;
+    subtitle_en?: string | null;
+    subtitle_zh?: string | null;
+    subtitle_ms?: string | null;
+    cta_text_en?: string | null;
+    cta_text_zh?: string | null;
+    cta_text_ms?: string | null;
+  };
+  const localizedTitle: LocalizedTextValue = {
+    en: r.title_en?.trim() || row.title,
+    zh: r.title_zh?.trim() || r.title_en?.trim() || row.title,
+    ms: r.title_ms?.trim() || r.title_en?.trim() || row.title,
+  };
+  const localizedCtaText: LocalizedTextValue = {
+    en: r.cta_text_en?.trim() || row.cta_text || "Shop Now",
+    zh: r.cta_text_zh?.trim() || r.cta_text_en?.trim() || row.cta_text || "Shop Now",
+    ms: r.cta_text_ms?.trim() || r.cta_text_en?.trim() || row.cta_text || "Shop Now",
+  };
+  const localizedSubtitle: LocalizedTextValue = {
+    en: row.subtitle ?? "",
+    zh: r.subtitle_zh?.trim() || row.subtitle || "",
+    ms: r.subtitle_ms?.trim() || row.subtitle || "",
+  };
 
   return {
     buttonEnabled: Boolean(row.cta_text && targetUrl),
@@ -797,6 +889,9 @@ function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners
     id: row.id,
     imageClickUrl: targetUrl,
     isActive: row.is_active,
+    localizedCtaText,
+    localizedSubtitle,
+    localizedTitle,
     mobileImageUrl: row.mobile_image_url ?? "",
     sortOrder: row.sort_order,
     subtitle: row.subtitle ?? "",
@@ -1292,9 +1387,24 @@ export async function updateCategories(categories: ProductCategory[]) {
   const result = await supabase.from("categories").upsert(
     categories.map((c, i) => ({
       description: c.description,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      description_en: (c as any).description_en ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      description_zh: (c as any).description_zh ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      description_ms: (c as any).description_ms ?? null,
       image_url: c.imageUrl ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      image_url_en: (c as any).image_url_en ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      image_url_zh: (c as any).image_url_zh ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      image_url_ms: (c as any).image_url_ms ?? null,
       is_active: c.active ?? c.isActive ?? true,
       name: c.name,
+      name_en: c.localizedName?.en ?? c.name,
+      name_zh: c.localizedName?.zh ?? null,
+      name_ms: c.localizedName?.ms ?? null,
       slug: c.slug ?? c.id,
       sort_order: c.sortOrder ?? i + 1,
       tone: c.tone,

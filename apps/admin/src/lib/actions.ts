@@ -76,6 +76,15 @@ export async function saveCategory(formData: FormData) {
   const is_active = fdBool(formData, "is_active");
   const tone = fd(formData, "tone") || "mint";
   const image_url = fd(formData, "image_url") || null;
+  const name_en = fd(formData, "name_en") || name || null;
+  const name_zh = fd(formData, "name_zh") || null;
+  const name_ms = fd(formData, "name_ms") || null;
+  const description_en = fd(formData, "description_en") || description || null;
+  const description_zh = fd(formData, "description_zh") || null;
+  const description_ms = fd(formData, "description_ms") || null;
+  const image_url_en = fd(formData, "image_url_en") || image_url || null;
+  const image_url_zh = fd(formData, "image_url_zh") || null;
+  const image_url_ms = fd(formData, "image_url_ms") || null;
 
   if (!name || !slug) {
     redirect("/categories?saveError=Name+and+slug+are+required");
@@ -85,10 +94,19 @@ export async function saveCategory(formData: FormData) {
     name,
     slug,
     description: description || null,
+    description_en,
+    description_zh,
+    description_ms,
     sort_order,
     is_active,
     tone,
     image_url,
+    image_url_en,
+    image_url_zh,
+    image_url_ms,
+    name_en,
+    name_zh,
+    name_ms,
   };
 
   let error;
@@ -203,8 +221,24 @@ export async function saveProduct(formData: FormData) {
   const description_zh = fd(formData, "description_zh") || null;
   const description_ms = fd(formData, "description_ms") || null;
   // ─────────────────────────────────────────────────────────────────────────
-  const highlights = fdLines(formData, "highlights");
-  const specifications = fdLines(formData, "specifications");
+  // Multilingual highlights
+  const highlights_en = fdLines(formData, "highlights_en");
+  const highlights_zh = fdLines(formData, "highlights_zh");
+  const highlights_ms = fdLines(formData, "highlights_ms");
+  // Multilingual specifications
+  const specs_en = fdLines(formData, "specifications_en");
+  const specs_zh = fdLines(formData, "specifications_zh");
+  const specs_ms = fdLines(formData, "specifications_ms");
+
+  // Build multilingual JSONB — if all are empty, fall back to flat highlights for backward compat
+  const highlightsPayload = (highlights_en.length > 0 || highlights_zh.length > 0 || highlights_ms.length > 0)
+    ? { en: highlights_en, zh: highlights_zh, ms: highlights_ms }
+    : fdLines(formData, "highlights");
+
+  const specsPayload = (specs_en.length > 0 || specs_zh.length > 0 || specs_ms.length > 0)
+    ? { en: specs_en, zh: specs_zh, ms: specs_ms }
+    : fdLines(formData, "specifications");
+
   const shipping_info = fd(formData, "shipping_info") || null;
   const return_note = fd(formData, "return_note") || null;
   const rating = fdNum(formData, "rating") || null;
@@ -270,8 +304,8 @@ export async function saveProduct(formData: FormData) {
     description_en,
     description_zh,
     description_ms,
-    highlights: highlights as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["highlights"],
-    specifications: specifications as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["specifications"],
+    highlights: highlightsPayload as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["highlights"],
+    specifications: specsPayload as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["specifications"],
     shipping_info,
     return_note,
     rating: rating || null,
@@ -334,6 +368,21 @@ export async function saveProduct(formData: FormData) {
         .update({ main_image_url: imageUrls[0] })
         .eq("id", finalProductId);
     }
+
+    // Per-language image URL arrays (stored as JSON strings in TEXT columns)
+    // Only update if the form submitted data for that language — NON-DESTRUCTIVE
+    const imageUrlsEnRaw = fd(formData, "image_urls_en");
+    const imageUrlsZhRaw = fd(formData, "image_urls_zh");
+    const imageUrlsMsRaw = fd(formData, "image_urls_ms");
+
+    const langImageUpdate: Record<string, string | null> = {};
+    if (imageUrlsEnRaw) langImageUpdate["main_image_url_en"] = imageUrlsEnRaw;
+    if (imageUrlsZhRaw) langImageUpdate["main_image_url_zh"] = imageUrlsZhRaw;
+    if (imageUrlsMsRaw) langImageUpdate["main_image_url_ms"] = imageUrlsMsRaw;
+
+    if (Object.keys(langImageUpdate).length > 0) {
+      await sb.from("products").update(langImageUpdate).eq("id", finalProductId);
+    }
   } catch (e) {
     console.error("[Admin] Image sync failed:", e);
     // Don't fail the whole save — product was saved, just images failed
@@ -376,6 +425,12 @@ export async function savePromotionBanner(formData: FormData) {
   const target_url = fd(formData, "target_url") || null;
   const sort_order = fdNum(formData, "sort_order") || 1;
   const is_active = fdBool(formData, "is_active");
+  const title_en = fd(formData, "title_en") || title || null;
+  const title_zh = fd(formData, "title_zh") || null;
+  const title_ms = fd(formData, "title_ms") || null;
+  const cta_text_en = fd(formData, "cta_text_en") || cta_text || null;
+  const cta_text_zh = fd(formData, "cta_text_zh") || null;
+  const cta_text_ms = fd(formData, "cta_text_ms") || null;
 
   if (!title) redirect("/cms?saveError=Banner+title+is+required");
 
@@ -392,6 +447,12 @@ export async function savePromotionBanner(formData: FormData) {
     is_active,
     desktop_image_url,
     mobile_image_url,
+    title_en,
+    title_zh,
+    title_ms,
+    cta_text_en,
+    cta_text_zh,
+    cta_text_ms,
   };
 
   let error;
@@ -519,6 +580,9 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const hero_button_text = fd(formData, "heroButtonText") || fd(formData, "hero_button_text") || null;
   const hero_button_link = fd(formData, "heroButtonLink") || fd(formData, "hero_button_link") || null;
   const promo_strip_text = fd(formData, "promotionStripText") || fd(formData, "promo_strip_text") || null;
+  const promo_strip_text_en = fd(formData, "promo_strip_text_en") || promo_strip_text || null;
+  const promo_strip_text_zh = fd(formData, "promo_strip_text_zh") || null;
+  const promo_strip_text_ms = fd(formData, "promo_strip_text_ms") || null;
   const is_active = fdBool(formData, "isActive") || fdBool(formData, "is_active");
   const announcement_enabled = fdBool(formData, "announcementEnabled");
   const announcement_link = fd(formData, "announcementLink") || null;
@@ -535,6 +599,9 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
     hero_button_text,
     hero_button_link,
     promo_strip_text,
+    promo_strip_text_en,
+    promo_strip_text_zh,
+    promo_strip_text_ms,
     is_active,
     announcement_enabled,
     announcement_link,

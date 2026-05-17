@@ -6,6 +6,7 @@ import type { UrbanixProduct } from "@ecommerce/shared";
 import { ProductVisual } from "@/components/commerce/product-visual";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 const galleryTones: Record<UrbanixProduct["imageTone"], UrbanixProduct["imageTone"][]> = {
   "fan-green": ["fan-green", "fan-cream", "fan-black", "fan-green"],
@@ -17,12 +18,20 @@ const galleryTones: Record<UrbanixProduct["imageTone"], UrbanixProduct["imageTon
 };
 
 export function ProductGallery({ product }: { product: UrbanixProduct }) {
+  const { language } = useLanguage();
   const tones = galleryTones[product.imageTone];
-  const imageUrls = product.galleryImages?.length
+
+  // Use language-specific images if available
+  const localImgs = product.localizedImages;
+  const langImages = localImgs
+    ? (localImgs[language]?.length ? localImgs[language] : localImgs.en ?? [])
+    : null;
+
+  const imageUrls = langImages ?? (product.galleryImages?.length
     ? product.galleryImages
     : product.image
       ? [product.image]
-      : [];
+      : []);
   const hasMultiple = imageUrls.length > 1;
   const total = imageUrls.length || tones.length;
   const thumbItems = imageUrls.length > 0 ? imageUrls : tones;

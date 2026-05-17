@@ -40,7 +40,13 @@ type ExistingProduct = {
   description_zh: string;
   description_ms: string;
   highlights: string[];
+  highlights_en?: string[];
+  highlights_zh?: string[];
+  highlights_ms?: string[];
   specifications: string[];
+  specifications_en?: string[];
+  specifications_zh?: string[];
+  specifications_ms?: string[];
   shipping_info: string | null;
   return_note: string | null;
   rating: number | null;
@@ -53,6 +59,9 @@ type ExistingProduct = {
     stockQuantity: number;
   }> | null;
   images: Array<{ image_url: string; sort_order: number }>;
+  images_en?: Array<{ image_url: string; sort_order: number }>;
+  images_zh?: Array<{ image_url: string; sort_order: number }>;
+  images_ms?: Array<{ image_url: string; sort_order: number }>;
 };
 
 function slugify(s: string) {
@@ -111,8 +120,37 @@ export function ProductForm({
   // Active language tab for multilingual sections
   const [nameLang, setNameLang] = useState<"en" | "zh" | "ms">("en");
   const [descLang, setDescLang] = useState<"en" | "zh" | "ms">("en");
+  const [hlLang, setHlLang] = useState<"en" | "zh" | "ms">("en");
+  // Multilingual highlights
+  const [hlEn, setHlEn] = useState<string>(() => {
+    if (product?.highlights_en && product.highlights_en.length > 0) return product.highlights_en.join("\n");
+    const h = product?.highlights ?? [];
+    return Array.isArray(h) ? (h as string[]).join("\n") : "";
+  });
+  const [hlZh, setHlZh] = useState<string>(() => (product?.highlights_zh ?? []).join("\n"));
+  const [hlMs, setHlMs] = useState<string>(() => (product?.highlights_ms ?? []).join("\n"));
+  // Multilingual specifications
+  const [specEn, setSpecEn] = useState<string>(() => {
+    if (product?.specifications_en && product.specifications_en.length > 0) return product.specifications_en.join("\n");
+    const s = product?.specifications ?? [];
+    return Array.isArray(s) ? (s as string[]).join("\n") : "";
+  });
+  const [specZh, setSpecZh] = useState<string>(() => (product?.specifications_zh ?? []).join("\n"));
+  const [specMs, setSpecMs] = useState<string>(() => (product?.specifications_ms ?? []).join("\n"));
+  // Per-language image state
+  const [imgLang, setImgLang] = useState<"en" | "zh" | "ms">("en");
+  const [keptImagesEn, setKeptImagesEn] = useState<string[]>(() =>
+    product?.images_en?.map(i => i.image_url) ?? product?.images.map(i => i.image_url) ?? []
+  );
+  const [keptImagesZh, setKeptImagesZh] = useState<string[]>(() =>
+    product?.images_zh?.map(i => i.image_url) ?? []
+  );
+  const [keptImagesMs, setKeptImagesMs] = useState<string[]>(() =>
+    product?.images_ms?.map(i => i.image_url) ?? []
+  );
+  // keptImages mirrors keptImagesEn for backward-compat with syncProductImages (product_images table)
   const [keptImages, setKeptImages] = useState(
-    product?.images.map((i) => i.image_url) ?? []
+    product?.images_en?.map(i => i.image_url) ?? product?.images.map((i) => i.image_url) ?? []
   );
   const [uploadingImages, setUploadingImages] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -193,6 +231,9 @@ export function ProductForm({
 
   function removeKeptImage(url: string) {
     setKeptImages((prev) => prev.filter((u) => u !== url));
+    if (imgLang === "en") setKeptImagesEn((prev) => prev.filter((u) => u !== url));
+    else if (imgLang === "zh") setKeptImagesZh((prev) => prev.filter((u) => u !== url));
+    else setKeptImagesMs((prev) => prev.filter((u) => u !== url));
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -249,6 +290,9 @@ export function ProductForm({
       }
 
       setKeptImages((prev) => [...prev, ...newUrls]);
+      if (imgLang === "en") setKeptImagesEn((prev) => [...prev, ...newUrls]);
+      else if (imgLang === "zh") setKeptImagesZh((prev) => [...prev, ...newUrls]);
+      else setKeptImagesMs((prev) => [...prev, ...newUrls]);
     } catch (err: unknown) {
       setImageError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {
@@ -300,6 +344,18 @@ export function ProductForm({
       ))}
       {/* Hidden: serialised variant entries (new pricing format) */}
       <input type="hidden" name="variant_entries" value={buildVariantEntriesJson()} />
+      {/* Hidden: multilingual highlights */}
+      <input type="hidden" name="highlights_en" value={hlEn} />
+      <input type="hidden" name="highlights_zh" value={hlZh} />
+      <input type="hidden" name="highlights_ms" value={hlMs} />
+      {/* Hidden: multilingual specifications */}
+      <input type="hidden" name="specifications_en" value={specEn} />
+      <input type="hidden" name="specifications_zh" value={specZh} />
+      <input type="hidden" name="specifications_ms" value={specMs} />
+      {/* Hidden: per-language image URL arrays (stored as JSON strings) */}
+      <input type="hidden" name="image_urls_en" value={JSON.stringify(keptImagesEn)} />
+      <input type="hidden" name="image_urls_zh" value={JSON.stringify(keptImagesZh)} />
+      <input type="hidden" name="image_urls_ms" value={JSON.stringify(keptImagesMs)} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ── Main column ─────────────────────────────────── */}
@@ -692,32 +748,40 @@ export function ProductForm({
                 )}
               </div>
 
+              {/* Highlights — multilingual */}
               <div>
-                <label className="field-label">
-                  Highlights{" "}
-                  <span className="text-xs font-normal text-gray-400">one per line</span>
-                </label>
-                <textarea
-                  name="highlights"
-                  className="field-textarea"
-                  rows={4}
-                  defaultValue={(product?.highlights ?? []).join("\n")}
-                  placeholder={"Fast airflow\nLow noise\nEnergy saving"}
-                />
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Highlights <span className="text-xs font-normal text-gray-400">one per line</span></label>
+                  <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                    {(["en", "zh", "ms"] as const).map((lang) => (
+                      <button key={lang} type="button" onClick={() => setHlLang(lang)}
+                        className={`rounded px-2.5 py-0.5 text-xs font-bold transition ${hlLang === lang ? "bg-[#0e5c56] text-white" : "text-gray-500 hover:text-gray-700"}`}>
+                        {lang === "en" ? "EN" : lang === "zh" ? "中文" : "BM"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {hlLang === "en" && <textarea className="field-textarea" rows={4} value={hlEn} onChange={e => setHlEn(e.target.value)} placeholder={"Fast airflow\nLow noise\nEnergy saving"} />}
+                {hlLang === "zh" && <textarea className="field-textarea" rows={4} value={hlZh} onChange={e => setHlZh(e.target.value)} placeholder={"强劲风力\n低噪音\n节能"} />}
+                {hlLang === "ms" && <textarea className="field-textarea" rows={4} value={hlMs} onChange={e => setHlMs(e.target.value)} placeholder={"Angin kuat\nBunyi rendah\nJimat tenaga"} />}
               </div>
 
+              {/* Specifications — multilingual */}
               <div>
-                <label className="field-label">
-                  Specifications{" "}
-                  <span className="text-xs font-normal text-gray-400">one per line</span>
-                </label>
-                <textarea
-                  name="specifications"
-                  className="field-textarea"
-                  rows={4}
-                  defaultValue={(product?.specifications ?? []).join("\n")}
-                  placeholder={"Voltage: 240V\nPower: 45W\nBlade: 16 inch"}
-                />
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Specifications <span className="text-xs font-normal text-gray-400">one per line</span></label>
+                  <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                    {(["en", "zh", "ms"] as const).map((lang) => (
+                      <button key={lang} type="button" onClick={() => setHlLang(lang)}
+                        className={`rounded px-2.5 py-0.5 text-xs font-bold transition ${hlLang === lang ? "bg-[#0e5c56] text-white" : "text-gray-500 hover:text-gray-700"}`}>
+                        {lang === "en" ? "EN" : lang === "zh" ? "中文" : "BM"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {hlLang === "en" && <textarea className="field-textarea" rows={4} value={specEn} onChange={e => setSpecEn(e.target.value)} placeholder={"Voltage: 240V\nPower: 45W\nBlade: 16 inch"} />}
+                {hlLang === "zh" && <textarea className="field-textarea" rows={4} value={specZh} onChange={e => setSpecZh(e.target.value)} placeholder={"电压: 240V\n功率: 45W\n叶片: 16寸"} />}
+                {hlLang === "ms" && <textarea className="field-textarea" rows={4} value={specMs} onChange={e => setSpecMs(e.target.value)} placeholder={"Voltan: 240V\nKuasa: 45W\nBilah: 16 inci"} />}
               </div>
             </div>
           </div>
@@ -815,12 +879,22 @@ export function ProductForm({
             </div>
           )}
 
-          {/* Images */}
+          {/* Images — per language */}
           <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">
-              Images{" "}
-              <span className="text-xs font-normal text-gray-400">({keptImages.length}/9)</span>
-            </h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-800">
+                Images{" "}
+                <span className="text-xs font-normal text-gray-400">({keptImages.length}/9)</span>
+              </h2>
+              <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                {(["en", "zh", "ms"] as const).map((lang) => (
+                  <button key={lang} type="button" onClick={() => setImgLang(lang)}
+                    className={`rounded px-2.5 py-0.5 text-xs font-bold transition ${imgLang === lang ? "bg-[#0e5c56] text-white" : "text-gray-500 hover:text-gray-700"}`}>
+                    {lang === "en" ? "EN" : lang === "zh" ? "中文" : "BM"}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {keptImages.length > 0 && (
               <div className="mb-4">

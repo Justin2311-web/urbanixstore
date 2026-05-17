@@ -20,6 +20,7 @@ import { ProductGrid } from "@/components/commerce/product-grid";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { StockBadge } from "@/components/commerce/stock-badge";
 import { LocalizedValue } from "@/components/i18n/localized-value";
+import { LocalizedList } from "@/components/i18n/localized-list";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -132,14 +133,18 @@ export default async function ProductDetailPage({
           </InfoPanel>
           <InfoPanel title="Specifications">
             <ul className="flex flex-col gap-2.5">
-              {product.specifications.map((spec) => (
-                <li className="flex gap-3" key={spec}>
-                  <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-success/10">
-                    <Check className="size-2.5 text-success" />
-                  </div>
-                  {spec}
-                </li>
-              ))}
+              <LocalizedList
+                fallback={product.specifications}
+                value={product.localizedSpecifications}
+                renderItem={(spec) => (
+                  <li className="flex gap-3" key={spec}>
+                    <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-success/10">
+                      <Check className="size-2.5 text-success" />
+                    </div>
+                    {spec}
+                  </li>
+                )}
+              />
             </ul>
           </InfoPanel>
           <InfoPanel title="Delivery Info">
