@@ -3,8 +3,8 @@ import { ArrowRight, BadgeCheck, Headphones, Sparkles, Truck, Zap } from "lucide
 import { formatCurrency } from "@ecommerce/shared";
 import { listActivePromotionBanners, listStorefrontCategories, listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { CategoryCard } from "@/components/commerce/category-card";
+import { LocalizedProductVisual } from "@/components/commerce/localized-product-visual";
 import { ProductCard } from "@/components/commerce/product-card";
-import { ProductVisual } from "@/components/commerce/product-visual";
 import { PromotionBannerCarousel } from "@/components/commerce/promotion-banner-carousel";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
@@ -86,10 +86,10 @@ export default async function Home() {
                 key={product.id}
               >
                 <div className={index === 0 ? "grid gap-3 sm:grid-cols-[0.78fr_1fr] sm:items-center" : ""}>
-                  <ProductVisual
+                  <LocalizedProductVisual
                     alt={product.name}
                     className={index === 0 ? "aspect-[4/3]" : "aspect-square"}
-                    imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]}
+                    product={product}
                     tone={product.imageTone}
                   />
                   <div className="px-2 py-3">

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Star } from "lucide-react";
 import type { UrbanixProduct } from "@ecommerce/shared";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";

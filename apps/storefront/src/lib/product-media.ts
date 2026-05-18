@@ -7,9 +7,9 @@ export function getProductImagesForLanguage(product: UrbanixProduct, language: L
   const selected = localized?.[language] ?? [];
   const english = localized?.en ?? [];
   const fallback = [
-    ...(product.galleryImages ?? []),
     product.image,
     product.mainImageUrl,
+    ...(product.galleryImages ?? []),
   ].filter((value): value is string => Boolean(value));
 
   return (selected.length > 0 ? selected : english.length > 0 ? english : fallback).filter(Boolean);
