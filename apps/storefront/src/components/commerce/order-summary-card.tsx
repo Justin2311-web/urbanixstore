@@ -1,7 +1,7 @@
 import type { CartLine, OrderTotals } from "@ecommerce/shared";
 import { formatCurrency } from "@ecommerce/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProductVisual } from "@/components/commerce/product-visual";
+import { LocalizedProductVisual } from "@/components/commerce/localized-product-visual";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 
 export function OrderSummaryCard({
@@ -23,9 +23,9 @@ export function OrderSummaryCard({
           <div className="mb-2 flex flex-col gap-3">
             {lines.map((line) => (
               <div className="flex items-center gap-3" key={line.cartKey ?? line.product.id}>
-                <ProductVisual
+                <LocalizedProductVisual
                   className="size-14 rounded-xl"
-                  imageUrl={line.product.image || line.product.mainImageUrl || line.product.galleryImages?.[0]}
+                  product={line.product}
                   tone={line.product.imageTone}
                 />
                 <div className="min-w-0 flex-1">

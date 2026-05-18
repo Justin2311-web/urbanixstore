@@ -1,26 +1,14 @@
 import { notFound } from "next/navigation";
-import {
-  BatteryCharging,
-  Check,
-  Feather,
-  LockKeyhole,
-  PackageCheck,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Truck,
-  Wind,
-} from "lucide-react";
-import {
-  getCategoryIdByName,
-} from "@ecommerce/shared";
+import { Star } from "lucide-react";
 import { listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { ProductGallery } from "@/components/commerce/product-gallery";
 import { ProductGrid } from "@/components/commerce/product-grid";
+import { ProductHighlights } from "@/components/commerce/product-highlights";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
+import { ProductSpecifications } from "@/components/commerce/product-specifications";
 import { StockBadge } from "@/components/commerce/stock-badge";
+import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
-import { LocalizedList } from "@/components/i18n/localized-list";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -42,31 +30,6 @@ export default async function ProductDetailPage({
   const relatedProducts = products
     .filter((item) => item.category === product.category && item.id !== product.id)
     .slice(0, 8);
-  const isPortableFan = getCategoryIdByName(product.category) === "portable-fans";
-  const savedHighlightIcons = [Sparkles, Truck, LockKeyhole, ShieldCheck];
-  const savedHighlightItems = (product.highlights ?? [])
-    .filter(Boolean)
-    .slice(0, 4)
-    .map((text, index) => ({
-      icon: savedHighlightIcons[index] ?? Sparkles,
-      text,
-      title: text,
-    }));
-  const fallbackHighlightItems = isPortableFan
-    ? [
-        { icon: Wind, title: "Strong Airflow", text: "Quick cooling wherever you are." },
-        { icon: Feather, title: "Portable Size", text: "Easy to carry in your bag." },
-        { icon: BatteryCharging, title: "USB-C Charging", text: "Simple everyday charging." },
-        { icon: PackageCheck, title: "Long Battery Life", text: "Made for longer days out." },
-      ]
-    : [
-        { icon: Sparkles, title: "Compact Design", text: "Small enough for daily use." },
-        { icon: Truck, title: "Fast Delivery", text: "Packed and shipped quickly." },
-        { icon: LockKeyhole, title: "Secure Checkout", text: "Safe order experience." },
-        { icon: ShieldCheck, title: "Quality Product", text: "Curated by Urbanix Store." },
-      ];
-  const highlightItems = savedHighlightItems.length > 0 ? savedHighlightItems : fallbackHighlightItems;
-
   return (
     <main className="urbanix-container py-8 pb-24 sm:py-10">
       {/* ── Main product section: image left, info right ── */}
@@ -110,44 +73,22 @@ export default async function ProductDetailPage({
           <ProductPurchasePanel product={product} settings={data.settings} />
 
           {/* Highlight cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {highlightItems.map((item) => (
-              <HighlightCard
-                icon={item.icon}
-                key={item.title}
-                text={item.text}
-                title={item.title}
-              />
-            ))}
-          </div>
+          <ProductHighlights product={product} />
         </section>
       </div>
 
       {/* ── Info panels ── */}
       <section className="mt-12">
         <div className="grid gap-5 lg:grid-cols-3">
-          <InfoPanel title="Description">
+          <InfoPanel title="Description" titleKey="product.description">
             <p>
               <LocalizedValue fallback={product.description} value={product.localizedDescription} />
             </p>
           </InfoPanel>
-          <InfoPanel title="Specifications">
-            <ul className="flex flex-col gap-2.5">
-              <LocalizedList
-                fallback={product.specifications}
-                value={product.localizedSpecifications}
-                renderItem={(spec) => (
-                  <li className="flex gap-3" key={spec}>
-                    <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-success/10">
-                      <Check className="size-2.5 text-success" />
-                    </div>
-                    {spec}
-                  </li>
-                )}
-              />
-            </ul>
+          <InfoPanel title="Specifications" titleKey="product.specifications">
+            <ProductSpecifications product={product} />
           </InfoPanel>
-          <InfoPanel title="Delivery Info">
+          <InfoPanel title="Delivery Info" titleKey="product.deliveryInfo">
             <div className="flex flex-col gap-3">
               <p>{product.shippingInfo}</p>
               <div className="rounded-2xl bg-secondary/30 p-3 text-xs">
@@ -163,10 +104,10 @@ export default async function ProductDetailPage({
         <section className="mt-12 border-t border-border/50 pt-12">
           <div className="mb-8">
             <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
-              Related Products
+              <LocalizedText fallback="Related Products" k="product.relatedProducts" />
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              More from the {product.category} collection.
+              <LocalizedText fallback="More from the collection." k="product.moreFrom" />
             </p>
           </div>
           <ProductGrid compact products={relatedProducts} />
@@ -176,36 +117,20 @@ export default async function ProductDetailPage({
   );
 }
 
-function HighlightCard({
-  icon: Icon,
-  text,
-  title,
-}: {
-  icon: typeof Wind;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="urbanix-surface p-4 transition-transform hover:scale-[1.02]">
-      <div className="mb-3 flex size-10 items-center justify-center rounded-2xl bg-secondary text-primary">
-        <Icon className="size-5" />
-      </div>
-      <h2 className="text-sm font-extrabold text-foreground">{title}</h2>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>
-    </div>
-  );
-}
-
 function InfoPanel({
   children,
   title,
+  titleKey,
 }: {
   title: string;
+  titleKey?: string;
   children: React.ReactNode;
 }) {
   return (
     <article className="urbanix-surface p-6 text-sm leading-relaxed text-muted-foreground">
-      <h2 className="mb-4 text-base font-extrabold text-foreground">{title}</h2>
+      <h2 className="mb-4 text-base font-extrabold text-foreground">
+        <LocalizedText fallback={title} k={titleKey ?? title} />
+      </h2>
       {children}
     </article>
   );

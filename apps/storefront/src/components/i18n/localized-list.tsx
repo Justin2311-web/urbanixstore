@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useLanguage } from "@/components/i18n/language-provider";
 
 export function LocalizedList({
@@ -9,7 +10,7 @@ export function LocalizedList({
 }: {
   fallback: string[];
   value?: { en: string[]; zh: string[]; ms: string[] };
-  renderItem?: (item: string, index: number) => React.ReactNode;
+  renderItem?: (item: string, index: number) => ReactNode;
 }) {
   const { language } = useLanguage();
   const list = value ? (value[language]?.length ? value[language] : value.en ?? fallback) : fallback;

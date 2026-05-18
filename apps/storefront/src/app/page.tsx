@@ -18,7 +18,14 @@ export default async function Home() {
   const categories = listStorefrontCategories(data);
   const products = listStorefrontProducts(data);
   const featuredProducts = products.filter((product) => product.featured).slice(0, 4);
-  const featuredCategories = categories.filter((category) => data.homepage.featuredCategoryCards.includes(category.id));
+  const featuredCategoryKeys = new Set(data.homepage.featuredCategoryCards ?? []);
+  const configuredCategories = categories.filter(
+    (category) =>
+      featuredCategoryKeys.has(category.id) ||
+      featuredCategoryKeys.has(category.slug ?? "") ||
+      featuredCategoryKeys.has(category.name)
+  );
+  const featuredCategories = (configuredCategories.length > 0 ? configuredCategories : categories).slice(0, 4);
   const promotionBanners = listActivePromotionBanners(data);
   const visualProducts = featuredProducts.filter((product) => product.image || product.mainImageUrl || product.galleryImages?.[0]);
   const heroProducts = (visualProducts.length >= 3 ? visualProducts : featuredProducts).slice(0, 3);
@@ -121,7 +128,7 @@ export default async function Home() {
       />
 
       <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/categories" subtitle="Car holders, car perfumes, turbo fans, and daily urban accessories." title="Shop by Category" titleKey="home.shopByCategory" />
+        <SectionHeader action="/categories" subtitle="Car holders, car scents, cooling essentials, and daily urban accessories." subtitleKey="home.categoryCaption" title="Shop by Category" titleKey="home.shopByCategory" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {featuredCategories.map((category) => (
             <CategoryCard category={category} key={category.id} />
@@ -130,7 +137,7 @@ export default async function Home() {
       </section>
 
       <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/products" subtitle="Clean product cards, quick actions, and mobile-first shopping." title="Featured Picks" titleKey="home.featuredPicks" />
+        <SectionHeader action="/products" subtitle="Clean product cards, quick actions, and mobile-first shopping." subtitleKey="home.featuredCaption" title="Featured Picks" titleKey="home.featuredPicks" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {featuredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
@@ -180,14 +187,14 @@ export default async function Home() {
   );
 }
 
-function SectionHeader({ action, subtitle, title, titleKey }: { title: string; titleKey: string; action: string; subtitle?: string }) {
+function SectionHeader({ action, subtitle, subtitleKey, title, titleKey }: { title: string; titleKey: string; action: string; subtitle?: string; subtitleKey?: string }) {
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-2xl font-black uppercase tracking-wide text-primary dark:text-[#8bdcff] sm:text-3xl">
           <LocalizedText fallback={title} k={titleKey} />
         </h2>
-        {subtitle ? <p className="max-w-xl text-sm text-muted-foreground">{subtitle}</p> : null}
+        {subtitle ? <p className="max-w-xl text-sm text-muted-foreground">{subtitleKey ? <LocalizedText fallback={subtitle} k={subtitleKey} /> : subtitle}</p> : null}
         <div className="h-0.5 w-8 rounded-full bg-primary/40 dark:bg-[rgba(59,158,255,0.4)]" />
       </div>
       <Link

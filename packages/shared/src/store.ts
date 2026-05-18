@@ -148,26 +148,41 @@ function asStringArray(value: Json | undefined): string[] {
 }
 
 /** Parse a TEXT column that stores a JSON array of image URLs */
-function parseImageArray(value: string | null | undefined): string[] {
+function parseImageArray(value: unknown): string[] {
   if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter((u): u is string => typeof u === "string" && isUsableAssetUrl(u));
+  }
+  if (typeof value !== "string") return [];
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((u): u is string => typeof u === "string") : [];
+    return Array.isArray(parsed) ? parsed.filter((u): u is string => typeof u === "string" && isUsableAssetUrl(u)) : [];
   } catch {
-    return value.startsWith("http") ? [value] : [];
+    return isUsableAssetUrl(value) ? [value] : [];
   }
 }
 
 /** Parse a JSONB column that may be multilingual {en:[...], zh:[...], ms:[...]} or a flat string[] */
-function parseMultilingualArray(value: Json | undefined | null): { en: string[]; zh: string[]; ms: string[] } | null {
-  if (!value || Array.isArray(value)) return null;
+function parseMultilingualArray(value: Json | undefined | null): { en: string[]; zh: string[]; ms: string[] } {
+  if (Array.isArray(value)) {
+    const lines = asStringArray(value);
+    return { en: lines, zh: lines, ms: lines };
+  }
+  if (!value) return { en: [], zh: [], ms: [] };
   const obj = value as Record<string, unknown>;
-  if (!Array.isArray(obj.en)) return null;
+  if (!Array.isArray(obj.en) && !Array.isArray(obj.zh) && !Array.isArray(obj.ms)) {
+    return { en: [], zh: [], ms: [] };
+  }
+  const en = asStringArray((obj.en as Json) ?? []);
   return {
-    en: asStringArray(obj.en as Json),
-    zh: asStringArray((obj.zh as Json) ?? []),
-    ms: asStringArray((obj.ms as Json) ?? []),
+    en,
+    zh: asStringArray((obj.zh as Json) ?? []).length > 0 ? asStringArray((obj.zh as Json) ?? []) : en,
+    ms: asStringArray((obj.ms as Json) ?? []).length > 0 ? asStringArray((obj.ms as Json) ?? []) : en,
   };
+}
+
+function imageListToDbValue(images: string[]) {
+  return JSON.stringify(images.filter(isUsableAssetUrl).slice(0, 9));
 }
 
 function localized(en: string, zh?: string, ms?: string): LocalizedTextValue {
@@ -562,6 +577,40 @@ function localCategoryTone(slug: string): ProductCategory["tone"] {
   return defaultUrbanixStoreData.categories.find((category) => category.id === slug)?.tone ?? "mint";
 }
 
+const categoryToneAliases: Record<string, ProductCategory["tone"]> = {
+  blue: "tech-blue",
+  cyan: "cyber-cyan",
+  "cyber-cyan": "cyber-cyan",
+  purple: "aurora-purple",
+  "aurora-purple": "aurora-purple",
+  emerald: "emerald-glow",
+  "emerald-glow": "emerald-glow",
+  graphite: "graphite",
+  silver: "ice-silver",
+  "ice-silver": "ice-silver",
+  teal: "fresh-teal",
+  green: "lime-green",
+  orange: "sunset-orange",
+  gold: "premium-gold",
+  lavender: "urban-purple",
+  coral: "coral-red",
+  grey: "steel-grey",
+  gray: "steel-grey",
+  slate: "steel-grey",
+  rose: "soft-pink",
+};
+
+function normalizeCategoryTone(value: string | null | undefined, fallback: ProductCategory["tone"] = "tech-blue"): ProductCategory["tone"] {
+  const tone = (value ?? "").trim();
+  const allowed = new Set<string>([
+    "teal", "mint", "peach", "lilac", "sky", "rose", "amber", "slate", "lime", "violet", "sand", "sun", "dark",
+    "fan-green", "fan-orange", "tech-blue", "cyber-cyan", "aurora-purple", "emerald-glow", "graphite", "ice-silver", "neon-cyan", "urban-purple", "lime-green", "sunset-orange",
+    "coral-red", "soft-pink", "premium-gold", "steel-grey", "fresh-teal", "coral", "gold", "lavender", "green", "orange", "blue",
+  ]);
+  if (allowed.has(tone)) return tone as ProductCategory["tone"];
+  return categoryToneAliases[tone] ?? fallback;
+}
+
 function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): ProductCategory {
   const rowC = row as typeof row & {
     name_en?: string | null;
@@ -585,19 +634,25 @@ function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): Pr
     zh: rowC.description_zh?.trim() || rowC.description_en?.trim() || row.description || "",
     ms: rowC.description_ms?.trim() || rowC.description_en?.trim() || row.description || "",
   };
+  const localizedImageUrls = {
+    en: rowC.image_url_en || row.image_url || "",
+    zh: rowC.image_url_zh || rowC.image_url_en || row.image_url || "",
+    ms: rowC.image_url_ms || rowC.image_url_en || row.image_url || "",
+  };
   return {
     active: row.is_active,
-    description: row.description ?? "",
+    description: localizedDescription.en,
     href: `/categories?category=${row.slug}`,
     id: row.slug,
-    imageUrl: row.image_url ?? "",
+    imageUrl: localizedImageUrls.en,
     isActive: row.is_active,
     localizedDescription,
+    localizedImageUrls,
     localizedName,
     name: rowC.name_en?.trim() || baseName,
     slug: row.slug,
     sortOrder: row.sort_order,
-    tone: (row.tone as ProductCategory["tone"] | null) ?? localCategoryTone(row.slug),
+    tone: normalizeCategoryTone(row.tone, localCategoryTone(row.slug)),
   };
 }
 
@@ -613,14 +668,25 @@ function mapProduct({
   variantsByProductId?: Map<string, ProductVariantOption[]>;
 }): UrbanixProduct {
   const category = row.category_id ? categoriesById.get(row.category_id) : undefined;
-  const galleryImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
   const variantOptions = variantsByProductId?.get(row.id) ?? [];
 
   // Parse product_variants JSONB — could be new format (with originalPrice) or old (with values)
   const { variants: newVariants, productVariants: legacyVariants } = parseProductVariantEntries(row.product_variants);
 
-  // Derive pricing from the first variant (new format), or fall back to product-level columns
-  const defaultVariant = newVariants && newVariants.length > 0 ? newVariants[0] : undefined;
+  const fallbackVariant: ProductVariantEntry = {
+    groupName: "Option",
+    localizedGroupName: localized("Option", "选项", "Pilihan"),
+    localizedName: localized("Default", "默认", "Lalai"),
+    name: "Default",
+    originalPrice: Number(row.price),
+    promotionPrice: row.promotion_price === null ? null : Number(row.promotion_price),
+    sku: row.sku,
+    stockQuantity: row.stock_quantity,
+  };
+  const effectiveVariants = newVariants && newVariants.length > 0 ? newVariants : [fallbackVariant];
+
+  // Derive pricing from the first variant (new format), or a virtual legacy fallback variant.
+  const defaultVariant = effectiveVariants[0];
   const variantPricing = defaultVariant ? getVariantEffectivePrice(defaultVariant) : undefined;
 
   // Typed row with multilingual columns
@@ -663,10 +729,12 @@ function mapProduct({
   const imgEn = parseImageArray(rowX.main_image_url_en);
   const imgZh = parseImageArray(rowX.main_image_url_zh);
   const imgMs = parseImageArray(rowX.main_image_url_ms);
+  const flatImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url).filter(isUsableAssetUrl);
+  const anyLanguageImages = imgEn.length > 0 ? imgEn : imgZh.length > 0 ? imgZh : imgMs.length > 0 ? imgMs : flatImages;
   const localizedImages = (imgEn.length > 0 || imgZh.length > 0 || imgMs.length > 0) ? {
-    en: imgEn,
-    zh: imgZh.length > 0 ? imgZh : imgEn,
-    ms: imgMs.length > 0 ? imgMs : imgEn,
+    en: imgEn.length > 0 ? imgEn : anyLanguageImages,
+    zh: imgZh.length > 0 ? imgZh : imgEn.length > 0 ? imgEn : anyLanguageImages,
+    ms: imgMs.length > 0 ? imgMs : imgEn.length > 0 ? imgEn : anyLanguageImages,
   } : undefined;
 
   // Parse multilingual highlights/specs (stored as {en:[...], zh:[...], ms:[...]} JSONB)
@@ -676,7 +744,7 @@ function mapProduct({
   // For gallery: prefer EN images array, fall back to product_images table, fall back to main_image_url
   const resolvedGalleryImages = imgEn.length > 0
     ? imgEn
-    : (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
+    : anyLanguageImages;
 
   const product: UrbanixProduct = {
     category: category?.name ?? "Uncategorized",
@@ -736,7 +804,7 @@ function mapProduct({
     variantGroups: variantOptions.length > 0 ? groupProductVariants(variantOptions) : undefined,
     variantOptions: variantOptions.length > 0 ? variantOptions : undefined,
     // New flat variant entries (new format)
-    variants: newVariants,
+    variants: effectiveVariants,
     // Legacy simple variant groups (old format)
     productVariants: legacyVariants ?? undefined,
   };

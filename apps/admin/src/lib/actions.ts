@@ -50,7 +50,11 @@ function revalidateAll() {
 }
 
 async function revalidateStorefront() {
-  const storefrontUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const storefrontUrl =
+    process.env.STOREFRONT_URL ??
+    process.env.NEXT_PUBLIC_STOREFRONT_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://urbanix-storefront.vercel.app";
   const secret = process.env.REVALIDATE_SECRET;
   if (storefrontUrl && secret) {
     try {
@@ -90,23 +94,31 @@ export async function saveCategory(formData: FormData) {
     redirect("/categories?saveError=Name+and+slug+are+required");
   }
 
+  const { data: existingCategory } = id
+    ? await sb
+        .from("categories")
+        .select("name_en,name_zh,name_ms,description_en,description_zh,description_ms,image_url_en,image_url_zh,image_url_ms")
+        .eq("id", id)
+        .maybeSingle()
+    : { data: null };
+
   const payload = {
     name,
     slug,
     description: description || null,
-    description_en,
-    description_zh,
-    description_ms,
+    description_en: description_en ?? existingCategory?.description_en ?? null,
+    description_zh: description_zh ?? existingCategory?.description_zh ?? null,
+    description_ms: description_ms ?? existingCategory?.description_ms ?? null,
     sort_order,
     is_active,
     tone,
     image_url,
-    image_url_en,
-    image_url_zh,
-    image_url_ms,
-    name_en,
-    name_zh,
-    name_ms,
+    image_url_en: image_url_en ?? existingCategory?.image_url_en ?? null,
+    image_url_zh: image_url_zh ?? existingCategory?.image_url_zh ?? null,
+    image_url_ms: image_url_ms ?? existingCategory?.image_url_ms ?? null,
+    name_en: name_en ?? existingCategory?.name_en ?? name,
+    name_zh: name_zh ?? existingCategory?.name_zh ?? null,
+    name_ms: name_ms ?? existingCategory?.name_ms ?? null,
   };
 
   let error;
@@ -248,6 +260,9 @@ export async function saveProduct(formData: FormData) {
   // [{"name":"Black","sku":"URB-BLK","originalPrice":49.90,"promotionPrice":39.90,"stockQuantity":10},...]
   type VariantEntryPayload = {
     name: string;
+    localizedName?: { en: string; zh?: string; ms?: string };
+    groupName?: string;
+    localizedGroupName?: { en: string; zh?: string; ms?: string };
     sku: string;
     originalPrice: number;
     promotionPrice: number | null;
@@ -280,11 +295,19 @@ export async function saveProduct(formData: FormData) {
     : null;
   const stock_quantity = firstVariant.stockQuantity;
 
+  const { data: existingProduct } = productDbId
+    ? await sb
+        .from("products")
+        .select("name,name_en,name_zh,name_ms,short_description,short_description_en,short_description_zh,short_description_ms,description,description_en,description_zh,description_ms,highlights,specifications,shipping_info,return_note,rating,main_image_url,main_image_url_en,main_image_url_zh,main_image_url_ms,product_variants")
+        .eq("id", productDbId)
+        .maybeSingle()
+    : { data: null };
+
   const payload = {
-    name: name_en || name,
-    name_en,
-    name_zh,
-    name_ms,
+    name: name_en || existingProduct?.name_en || existingProduct?.name || name,
+    name_en: name_en || existingProduct?.name_en || existingProduct?.name || name,
+    name_zh: name_zh || existingProduct?.name_zh || null,
+    name_ms: name_ms || existingProduct?.name_ms || null,
     sku,
     slug,
     category_id: category_id || null,
@@ -296,21 +319,23 @@ export async function saveProduct(formData: FormData) {
     stock_quantity,
     is_active,
     is_featured,
-    short_description,
-    short_description_en,
-    short_description_zh,
-    short_description_ms,
-    description,
-    description_en,
-    description_zh,
-    description_ms,
-    highlights: highlightsPayload as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["highlights"],
-    specifications: specsPayload as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["specifications"],
-    shipping_info,
-    return_note,
-    rating: rating || null,
+    short_description: short_description || existingProduct?.short_description || null,
+    short_description_en: short_description_en || existingProduct?.short_description_en || existingProduct?.short_description || null,
+    short_description_zh: short_description_zh || existingProduct?.short_description_zh || null,
+    short_description_ms: short_description_ms || existingProduct?.short_description_ms || null,
+    description: description || existingProduct?.description || null,
+    description_en: description_en || existingProduct?.description_en || existingProduct?.description || null,
+    description_zh: description_zh || existingProduct?.description_zh || null,
+    description_ms: description_ms || existingProduct?.description_ms || null,
+    highlights: (Array.isArray(highlightsPayload) && highlightsPayload.length === 0 ? existingProduct?.highlights ?? [] : highlightsPayload) as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["highlights"],
+    specifications: (Array.isArray(specsPayload) && specsPayload.length === 0 ? existingProduct?.specifications ?? [] : specsPayload) as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["specifications"],
+    shipping_info: shipping_info || existingProduct?.shipping_info || null,
+    return_note: existingProduct?.return_note || return_note || null,
+    rating: rating || existingProduct?.rating || null,
     // Store the full new-format variant array in product_variants JSONB
-    product_variants: variantEntries as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["product_variants"],
+    product_variants: variantEntries.length > 0
+      ? variantEntries as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["product_variants"]
+      : existingProduct?.product_variants ?? null,
   };
 
   let finalProductId = productDbId;
@@ -376,9 +401,9 @@ export async function saveProduct(formData: FormData) {
     const imageUrlsMsRaw = fd(formData, "image_urls_ms");
 
     const langImageUpdate: Record<string, string | null> = {};
-    if (imageUrlsEnRaw) langImageUpdate["main_image_url_en"] = imageUrlsEnRaw;
-    if (imageUrlsZhRaw) langImageUpdate["main_image_url_zh"] = imageUrlsZhRaw;
-    if (imageUrlsMsRaw) langImageUpdate["main_image_url_ms"] = imageUrlsMsRaw;
+    if (imageUrlsEnRaw && imageUrlsEnRaw !== "[]") langImageUpdate["main_image_url_en"] = imageUrlsEnRaw;
+    if (imageUrlsZhRaw && imageUrlsZhRaw !== "[]") langImageUpdate["main_image_url_zh"] = imageUrlsZhRaw;
+    if (imageUrlsMsRaw && imageUrlsMsRaw !== "[]") langImageUpdate["main_image_url_ms"] = imageUrlsMsRaw;
 
     if (Object.keys(langImageUpdate).length > 0) {
       await sb.from("products").update(langImageUpdate).eq("id", finalProductId);

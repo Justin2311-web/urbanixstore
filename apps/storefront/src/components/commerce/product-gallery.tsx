@@ -7,6 +7,7 @@ import { ProductVisual } from "@/components/commerce/product-visual";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/components/i18n/language-provider";
+import { getProductImagesForLanguage } from "@/lib/product-media";
 
 const galleryTones: Record<UrbanixProduct["imageTone"], UrbanixProduct["imageTone"][]> = {
   "fan-green": ["fan-green", "fan-cream", "fan-black", "fan-green"],
@@ -21,24 +22,15 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
   const { language } = useLanguage();
   const tones = galleryTones[product.imageTone];
 
-  // Use language-specific images if available
-  const localImgs = product.localizedImages;
-  const langImages = localImgs
-    ? (localImgs[language]?.length ? localImgs[language] : localImgs.en ?? [])
-    : null;
-
-  const imageUrls = langImages ?? (product.galleryImages?.length
-    ? product.galleryImages
-    : product.image
-      ? [product.image]
-      : []);
+  const imageUrls = getProductImagesForLanguage(product, language);
   const hasMultiple = imageUrls.length > 1;
   const total = imageUrls.length || tones.length;
   const thumbItems = imageUrls.length > 0 ? imageUrls : tones;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [variantImageUrl, setVariantImageUrl] = useState("");
-  const activeImage = variantImageUrl || (imageUrls.length ? imageUrls[activeIndex] : undefined);
+  const safeActiveIndex = total > 0 ? Math.min(activeIndex, total - 1) : 0;
+  const activeImage = variantImageUrl || (imageUrls.length ? imageUrls[safeActiveIndex] : undefined);
 
   // Auto-slide every 4 s — only when multiple real images and no variant override
   useEffect(() => {
@@ -78,7 +70,7 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
           className="aspect-[4/3] shadow-[0_12px_36px_rgba(15,23,42,0.08)]"
           data-product-main-image
           imageUrl={activeImage}
-          tone={tones[activeIndex] ?? product.imageTone}
+          tone={tones[safeActiveIndex] ?? product.imageTone}
         />
 
         {hasMultiple && !variantImageUrl ? (
@@ -107,7 +99,7 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
                   aria-label={`Go to image ${i + 1}`}
                   className={cn(
                     "h-1 rounded-full transition-all duration-300",
-                    activeIndex === i
+                    safeActiveIndex === i
                       ? "w-4 bg-white shadow-[0_0_4px_rgba(255,255,255,0.6)]"
                       : "w-1 bg-white/55 hover:bg-white/75"
                   )}
@@ -131,7 +123,7 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
               aria-label={`View product image ${index + 1}`}
               className={cn(
                 "rounded-lg border bg-card p-0.5 transition hover:border-primary/40 sm:w-[3.25rem] sm:shrink-0",
-                activeIndex === index
+                safeActiveIndex === index
                   ? "border-primary ring-2 ring-primary/15"
                   : "border-border"
               )}

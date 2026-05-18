@@ -6,8 +6,9 @@ import { formatCurrency } from "@ecommerce/shared";
 import { useCart } from "@/components/cart/cart-provider";
 import { getCartItemDisplayPricing } from "@/lib/cart-utils";
 import { Button } from "@/components/ui/button";
-import { ProductVisual } from "@/components/commerce/product-visual";
+import { LocalizedProductVisual } from "@/components/commerce/localized-product-visual";
 import { LocalizedValue } from "@/components/i18n/localized-value";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { PriceDisplay } from "@/components/commerce/price-display";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
 import { QuantitySelector } from "@/components/commerce/quantity-selector";
@@ -15,6 +16,7 @@ import { StockBadge } from "@/components/commerce/stock-badge";
 
 export function CartItemCard({ line }: { line: CartLine }) {
   const { decrementItem, removeItem, addItem } = useCart();
+  const { language } = useLanguage();
   const { product, quantity, selectedVariants } = line;
   const cartKey = line.cartKey ?? product.id;
 
@@ -39,7 +41,7 @@ export function CartItemCard({ line }: { line: CartLine }) {
   // Show variant name (new format) or key=value pairs (legacy format)
   const variantLabel =
     selectedVariants?.variant
-      ? selectedVariants.variant
+      ? selectedVariantEntry?.localizedName?.[language] || selectedVariantEntry?.localizedName?.en || selectedVariants.variant
       : selectedVariants && Object.keys(selectedVariants).length > 0
         ? Object.entries(selectedVariants).map(([k, v]) => `${k}: ${v}`).join(" · ")
         : null;
@@ -47,9 +49,9 @@ export function CartItemCard({ line }: { line: CartLine }) {
   return (
     <article className="grid grid-cols-[96px_1fr] gap-4 rounded-2xl border border-border/80 bg-card p-3 shadow-sm">
       <div className="relative">
-        <ProductVisual
+        <LocalizedProductVisual
           className="rounded-xl"
-          imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]}
+          product={product}
           tone={product.imageTone}
         />
         <div className="absolute left-2 top-2">

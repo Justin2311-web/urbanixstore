@@ -167,6 +167,7 @@ export type ProductCategory = {
   href: string;
   description: string;
   imageUrl?: string;
+  localizedImageUrls?: Partial<Record<LanguageCode, string>>;
   icon?: string;
   tone:
     | "teal"
@@ -185,9 +186,26 @@ export type ProductCategory = {
     | "fan-green"
     | "fan-orange"
     | "tech-blue"
+    | "cyber-cyan"
+    | "aurora-purple"
+    | "emerald-glow"
+    | "graphite"
+    | "ice-silver"
     | "neon-cyan"
     | "coral-red"
-    | "premium-gold";
+    | "premium-gold"
+    | "urban-purple"
+    | "lime-green"
+    | "sunset-orange"
+    | "soft-pink"
+    | "steel-grey"
+    | "fresh-teal"
+    | "coral"
+    | "gold"
+    | "lavender"
+    | "green"
+    | "orange"
+    | "blue";
   active?: boolean;
   isActive?: boolean;
   sortOrder?: number;
@@ -215,10 +233,14 @@ export type ProductVariantOption = {
  */
 export type ProductVariantEntry = {
   name: string;           // Display label: "Black", "White", "Default", etc.
+  localizedName?: LocalizedTextValue;
+  groupName?: string;
+  localizedGroupName?: LocalizedTextValue;
   sku: string;            // Variant-level SKU
   originalPrice: number;  // Full / normal price
   promotionPrice?: number | null;  // Sale price — effective when > 0 and < originalPrice
   stockQuantity: number;
+  imageUrl?: string;
 };
 
 /**

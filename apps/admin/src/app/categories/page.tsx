@@ -7,7 +7,7 @@ import { saveCategory, deleteCategory } from "@/lib/actions";
 
 type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 
-const TONES = ["tech-blue", "neon-cyan", "coral-red", "premium-gold", "mint", "coral", "sky", "gold", "lavender", "green", "orange", "blue"] as const;
+const TONES = ["tech-blue", "neon-cyan", "premium-gold", "mint", "teal", "peach", "coral-red", "urban-purple", "fresh-teal", "steel-grey"] as const;
 
 export default async function CategoriesPage({
   searchParams,

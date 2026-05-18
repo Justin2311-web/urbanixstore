@@ -20,9 +20,7 @@ export function CollectionHero({
   titleKey?: string;
   category?: ProductCategory;
 }) {
-  const subtitle = category
-    ? category.description || copyByCategory[category.id]
-    : "Curated essentials for smart urban living.";
+  const subtitle = category ? category.description || copyByCategory[category.id] : "Curated essentials for smart urban living.";
 
   return (
     <section className="mb-6 overflow-hidden rounded-3xl bg-primary text-white shadow-[0_22px_60px_rgba(14,92,86,0.22)]">
@@ -37,7 +35,11 @@ export function CollectionHero({
               )}
             </h1>
             <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/85">
-              {subtitle}
+              {category?.localizedDescription ? (
+                <LocalizedValue fallback={subtitle} value={category.localizedDescription} />
+              ) : (
+                subtitle
+              )}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-[0.68rem] font-semibold text-white/85 sm:max-w-md sm:text-xs">

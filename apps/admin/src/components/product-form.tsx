@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { saveProduct, createSignedUploadUrl } from "@/lib/actions";
@@ -8,9 +8,14 @@ type Category = { id: string; name: string };
 /** Per-variant pricing entry as stored in product_variants JSONB (new format) */
 type VariantEntry = {
   name: string;
+  nameZh: string;
+  nameMs: string;
+  groupName: string;
+  groupNameZh: string;
+  groupNameMs: string;
   sku: string;
   originalPrice: string;   // string for input binding
-  promotionPrice: string;  // string for input binding — empty = no promo
+  promotionPrice: string;  // string for input binding - empty = no promo
   stockQuantity: string;   // string for input binding
 };
 
@@ -23,7 +28,7 @@ type ExistingProduct = {
   sku: string;
   slug: string;
   category_id: string | null;
-  /** Legacy product-level price — used to seed default variant for old products */
+  /** Legacy product-level price - used to seed default variant for old products */
   price: number;
   promotion_price: number | null;
   promotion_start_at: string | null;
@@ -50,9 +55,12 @@ type ExistingProduct = {
   shipping_info: string | null;
   return_note: string | null;
   rating: number | null;
-  /** New-format variant entries (with originalPrice). Null/empty → auto-seed from legacy price. */
+  /** New-format variant entries (with originalPrice). Null/empty -> auto-seed from legacy price. */
   variant_entries: Array<{
     name: string;
+    localizedName?: { en: string; zh?: string; ms?: string };
+    groupName?: string;
+    localizedGroupName?: { en: string; zh?: string; ms?: string };
     sku: string;
     originalPrice: number;
     promotionPrice?: number | null;
@@ -71,6 +79,11 @@ function slugify(s: string) {
 function makeDefaultVariant(product?: ExistingProduct): VariantEntry {
   return {
     name: "Default",
+    nameZh: "默认",
+    nameMs: "Lalai",
+    groupName: "Option",
+    groupNameZh: "选项",
+    groupNameMs: "Pilihan",
     sku: product?.sku ?? "",
     originalPrice: product?.price ? String(product.price) : "",
     promotionPrice: product?.promotion_price ? String(product.promotion_price) : "",
@@ -121,6 +134,7 @@ export function ProductForm({
   const [nameLang, setNameLang] = useState<"en" | "zh" | "ms">("en");
   const [descLang, setDescLang] = useState<"en" | "zh" | "ms">("en");
   const [hlLang, setHlLang] = useState<"en" | "zh" | "ms">("en");
+  const [specLang, setSpecLang] = useState<"en" | "zh" | "ms">("en");
   // Multilingual highlights
   const [hlEn, setHlEn] = useState<string>(() => {
     if (product?.highlights_en && product.highlights_en.length > 0) return product.highlights_en.join("\n");
@@ -156,11 +170,16 @@ export function ProductForm({
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // ── Variant entries (new per-variant pricing format) ─────────────────────────
+  // Variant entries (new per-variant pricing format)
   const [variantEntries, setVariantEntries] = useState<VariantEntry[]>(() => {
     if (product?.variant_entries && product.variant_entries.length > 0) {
       return product.variant_entries.map((v) => ({
         name: v.name,
+        nameZh: v.localizedName?.zh ?? "",
+        nameMs: v.localizedName?.ms ?? "",
+        groupName: v.groupName ?? v.localizedGroupName?.en ?? "Option",
+        groupNameZh: v.localizedGroupName?.zh ?? "",
+        groupNameMs: v.localizedGroupName?.ms ?? "",
         sku: v.sku,
         originalPrice: String(v.originalPrice),
         promotionPrice: v.promotionPrice ? String(v.promotionPrice) : "",
@@ -175,7 +194,7 @@ export function ProductForm({
   function addVariant() {
     setVariantEntries((prev) => [
       ...prev,
-      { name: "", sku: "", originalPrice: "", promotionPrice: "", stockQuantity: "0" },
+      { name: "", nameZh: "", nameMs: "", groupName: "Option", groupNameZh: "选项", groupNameMs: "Pilihan", sku: "", originalPrice: "", promotionPrice: "", stockQuantity: "0" },
     ]);
   }
 
@@ -215,6 +234,17 @@ export function ProductForm({
   function buildVariantEntriesJson(): string {
     const entries = variantEntries.map((v) => ({
       name: v.name.trim(),
+      localizedName: {
+        en: v.name.trim(),
+        zh: v.nameZh.trim() || v.name.trim(),
+        ms: v.nameMs.trim() || v.name.trim(),
+      },
+      groupName: v.groupName.trim() || "Option",
+      localizedGroupName: {
+        en: v.groupName.trim() || "Option",
+        zh: v.groupNameZh.trim() || v.groupName.trim() || "Option",
+        ms: v.groupNameMs.trim() || v.groupName.trim() || "Option",
+      },
       sku: v.sku.trim(),
       originalPrice: parseFloat(v.originalPrice) || 0,
       promotionPrice: v.promotionPrice.trim() ? parseFloat(v.promotionPrice) || null : null,
@@ -230,8 +260,10 @@ export function ProductForm({
   }
 
   function removeKeptImage(url: string) {
-    setKeptImages((prev) => prev.filter((u) => u !== url));
-    if (imgLang === "en") setKeptImagesEn((prev) => prev.filter((u) => u !== url));
+    if (imgLang === "en") {
+      setKeptImagesEn((prev) => prev.filter((u) => u !== url));
+      setKeptImages((prev) => prev.filter((u) => u !== url));
+    }
     else if (imgLang === "zh") setKeptImagesZh((prev) => prev.filter((u) => u !== url));
     else setKeptImagesMs((prev) => prev.filter((u) => u !== url));
   }
@@ -255,7 +287,8 @@ export function ProductForm({
       }
     }
 
-    const slotsAvailable = 9 - keptImages.length;
+    const currentImages = imgLang === "en" ? keptImagesEn : imgLang === "zh" ? keptImagesZh : keptImagesMs;
+    const slotsAvailable = 9 - currentImages.length;
     if (files.length > slotsAvailable) {
       setImageError(`Only ${slotsAvailable} more image slot${slotsAvailable === 1 ? "" : "s"} available (max 9 total).`);
       e.target.value = "";
@@ -273,7 +306,7 @@ export function ProductForm({
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const ext = file.name.split(".").pop() ?? "jpg";
-        const filePath = `products/${productId}/${Date.now()}-${i}.${ext}`;
+        const filePath = `products/${productId}/${imgLang}/${Date.now()}-${i}.${ext}`;
 
         const { signedUrl, publicUrl } = await createSignedUploadUrl("product-images", filePath);
 
@@ -289,8 +322,10 @@ export function ProductForm({
         setUploadProgress(Math.round(((i + 1) / files.length) * 100));
       }
 
-      setKeptImages((prev) => [...prev, ...newUrls]);
-      if (imgLang === "en") setKeptImagesEn((prev) => [...prev, ...newUrls]);
+      if (imgLang === "en") {
+        setKeptImagesEn((prev) => [...prev, ...newUrls]);
+        setKeptImages((prev) => [...prev, ...newUrls]);
+      }
       else if (imgLang === "zh") setKeptImagesZh((prev) => [...prev, ...newUrls]);
       else setKeptImagesMs((prev) => [...prev, ...newUrls]);
     } catch (err: unknown) {
@@ -319,6 +354,8 @@ export function ProductForm({
     setVariantErrors({});
   }
 
+  const currentImages = imgLang === "en" ? keptImagesEn : imgLang === "zh" ? keptImagesZh : keptImagesMs;
+
   return (
     <form action={saveProduct} onSubmit={handleSubmit}>
       {/* Hidden: product DB ID */}
@@ -338,8 +375,8 @@ export function ProductForm({
       <input type="hidden" name="description_zh" value={descZh} />
       <input type="hidden" name="description_ms" value={descMs} />
       {/* Hidden: kept image URLs */}
-      <input type="hidden" name="kept_image_count" value={keptImages.length} />
-      {keptImages.map((url, i) => (
+      <input type="hidden" name="kept_image_count" value={keptImagesEn.length} />
+      {keptImagesEn.map((url, i) => (
         <input key={url} type="hidden" name={`kept_image_${i}`} value={url} />
       ))}
       {/* Hidden: serialised variant entries (new pricing format) */}
@@ -358,7 +395,7 @@ export function ProductForm({
       <input type="hidden" name="image_urls_ms" value={JSON.stringify(keptImagesMs)} />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* ── Main column ─────────────────────────────────── */}
+        {/* Main column */}
         <div className="space-y-5 lg:col-span-2">
 
           {/* Basic info */}
@@ -366,7 +403,7 @@ export function ProductForm({
             <h2 className="mb-4 font-semibold text-gray-800">Basic Information</h2>
             <div className="grid gap-4 sm:grid-cols-2">
 
-              {/* ── Multilingual Product Name ── */}
+              {/* Multilingual Product Name */}
               <div className="sm:col-span-2">
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="field-label mb-0">Product Name *</label>
@@ -450,7 +487,7 @@ export function ProductForm({
                   className="field-select"
                   defaultValue={product?.category_id ?? ""}
                 >
-                  <option value="">— No category —</option>
+                  <option value="">- No category -</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
@@ -460,7 +497,7 @@ export function ProductForm({
               </div>
 
               <div>
-                <label className="field-label">Rating (0–5)</label>
+                <label className="field-label">Rating (0-5)</label>
                 <input
                   name="rating"
                   type="number"
@@ -474,7 +511,7 @@ export function ProductForm({
             </div>
           </div>
 
-          {/* ── Product Variants & Pricing (moved here from old Pricing position) ── */}
+          {/* Product Variants & Pricing */}
           <div id="variants-section" className="card p-5">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
@@ -505,7 +542,7 @@ export function ProductForm({
             {variantEntries.length === 0 ? (
               <div className="rounded-lg border-2 border-dashed border-red-200 bg-red-50 px-4 py-4 text-center">
                 <p className="text-xs font-semibold text-red-600">
-                  ⚠ At least one variant is required. Click <strong>+ Default</strong> to add one.
+                  Warning: At least one variant is required. Click <strong>+ Default</strong> to add one.
                 </p>
               </div>
             ) : (
@@ -538,7 +575,7 @@ export function ProductForm({
                     {/* Error message */}
                     {variantErrors[index] && (
                       <div className="mb-3 rounded-lg bg-red-100 px-3 py-2 text-xs font-semibold text-red-700">
-                        ⚠ {variantErrors[index]}
+                        Warning: {variantErrors[index]}
                       </div>
                     )}
 
@@ -556,6 +593,61 @@ export function ProductForm({
                           value={variant.name}
                           onChange={(e) => updateVariant(index, "name", e.target.value)}
                           placeholder="e.g. Black"
+                          className="field-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">Variant Name 中文</label>
+                        <input
+                          type="text"
+                          value={variant.nameZh}
+                          onChange={(e) => updateVariant(index, "nameZh", e.target.value)}
+                          placeholder="例如：黑色"
+                          className="field-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">Variant Name BM</label>
+                        <input
+                          type="text"
+                          value={variant.nameMs}
+                          onChange={(e) => updateVariant(index, "nameMs", e.target.value)}
+                          placeholder="Contoh: Hitam"
+                          className="field-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">Group Name</label>
+                        <input
+                          type="text"
+                          value={variant.groupName}
+                          onChange={(e) => updateVariant(index, "groupName", e.target.value)}
+                          placeholder="e.g. Color"
+                          className="field-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">Group 中文</label>
+                        <input
+                          type="text"
+                          value={variant.groupNameZh}
+                          onChange={(e) => updateVariant(index, "groupNameZh", e.target.value)}
+                          placeholder="例如：颜色"
+                          className="field-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="field-label">Group BM</label>
+                        <input
+                          type="text"
+                          value={variant.groupNameMs}
+                          onChange={(e) => updateVariant(index, "groupNameMs", e.target.value)}
+                          placeholder="Contoh: Warna"
                           className="field-input"
                         />
                       </div>
@@ -599,7 +691,7 @@ export function ProductForm({
                           step="0.01"
                           value={variant.promotionPrice}
                           onChange={(e) => updateVariant(index, "promotionPrice", e.target.value)}
-                          placeholder="0.00 — leave empty for no promo"
+                          placeholder="0.00 - leave empty for no promo"
                           className="field-input"
                         />
                         {variant.promotionPrice && variant.originalPrice && (
@@ -645,7 +737,7 @@ export function ProductForm({
             {variantEntries.length > 0 && (
               <div className="mt-3 rounded-lg border border-[#0e5c56]/20 bg-[#e8f3ef]/60 px-4 py-3">
                 <p className="text-xs font-semibold text-[#0e5c56]">
-                  💡 Storefront shows the first variant&apos;s price by default. Price updates
+                  Tip: Storefront shows the first variant&apos;s price by default. Price updates
                   dynamically when a customer selects a different variant.
                 </p>
               </div>
@@ -748,7 +840,7 @@ export function ProductForm({
                 )}
               </div>
 
-              {/* Highlights — multilingual */}
+              {/* Highlights - multilingual */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="field-label mb-0">Highlights <span className="text-xs font-normal text-gray-400">one per line</span></label>
@@ -766,22 +858,22 @@ export function ProductForm({
                 {hlLang === "ms" && <textarea className="field-textarea" rows={4} value={hlMs} onChange={e => setHlMs(e.target.value)} placeholder={"Angin kuat\nBunyi rendah\nJimat tenaga"} />}
               </div>
 
-              {/* Specifications — multilingual */}
+              {/* Specifications - multilingual */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="field-label mb-0">Specifications <span className="text-xs font-normal text-gray-400">one per line</span></label>
                   <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
                     {(["en", "zh", "ms"] as const).map((lang) => (
-                      <button key={lang} type="button" onClick={() => setHlLang(lang)}
-                        className={`rounded px-2.5 py-0.5 text-xs font-bold transition ${hlLang === lang ? "bg-[#0e5c56] text-white" : "text-gray-500 hover:text-gray-700"}`}>
+                      <button key={lang} type="button" onClick={() => setSpecLang(lang)}
+                        className={`rounded px-2.5 py-0.5 text-xs font-bold transition ${specLang === lang ? "bg-[#0e5c56] text-white" : "text-gray-500 hover:text-gray-700"}`}>
                         {lang === "en" ? "EN" : lang === "zh" ? "中文" : "BM"}
                       </button>
                     ))}
                   </div>
                 </div>
-                {hlLang === "en" && <textarea className="field-textarea" rows={4} value={specEn} onChange={e => setSpecEn(e.target.value)} placeholder={"Voltage: 240V\nPower: 45W\nBlade: 16 inch"} />}
-                {hlLang === "zh" && <textarea className="field-textarea" rows={4} value={specZh} onChange={e => setSpecZh(e.target.value)} placeholder={"电压: 240V\n功率: 45W\n叶片: 16寸"} />}
-                {hlLang === "ms" && <textarea className="field-textarea" rows={4} value={specMs} onChange={e => setSpecMs(e.target.value)} placeholder={"Voltan: 240V\nKuasa: 45W\nBilah: 16 inci"} />}
+                {specLang === "en" && <textarea className="field-textarea" rows={4} value={specEn} onChange={e => setSpecEn(e.target.value)} placeholder={"Voltage: 240V\nPower: 45W\nBlade: 16 inch"} />}
+                {specLang === "zh" && <textarea className="field-textarea" rows={4} value={specZh} onChange={e => setSpecZh(e.target.value)} placeholder={"电压: 240V\n功率: 45W\n叶片: 16寸"} />}
+                {specLang === "ms" && <textarea className="field-textarea" rows={4} value={specMs} onChange={e => setSpecMs(e.target.value)} placeholder={"Voltan: 240V\nKuasa: 45W\nBilah: 16 inci"} />}
               </div>
             </div>
           </div>
@@ -814,7 +906,7 @@ export function ProductForm({
           </div>
         </div>
 
-        {/* ── Side column ──────────────────────────────────── */}
+        {/* Side column */}
         <div className="space-y-5">
           {/* Status */}
           <div className="card p-5">
@@ -859,7 +951,7 @@ export function ProductForm({
                     <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs">
                       <p className="font-bold text-gray-700">{v.name || `Variant ${i + 1}`}</p>
                       <p className="text-gray-500">
-                        {!isNaN(price) ? `RM${price.toFixed(2)}` : "—"}{" "}
+                        {!isNaN(price) ? `RM${price.toFixed(2)}` : "-"}{" "}
                         {pp && !isNaN(pp) && pp < op ? (
                           <span className="text-gray-400 line-through">RM{op.toFixed(2)}</span>
                         ) : null}
@@ -879,12 +971,12 @@ export function ProductForm({
             </div>
           )}
 
-          {/* Images — per language */}
+          {/* Images - per language */}
           <div className="card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold text-gray-800">
                 Images{" "}
-                <span className="text-xs font-normal text-gray-400">({keptImages.length}/9)</span>
+                <span className="text-xs font-normal text-gray-400">({currentImages.length}/9)</span>
               </h2>
               <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
                 {(["en", "zh", "ms"] as const).map((lang) => (
@@ -896,13 +988,13 @@ export function ProductForm({
               </div>
             </div>
 
-            {keptImages.length > 0 && (
+            {currentImages.length > 0 && (
               <div className="mb-4">
                 <p className="mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Current Images
                 </p>
                 <div className="grid grid-cols-3 gap-2">
-                  {keptImages.map((url, i) => (
+                  {currentImages.map((url, i) => (
                     <div key={url} className="relative group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -915,7 +1007,7 @@ export function ProductForm({
                         onClick={() => removeKeptImage(url)}
                         className="absolute right-1 top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        ✕
+                        ×
                       </button>
                       {i === 0 && (
                         <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-xs text-white">
@@ -928,7 +1020,7 @@ export function ProductForm({
               </div>
             )}
 
-            {keptImages.length < 9 && (
+            {currentImages.length < 9 && (
               <div>
                 <input
                   type="file"
@@ -951,11 +1043,11 @@ export function ProductForm({
                   </div>
                 )}
 
-                {imageError && <p className="mt-1 text-xs text-red-600">⚠ {imageError}</p>}
+                {imageError && <p className="mt-1 text-xs text-red-600">Warning: {imageError}</p>}
 
                 {!imageError && !uploadingImages && (
                   <p className="mt-1.5 text-xs text-gray-400">
-                    Up to {9 - keptImages.length} more · Max 10 MB each · JPG, PNG, WebP
+                    Up to {9 - currentImages.length} more · Max 10 MB each · JPG, PNG, WebP
                   </p>
                 )}
               </div>
@@ -965,7 +1057,7 @@ export function ProductForm({
           {/* Save button */}
           <div className="card p-5 space-y-3">
             <button type="submit" className="btn-primary w-full justify-center py-2.5">
-              {isEdit ? "💾 Save Changes" : "✨ Create Product"}
+              {isEdit ? "Save Changes" : "Create Product"}
             </button>
           </div>
         </div>

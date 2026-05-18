@@ -58,7 +58,16 @@ export default async function EditProductPage({
 
   // Parse product_variants JSONB — detect new format (with originalPrice) vs old (with values)
   const rawVariants = Array.isArray(product.product_variants) ? product.product_variants : [];
-  type NewVariant = { name: string; sku: string; originalPrice: number; promotionPrice?: number | null; stockQuantity: number };
+  type NewVariant = {
+    name: string;
+    localizedName?: { en: string; zh?: string; ms?: string };
+    groupName?: string;
+    localizedGroupName?: { en: string; zh?: string; ms?: string };
+    sku: string;
+    originalPrice: number;
+    promotionPrice?: number | null;
+    stockQuantity: number;
+  };
   type OldVariant = { name: string; values: string[] };
 
   const isNewFormat =
@@ -68,6 +77,20 @@ export default async function EditProductPage({
   const variantEntries: NewVariant[] | null = isNewFormat
     ? (rawVariants as NewVariant[])
     : null; // null → form will auto-seed from legacy price
+
+  function tryParseJsonArray(value: string | null | undefined): string[] {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter((u: unknown): u is string => typeof u === "string") : [];
+    } catch {
+      return value.startsWith("http") ? [value] : [];
+    }
+  }
+
+  const imagesEn = tryParseJsonArray(product.main_image_url_en);
+  const imagesZh = tryParseJsonArray(product.main_image_url_zh);
+  const imagesMs = tryParseJsonArray(product.main_image_url_ms);
 
   // Build product shape for the form
   const formProduct = {
@@ -119,21 +142,6 @@ export default async function EditProductPage({
     images_zh: imagesZh.map((url, i) => ({ image_url: url, sort_order: i })),
     images_ms: imagesMs.map((url, i) => ({ image_url: url, sort_order: i })),
   };
-
-  // Parse JSON string array from TEXT column
-  function tryParseJsonArray(value: string | null | undefined): string[] {
-    if (!value) return [];
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.filter((u: unknown): u is string => typeof u === "string") : [];
-    } catch {
-      return value.startsWith("http") ? [value] : [];
-    }
-  }
-
-  const imagesEn = tryParseJsonArray(product.main_image_url_en);
-  const imagesZh = tryParseJsonArray(product.main_image_url_zh);
-  const imagesMs = tryParseJsonArray(product.main_image_url_ms);
 
   // Suppress "declared but never read" for OldVariant (used only for JSONB detection)
   void (null as unknown as OldVariant);

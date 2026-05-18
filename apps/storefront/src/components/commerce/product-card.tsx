@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import type { UrbanixProduct } from "@ecommerce/shared";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
-import { ProductVisual } from "@/components/commerce/product-visual";
+import { LocalizedProductVisual } from "@/components/commerce/localized-product-visual";
 import { PriceDisplay } from "@/components/commerce/price-display";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
 import { StockBadge } from "@/components/commerce/stock-badge";
@@ -23,7 +23,7 @@ export function ProductCard({ compact = false, product }: ProductCardProps) {
         <PromotionBadge percent={product.promotionPercent} />
       </div>
       <Link href={`/products/${product.slug}`}>
-        <ProductVisual alt={product.name} imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]} tone={product.imageTone} />
+        <LocalizedProductVisual alt={product.name} product={product} tone={product.imageTone} />
       </Link>
       <div className={`flex flex-col gap-2 px-1 ${compact ? "py-2" : "py-3"}`}>
         {product.stockStatus !== "in_stock" ? (

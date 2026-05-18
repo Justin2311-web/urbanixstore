@@ -14,6 +14,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { PriceDisplay } from "@/components/commerce/price-display";
 import { QuantitySelector } from "@/components/commerce/quantity-selector";
 import { StockBadge } from "@/components/commerce/stock-badge";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 export function ProductPurchasePanel({
@@ -26,6 +27,7 @@ export function ProductPurchasePanel({
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
   const router = useRouter();
+  const { language } = useLanguage();
 
   const shopeeUrl = product.shopeeUrl || settings.platformLinks?.shopee || "";
   const lazadaUrl = product.lazadaUrl || settings.platformLinks?.lazada || "";
@@ -151,6 +153,7 @@ export function ProductPurchasePanel({
               const isSelected = selectedVariant?.name === v.name;
               const vPricing = getVariantEffectivePrice(v);
               const outOfStock = v.stockQuantity <= 0;
+              const label = v.localizedName?.[language] || v.localizedName?.en || v.name;
               return (
                 <button
                   aria-pressed={isSelected}
@@ -168,9 +171,9 @@ export function ProductPurchasePanel({
                     setValidationMessage("");
                   }}
                   type="button"
-                  title={outOfStock ? "Out of stock" : `${v.name} — ${formatCurrency(vPricing.price)}`}
+                  title={outOfStock ? "Out of stock" : `${label} - ${formatCurrency(vPricing.price)}`}
                 >
-                  {v.name}
+                  {label}
                   {outOfStock && (
                     <span className="ml-1.5 text-xs font-normal opacity-70">sold out</span>
                   )}
