@@ -4,6 +4,7 @@ import { useState } from "react";
 import { saveProduct, createSignedUploadUrl } from "@/lib/actions";
 
 type Category = { id: string; name: string };
+type ImageLang = "en" | "zh" | "ms";
 
 /** Per-variant pricing entry as stored in product_variants JSONB (new format) */
 type VariantEntry = {
@@ -53,7 +54,6 @@ type ExistingProduct = {
   specifications_zh?: string[];
   specifications_ms?: string[];
   shipping_info: string | null;
-  return_note: string | null;
   rating: number | null;
   /** New-format variant entries (with originalPrice). Null/empty -> auto-seed from legacy price. */
   variant_entries: Array<{
@@ -169,6 +169,7 @@ export function ProductForm({
   const [uploadingImages, setUploadingImages] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [draggingImageUrl, setDraggingImageUrl] = useState<string | null>(null);
 
   // Variant entries (new per-variant pricing format)
   const [variantEntries, setVariantEntries] = useState<VariantEntry[]>(() => {
@@ -266,6 +267,42 @@ export function ProductForm({
     }
     else if (imgLang === "zh") setKeptImagesZh((prev) => prev.filter((u) => u !== url));
     else setKeptImagesMs((prev) => prev.filter((u) => u !== url));
+  }
+
+  function updateImagesForLanguage(lang: ImageLang, updater: (images: string[]) => string[]) {
+    if (lang === "en") {
+      setKeptImagesEn((current) => {
+        const next = updater(current);
+        setKeptImages(next);
+        return next;
+      });
+      return;
+    }
+    if (lang === "zh") {
+      setKeptImagesZh(updater);
+      return;
+    }
+    setKeptImagesMs(updater);
+  }
+
+  function moveImage(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    updateImagesForLanguage(imgLang, (images) => {
+      const next = [...images];
+      const [moved] = next.splice(fromIndex, 1);
+      if (!moved) return images;
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+
+  function handleImageDrop(targetIndex: number) {
+    if (!draggingImageUrl) return;
+    const fromIndex = currentImages.indexOf(draggingImageUrl);
+    if (fromIndex >= 0) {
+      moveImage(fromIndex, targetIndex);
+    }
+    setDraggingImageUrl(null);
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -878,9 +915,9 @@ export function ProductForm({
             </div>
           </div>
 
-          {/* Shipping & Returns */}
+          {/* Shipping */}
           <div className="card p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">Shipping & Returns</h2>
+            <h2 className="mb-4 font-semibold text-gray-800">Shipping / Delivery Info</h2>
             <div className="space-y-4">
               <div>
                 <label className="field-label">Shipping Info</label>
@@ -890,16 +927,6 @@ export function ProductForm({
                   rows={2}
                   defaultValue={product?.shipping_info ?? ""}
                   placeholder="Free shipping for orders above RM40"
-                />
-              </div>
-              <div>
-                <label className="field-label">Return Note</label>
-                <textarea
-                  name="return_note"
-                  className="field-textarea"
-                  rows={2}
-                  defaultValue={product?.return_note ?? ""}
-                  placeholder="Returns accepted within 30 days"
                 />
               </div>
             </div>
@@ -991,11 +1018,29 @@ export function ProductForm({
             {currentImages.length > 0 && (
               <div className="mb-4">
                 <p className="mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Current Images
+                  Current Images · drag to reorder · first image is main
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {currentImages.map((url, i) => (
-                    <div key={url} className="relative group">
+                    <div
+                      key={url}
+                      className="relative group cursor-grab rounded-lg focus-within:ring-2 focus-within:ring-[#0e5c56]/30"
+                      draggable
+                      onDragStart={(event) => {
+                        setDraggingImageUrl(url);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", url);
+                      }}
+                      onDragEnd={() => setDraggingImageUrl(null)}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        handleImageDrop(i);
+                      }}
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={url}
@@ -1009,6 +1054,26 @@ export function ProductForm({
                       >
                         ×
                       </button>
+                      <div className="absolute left-1 top-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          aria-label="Move image earlier"
+                          className="rounded bg-black/60 px-1.5 py-0.5 text-xs font-bold text-white disabled:opacity-35"
+                          disabled={i === 0}
+                          onClick={() => moveImage(i, i - 1)}
+                          type="button"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          aria-label="Move image later"
+                          className="rounded bg-black/60 px-1.5 py-0.5 text-xs font-bold text-white disabled:opacity-35"
+                          disabled={i === currentImages.length - 1}
+                          onClick={() => moveImage(i, i + 1)}
+                          type="button"
+                        >
+                          ↓
+                        </button>
+                      </div>
                       {i === 0 && (
                         <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-xs text-white">
                           Main

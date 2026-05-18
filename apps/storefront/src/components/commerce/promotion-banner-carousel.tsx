@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HomepageContent, LocalizedTextValue, PromotionBanner } from "@ecommerce/shared";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export function PromotionBannerCarousel({
   fallback: HomepageContent;
   freeShippingText?: LocalizedTextValue;
 }) {
+  const { language } = useLanguage();
   const slides = banners.length > 0
     ? banners
     : [{
@@ -35,6 +37,16 @@ export function PromotionBannerCarousel({
         },
         localizedSubtitle: { en: "", ms: "", zh: "" },
         localizedTitle: { en: "", ms: "", zh: "" },
+        localizedDesktopImageUrls: {
+          en: fallback.heroImageUrl || "",
+          ms: fallback.heroImageUrl || "",
+          zh: fallback.heroImageUrl || "",
+        },
+        localizedMobileImageUrls: {
+          en: fallback.heroImageUrl || "",
+          ms: fallback.heroImageUrl || "",
+          zh: fallback.heroImageUrl || "",
+        },
         mobileImageUrl: fallback.heroImageUrl || "",
         sortOrder: 1,
         subtitle: "",
@@ -48,7 +60,17 @@ export function PromotionBannerCarousel({
   const buttonText = activeSlide.localizedCtaText ? (
     <LocalizedValue fallback={activeSlide.ctaText} value={activeSlide.localizedCtaText} />
   ) : activeSlide.ctaText;
-  const hasImage = Boolean(activeSlide.desktopImageUrl || activeSlide.mobileImageUrl);
+  const desktopImageUrl =
+    activeSlide.localizedDesktopImageUrls?.[language] ||
+    activeSlide.localizedDesktopImageUrls?.en ||
+    activeSlide.desktopImageUrl ||
+    "";
+  const mobileImageUrl =
+    activeSlide.localizedMobileImageUrls?.[language] ||
+    activeSlide.localizedMobileImageUrls?.en ||
+    activeSlide.mobileImageUrl ||
+    "";
+  const hasImage = Boolean(desktopImageUrl || mobileImageUrl);
   const showButton = activeSlide.buttonEnabled && Boolean(activeSlide.ctaText && buttonHref);
 
   useEffect(() => {
@@ -81,13 +103,13 @@ export function PromotionBannerCarousel({
                   alt=""
                   className="hidden size-full object-cover transition duration-700 md:block"
                   data-banner-desktop-image
-                  src={activeSlide.desktopImageUrl || activeSlide.mobileImageUrl}
+                  src={desktopImageUrl || mobileImageUrl}
                 />
                 <img
                   alt=""
                   className="size-full object-cover transition duration-700 md:hidden"
                   data-banner-mobile-image
-                  src={activeSlide.mobileImageUrl || activeSlide.desktopImageUrl}
+                  src={mobileImageUrl || desktopImageUrl}
                 />
               </>
             ) : (

@@ -9,6 +9,7 @@ import { ProductSpecifications } from "@/components/commerce/product-specificati
 import { StockBadge } from "@/components/commerce/stock-badge";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
+import { freeShippingCopy } from "@/lib/shipping-text";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -30,6 +31,7 @@ export default async function ProductDetailPage({
   const relatedProducts = products
     .filter((item) => item.category === product.category && item.id !== product.id)
     .slice(0, 8);
+  const deliveryInfo = freeShippingCopy(data.settings, product.shippingInfo);
   return (
     <main className="urbanix-container py-8 pb-24 sm:py-10">
       {/* ── Main product section: image left, info right ── */}
@@ -89,12 +91,9 @@ export default async function ProductDetailPage({
             <ProductSpecifications product={product} />
           </InfoPanel>
           <InfoPanel title="Delivery Info" titleKey="product.deliveryInfo">
-            <div className="flex flex-col gap-3">
-              <p>{product.shippingInfo}</p>
-              <div className="rounded-2xl bg-secondary/30 p-3 text-xs">
-                <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} />
-              </div>
-            </div>
+            <p>
+              <LocalizedValue fallback={deliveryInfo.en} value={deliveryInfo} />
+            </p>
           </InfoPanel>
         </div>
       </section>

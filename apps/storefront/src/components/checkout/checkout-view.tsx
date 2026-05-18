@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createOrderNumber, saveOrder } from "@/lib/order-storage";
 import { loadCustomerProfile, profileToCheckoutCustomer, saveCustomerProfileLocally, syncCustomerProfile } from "@/lib/customer-profile";
+import { freeShippingCopy } from "@/lib/shipping-text";
 
 const MAX_RECEIPT_MB = 10;
 const MAX_RECEIPT_BYTES = MAX_RECEIPT_MB * 1024 * 1024;
@@ -69,6 +70,7 @@ export function CheckoutView({
 
   const lines = buildCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
+  const shippingText = freeShippingCopy(settings);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -425,7 +427,7 @@ export function CheckoutView({
           <OrderSummaryCard lines={lines} showItems totals={totals} />
 
           <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
-            <LocalizedValue fallback="Free shipping for orders above RM40" value={settings.freeShippingText} />
+            <LocalizedValue fallback={shippingText.en} value={shippingText} />
           </div>
 
           {/* Payment Method */}

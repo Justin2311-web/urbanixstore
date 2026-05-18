@@ -40,7 +40,7 @@ export default async function EditProductPage({
     sb
       .from("products")
       .select(
-        "id, name, name_en, name_zh, name_ms, sku, slug, category_id, price, promotion_price, promotion_start_at, promotion_end_at, stock_quantity, is_active, is_featured, short_description, short_description_en, short_description_zh, short_description_ms, description, description_en, description_zh, description_ms, highlights, specifications, shipping_info, return_note, rating, main_image_url, main_image_url_en, main_image_url_zh, main_image_url_ms, product_variants, product_images(image_url, sort_order)"
+        "id, name, name_en, name_zh, name_ms, sku, slug, category_id, price, promotion_price, promotion_start_at, promotion_end_at, stock_quantity, is_active, is_featured, short_description, short_description_en, short_description_zh, short_description_ms, description, description_en, description_zh, description_ms, highlights, specifications, shipping_info, rating, main_image_url, main_image_url_en, main_image_url_zh, main_image_url_ms, product_variants, product_images(image_url, sort_order)"
       )
       .eq("id", id)
       .single(),
@@ -133,7 +133,6 @@ export default async function EditProductPage({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     specifications_ms: (product.specifications as any)?.ms ?? [],
     shipping_info: product.shipping_info || "",
-    return_note: product.return_note || "",
     rating: product.rating,
     // New-format variant entries (null → form seeds default from legacy price)
     variant_entries: variantEntries,

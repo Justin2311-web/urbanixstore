@@ -252,7 +252,6 @@ export async function saveProduct(formData: FormData) {
     : fdLines(formData, "specifications");
 
   const shipping_info = fd(formData, "shipping_info") || null;
-  const return_note = fd(formData, "return_note") || null;
   const rating = fdNum(formData, "rating") || null;
 
   // ── Per-variant pricing entries (new format) ──────────────────────────────
@@ -298,7 +297,7 @@ export async function saveProduct(formData: FormData) {
   const { data: existingProduct } = productDbId
     ? await sb
         .from("products")
-        .select("name,name_en,name_zh,name_ms,short_description,short_description_en,short_description_zh,short_description_ms,description,description_en,description_zh,description_ms,highlights,specifications,shipping_info,return_note,rating,main_image_url,main_image_url_en,main_image_url_zh,main_image_url_ms,product_variants")
+        .select("name,name_en,name_zh,name_ms,short_description,short_description_en,short_description_zh,short_description_ms,description,description_en,description_zh,description_ms,highlights,specifications,shipping_info,rating,main_image_url,main_image_url_en,main_image_url_zh,main_image_url_ms,product_variants")
         .eq("id", productDbId)
         .maybeSingle()
     : { data: null };
@@ -330,7 +329,6 @@ export async function saveProduct(formData: FormData) {
     highlights: (Array.isArray(highlightsPayload) && highlightsPayload.length === 0 ? existingProduct?.highlights ?? [] : highlightsPayload) as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["highlights"],
     specifications: (Array.isArray(specsPayload) && specsPayload.length === 0 ? existingProduct?.specifications ?? [] : specsPayload) as unknown as import("@ecommerce/database").Database["public"]["Tables"]["products"]["Row"]["specifications"],
     shipping_info: shipping_info || existingProduct?.shipping_info || null,
-    return_note: existingProduct?.return_note || return_note || null,
     rating: rating || existingProduct?.rating || null,
     // Store the full new-format variant array in product_variants JSONB
     product_variants: variantEntries.length > 0

@@ -134,7 +134,9 @@ export type PromotionBanner = {
   buttonUrl: string;
   imageClickUrl: string;
   desktopImageUrl: string;
+  localizedDesktopImageUrls?: Partial<Record<LanguageCode, string>>;
   mobileImageUrl: string;
+  localizedMobileImageUrls?: Partial<Record<LanguageCode, string>>;
   isActive: boolean;
   sortOrder: number;
   createdAt?: string;

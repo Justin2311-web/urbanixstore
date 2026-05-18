@@ -162,6 +162,26 @@ function parseImageArray(value: unknown): string[] {
   }
 }
 
+function parseLocalizedImageUrls(value: unknown): { en: string; zh: string; ms: string } {
+  if (!value || typeof value !== "string") {
+    return { en: "", zh: "", ms: "" };
+  }
+  try {
+    const parsed = JSON.parse(value) as Partial<Record<"en" | "zh" | "ms", unknown>>;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const en = typeof parsed.en === "string" && isUsableAssetUrl(parsed.en) ? parsed.en : "";
+      const zh = typeof parsed.zh === "string" && isUsableAssetUrl(parsed.zh) ? parsed.zh : "";
+      const ms = typeof parsed.ms === "string" && isUsableAssetUrl(parsed.ms) ? parsed.ms : "";
+      const fallback = en || zh || ms;
+      return { en: en || fallback, zh: zh || en || fallback, ms: ms || en || fallback };
+    }
+  } catch {
+    // Plain legacy URL, handled below.
+  }
+  const legacy = isUsableAssetUrl(value) ? value : "";
+  return { en: legacy, zh: legacy, ms: legacy };
+}
+
 /** Parse a JSONB column that may be multilingual {en:[...], zh:[...], ms:[...]} or a flat string[] */
 function parseMultilingualArray(value: Json | undefined | null): { en: string[]; zh: string[]; ms: string[] } {
   if (Array.isArray(value)) {
@@ -851,8 +871,8 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     currency: row.currency,
     favicon: row.favicon_url ?? defaultUrbanixStoreData.settings.favicon,
     faviconUrl: row.favicon_url ?? defaultUrbanixStoreData.settings.faviconUrl,
-    freeShippingMinimumAmount: 40,
-    freeShippingMinAmount: 40,
+    freeShippingMinimumAmount: Number(row.free_shipping_min_amount),
+    freeShippingMinAmount: Number(row.free_shipping_min_amount),
     freeShippingText: defaultUrbanixStoreData.settings.freeShippingText,
     logo: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logo,
     logoUrl: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logoUrl,
@@ -921,6 +941,8 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
 
 function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners"]["Row"]): PromotionBanner {
   const targetUrl = row.target_url ?? "/products";
+  const desktopImages = parseLocalizedImageUrls(row.desktop_image_url);
+  const mobileImages = parseLocalizedImageUrls(row.mobile_image_url);
   const r = row as typeof row & {
     title_en?: string | null;
     title_zh?: string | null;
@@ -953,14 +975,16 @@ function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners
     buttonUrl: targetUrl,
     createdAt: row.created_at,
     ctaText: row.cta_text ?? "Shop Now",
-    desktopImageUrl: row.desktop_image_url ?? "",
+    desktopImageUrl: desktopImages.en,
     id: row.id,
     imageClickUrl: targetUrl,
     isActive: row.is_active,
     localizedCtaText,
+    localizedDesktopImageUrls: desktopImages,
+    localizedMobileImageUrls: mobileImages,
     localizedSubtitle,
     localizedTitle,
-    mobileImageUrl: row.mobile_image_url ?? "",
+    mobileImageUrl: mobileImages.en,
     sortOrder: row.sort_order,
     subtitle: row.subtitle ?? "",
     targetUrl,

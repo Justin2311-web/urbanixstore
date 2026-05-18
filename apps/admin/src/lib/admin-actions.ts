@@ -86,6 +86,18 @@ function jsonStringArray(formData: FormData, key: string) {
   }
 }
 
+type BannerLang = "en" | "zh" | "ms";
+const bannerLangs: BannerLang[] = ["en", "zh", "ms"];
+
+function encodeLocalizedImages(images: Record<BannerLang, string>) {
+  const fallback = images.en || images.zh || images.ms || "";
+  return JSON.stringify({
+    en: images.en || fallback,
+    zh: images.zh || images.en || fallback,
+    ms: images.ms || images.en || fallback,
+  });
+}
+
 function fileValues(formData: FormData, key: string) {
   return formData
     .getAll(key)
@@ -207,7 +219,7 @@ export async function saveProduct(formData: FormData) {
     promotionStartAt: text(formData, "promotionStartDate"),
     rating: numberValue(formData, "rating") || existingProduct?.rating || 4.7,
     relatedCategory: categoryId,
-    returnNote: text(formData, "returnNote") || "Returns accepted within 30 days for unused items in original packaging.",
+    returnNote: existingProduct?.returnNote ?? "",
     shippingInfo: text(formData, "shippingInfo") || "Free shipping applies for eligible orders.",
     shortDescription: text(formData, "shortDescription"),
     sku: text(formData, "sku"),
@@ -385,25 +397,30 @@ export async function savePromotionBanners(formData: FormData) {
       continue;
     }
 
-    const desktopFile = fileValues(formData, `${key}-desktopFile`)[0];
-    const mobileFile = fileValues(formData, `${key}-mobileFile`)[0];
     const folder = id || slugify(title) || `banner-${index + 1}`;
-    const desktopImageUrl = desktopFile
-      ? await uploadUrbanixAsset(desktopFile, "banners", folder)
-      : text(formData, `${key}-desktopImageUrl`);
-    const mobileImageUrl = mobileFile
-      ? await uploadUrbanixAsset(mobileFile, "banners", folder)
-      : text(formData, `${key}-mobileImageUrl`);
+    const desktopImages = { en: "", zh: "", ms: "" };
+    const mobileImages = { en: "", zh: "", ms: "" };
+
+    for (const lang of bannerLangs) {
+      const desktopFile = fileValues(formData, `${key}-desktopFile-${lang}`)[0];
+      const mobileFile = fileValues(formData, `${key}-mobileFile-${lang}`)[0];
+      desktopImages[lang] = desktopFile
+        ? await uploadUrbanixAsset(desktopFile, "banners", `${folder}/desktop-${lang}`)
+        : text(formData, `${key}-desktopImageUrl-${lang}`);
+      mobileImages[lang] = mobileFile
+        ? await uploadUrbanixAsset(mobileFile, "banners", `${folder}/mobile-${lang}`)
+        : text(formData, `${key}-mobileImageUrl-${lang}`);
+    }
 
     banners.push({
       buttonEnabled: true,
       buttonUrl: text(formData, `${key}-targetUrl`) || "/products",
       ctaText: text(formData, `${key}-ctaText`) || "Shop Now",
-      desktopImageUrl,
+      desktopImageUrl: encodeLocalizedImages(desktopImages),
       id,
       imageClickUrl: text(formData, `${key}-targetUrl`) || "/products",
       isActive: formData.get(`${key}-isActive`) === "on",
-      mobileImageUrl,
+      mobileImageUrl: encodeLocalizedImages(mobileImages),
       sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
       subtitle: text(formData, `${key}-subtitle`),
       targetUrl: text(formData, `${key}-targetUrl`) || "/products",
