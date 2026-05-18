@@ -118,6 +118,7 @@ export function ProductForm({
 }) {
   const isEdit = Boolean(product?.id);
   const [nameValue, setNameValue] = useState(product?.name_en ?? product?.name ?? "");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [slugValue, setSlugValue] = useState(product?.slug ?? "");
   // Multilingual name
   const [nameZh, setNameZh] = useState(product?.name_zh ?? "");
@@ -257,6 +258,7 @@ export function ProductForm({
   function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
     setNameValue(v);
+    if (v.trim()) setNameError(null);
     if (!isEdit) setSlugValue(slugify(v));
   }
 
@@ -374,6 +376,12 @@ export function ProductForm({
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (!nameValue.trim()) {
+      e.preventDefault();
+      setNameError("English product name is required.");
+      setNameLang("en");
+      return;
+    }
     // Client-side variant validation before allowing native form submit
     if (variantEntries.length === 0) {
       e.preventDefault();
@@ -399,6 +407,8 @@ export function ProductForm({
       <input type="hidden" name="product_db_id" value={product?.id ?? ""} />
       {/* Hidden: slug */}
       <input type="hidden" name="slug" value={slugValue} />
+      {/* Hidden: legacy required name, kept in sync with EN name */}
+      <input type="hidden" name="name" value={nameValue} />
       {/* Hidden: multilingual name */}
       <input type="hidden" name="name_en" value={nameValue} />
       <input type="hidden" name="name_zh" value={nameZh} />
@@ -461,9 +471,13 @@ export function ProductForm({
                     ))}
                   </div>
                 </div>
+                {nameError ? (
+                  <p className="mb-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+                    {nameError}
+                  </p>
+                ) : null}
                 {nameLang === "en" && (
                   <input
-                    name="name"
                     required
                     className="field-input"
                     placeholder="English product name"

@@ -214,14 +214,16 @@ export async function saveProduct(formData: FormData) {
   const sb = createAdminClient();
 
   const productDbId = fd(formData, "product_db_id"); // UUID from DB — empty when creating
-  const name = fd(formData, "name");
+  const submittedName = fd(formData, "name");
+  const submittedNameEn = fd(formData, "name_en");
+  const name = submittedNameEn || submittedName;
   const sku = fd(formData, "sku");
   const slug = fd(formData, "slug") || slugify(name);
   const category_id = fd(formData, "category_id") || null; // UUID from category dropdown
   const is_active = fdBool(formData, "is_active");
   const is_featured = fdBool(formData, "is_featured");
   // ── Multilingual fields ───────────────────────────────────────────────────
-  const name_en = fd(formData, "name_en") || name || null;
+  const name_en = name || null;
   const name_zh = fd(formData, "name_zh") || null;
   const name_ms = fd(formData, "name_ms") || null;
   const short_description = fd(formData, "short_description_en") || fd(formData, "short_description") || null;
