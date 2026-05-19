@@ -67,7 +67,7 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
         {/* aspect-[4/3] overrides ProductVisual's default aspect-square via twMerge */}
         <ProductVisual
           alt={product.name}
-          className="aspect-[4/3] bg-white p-2 shadow-[0_12px_36px_rgba(15,23,42,0.08)] sm:p-3"
+          className="aspect-[4/3] bg-muted/25 shadow-[0_16px_42px_rgba(15,23,42,0.08)] dark:bg-[rgba(9,20,38,0.72)] dark:shadow-[0_18px_48px_rgba(0,0,0,0.3)]"
           data-product-main-image
           imageFit="contain"
           imageUrl={activeImage}
@@ -123,7 +123,7 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
             <button
               aria-label={`View product image ${index + 1}`}
               className={cn(
-                "rounded-lg border bg-card p-0.5 transition hover:border-primary/40 sm:w-[3.25rem] sm:shrink-0",
+                "rounded-lg border bg-card/70 p-0 transition hover:border-primary/40 dark:bg-[rgba(11,21,40,0.78)] sm:w-[3.25rem] sm:shrink-0",
                 safeActiveIndex === index
                   ? "border-primary ring-2 ring-primary/15"
                   : "border-border"
@@ -134,7 +134,7 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
             >
               <ProductVisual
                 alt={`${product.name} thumbnail ${index + 1}`}
-                className="aspect-square rounded-md bg-white p-0.5"
+                className="aspect-square rounded-md bg-transparent"
                 imageFit="contain"
                 imageUrl={imageUrls.length > 0 ? item : undefined}
                 tone={
