@@ -268,6 +268,7 @@ export async function saveProduct(formData: FormData) {
     originalPrice: number;
     promotionPrice: number | null;
     stockQuantity: number;
+    imageUrl?: string;
   };
 
   const variantEntriesRaw = fd(formData, "variant_entries");

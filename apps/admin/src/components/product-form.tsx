@@ -18,6 +18,7 @@ type VariantEntry = {
   originalPrice: string;   // string for input binding
   promotionPrice: string;  // string for input binding - empty = no promo
   stockQuantity: string;   // string for input binding
+  imageUrl: string;
 };
 
 type ExistingProduct = {
@@ -65,6 +66,7 @@ type ExistingProduct = {
     originalPrice: number;
     promotionPrice?: number | null;
     stockQuantity: number;
+    imageUrl?: string;
   }> | null;
   images: Array<{ image_url: string; sort_order: number }>;
   images_en?: Array<{ image_url: string; sort_order: number }>;
@@ -88,6 +90,7 @@ function makeDefaultVariant(product?: ExistingProduct): VariantEntry {
     originalPrice: product?.price ? String(product.price) : "",
     promotionPrice: product?.promotion_price ? String(product.promotion_price) : "",
     stockQuantity: product?.stock_quantity != null ? String(product.stock_quantity) : "0",
+    imageUrl: "",
   };
 }
 
@@ -171,6 +174,8 @@ export function ProductForm({
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [draggingImageUrl, setDraggingImageUrl] = useState<string | null>(null);
+  const [variantImageUploads, setVariantImageUploads] = useState<Record<number, number>>({});
+  const [variantImageErrors, setVariantImageErrors] = useState<Record<number, string>>({});
 
   // Variant entries (new per-variant pricing format)
   const [variantEntries, setVariantEntries] = useState<VariantEntry[]>(() => {
@@ -186,6 +191,7 @@ export function ProductForm({
         originalPrice: String(v.originalPrice),
         promotionPrice: v.promotionPrice ? String(v.promotionPrice) : "",
         stockQuantity: String(v.stockQuantity),
+        imageUrl: v.imageUrl ?? "",
       }));
     }
     // Auto-seed a default variant from the legacy product-level price
@@ -196,7 +202,7 @@ export function ProductForm({
   function addVariant() {
     setVariantEntries((prev) => [
       ...prev,
-      { name: "", nameZh: "", nameMs: "", groupName: "Option", groupNameZh: "选项", groupNameMs: "Pilihan", sku: "", originalPrice: "", promotionPrice: "", stockQuantity: "0" },
+      { name: "", nameZh: "", nameMs: "", groupName: "Option", groupNameZh: "选项", groupNameMs: "Pilihan", sku: "", originalPrice: "", promotionPrice: "", stockQuantity: "0", imageUrl: "" },
     ]);
   }
 
@@ -207,6 +213,15 @@ export function ProductForm({
   function removeVariant(index: number) {
     setVariantEntries((prev) => prev.filter((_, i) => i !== index));
     setVariantErrors((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const n = Number(k);
+        if (n < index) next[n] = v;
+        else if (n > index) next[n - 1] = v;
+      });
+      return next;
+    });
+    setVariantImageErrors((prev) => {
       const next: Record<number, string> = {};
       Object.entries(prev).forEach(([k, v]) => {
         const n = Number(k);
@@ -251,6 +266,7 @@ export function ProductForm({
       originalPrice: parseFloat(v.originalPrice) || 0,
       promotionPrice: v.promotionPrice.trim() ? parseFloat(v.promotionPrice) || null : null,
       stockQuantity: parseInt(v.stockQuantity, 10) || 0,
+      imageUrl: v.imageUrl.trim() || undefined,
     }));
     return JSON.stringify(entries);
   }
@@ -371,6 +387,65 @@ export function ProductForm({
       setImageError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {
       setUploadingImages(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleVariantImageChange(index: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (!file.type.startsWith("image/")) {
+      setVariantImageErrors((current) => ({ ...current, [index]: `"${file.name}" is not an image file.` }));
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      setVariantImageErrors((current) => ({
+        ...current,
+        [index]: `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. Maximum is 10 MB.`,
+      }));
+      e.target.value = "";
+      return;
+    }
+
+    setVariantImageErrors((current) => {
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+    setVariantImageUploads((current) => ({ ...current, [index]: 10 }));
+
+    try {
+      const productId = product?.id ?? `tmp-${Date.now()}`;
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const safeVariantName = slugify(variantEntries[index]?.name || `variant-${index + 1}`) || `variant-${index + 1}`;
+      const filePath = `products/${productId}/variants/${safeVariantName}-${Date.now()}.${ext}`;
+      const { signedUrl, publicUrl } = await createSignedUploadUrl("product-images", filePath);
+
+      setVariantImageUploads((current) => ({ ...current, [index]: 45 }));
+      const res = await fetch(signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!res.ok) throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+
+      updateVariant(index, "imageUrl", publicUrl);
+      setVariantImageUploads((current) => ({ ...current, [index]: 100 }));
+    } catch (err: unknown) {
+      setVariantImageErrors((current) => ({
+        ...current,
+        [index]: err instanceof Error ? err.message : "Upload failed. Please try again.",
+      }));
+    } finally {
+      setVariantImageUploads((current) => {
+        const next = { ...current };
+        delete next[index];
+        return next;
+      });
       e.target.value = "";
     }
   }
@@ -632,6 +707,65 @@ export function ProductForm({
 
                     {/* Variant fields */}
                     <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <label className="field-label">Variant Image</label>
+                        <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3 sm:flex-row sm:items-center">
+                          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                            {variant.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                alt={`${variant.name || `Variant ${index + 1}`} preview`}
+                                className="h-full w-full object-contain"
+                                src={variant.imageUrl}
+                              />
+                            ) : (
+                              <span className="px-2 text-center text-[11px] font-semibold text-gray-400">
+                                No image
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={variantImageUploads[index] != null}
+                              onChange={(e) => handleVariantImageChange(index, e)}
+                              className="block w-full text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f3ef] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#0e5c56] hover:file:bg-[#d0e9e3] disabled:opacity-50"
+                            />
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {variant.imageUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => updateVariant(index, "imageUrl", "")}
+                                  className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-100"
+                                >
+                                  Remove image
+                                </button>
+                              ) : null}
+                              <span className="text-xs text-gray-400">
+                                Shared across EN / 中文 / BM. Max 10 MB.
+                              </span>
+                            </div>
+                            {variantImageUploads[index] != null ? (
+                              <div className="mt-2 flex items-center gap-2">
+                                <div className="h-1.5 flex-1 rounded-full bg-gray-200">
+                                  <div
+                                    className="h-1.5 rounded-full bg-[#0e5c56] transition-all duration-300"
+                                    style={{ width: `${variantImageUploads[index]}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-500">{variantImageUploads[index]}%</span>
+                              </div>
+                            ) : null}
+                            {variantImageErrors[index] ? (
+                              <p className="mt-1 text-xs font-semibold text-red-600">
+                                Warning: {variantImageErrors[index]}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
                       <div>
                         <label className="field-label">
                           Variant Name *{" "}

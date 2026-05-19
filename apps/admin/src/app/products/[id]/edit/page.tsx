@@ -67,6 +67,7 @@ export default async function EditProductPage({
     originalPrice: number;
     promotionPrice?: number | null;
     stockQuantity: number;
+    imageUrl?: string;
   };
   type OldVariant = { name: string; values: string[] };
 
