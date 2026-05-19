@@ -19,11 +19,15 @@ export function ProductCard({ compact = false, product }: ProductCardProps) {
   return (
     <article className="group relative overflow-hidden rounded-3xl border border-white/75 bg-card/92 p-2 shadow-[0_14px_38px_rgba(17,37,68,0.09)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/28 hover:shadow-[0_24px_60px_rgba(17,37,68,0.16)] dark:border-[rgba(59,158,255,0.14)] dark:bg-[rgba(11,21,40,0.86)] dark:shadow-[0_12px_34px_rgba(0,0,0,0.28)] dark:hover:border-[rgba(59,158,255,0.34)] dark:hover:shadow-[0_24px_60px_rgba(59,158,255,0.14)]">
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent dark:via-[#8bdcff]/50" />
-      <div className="absolute left-3 top-3 z-10">
-        <PromotionBadge percent={product.promotionPercent} />
-      </div>
-      <Link href={`/products/${product.slug}`}>
+      <Link className="relative block" href={`/products/${product.slug}`}>
         <LocalizedProductVisual alt={product.name} product={product} tone={product.imageTone} />
+        <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 sm:bottom-3 sm:right-3">
+          <PromotionBadge
+            className="group-hover:scale-105 group-hover:shadow-[0_16px_34px_rgba(239,68,68,0.45)]"
+            percent={product.promotionPercent}
+            size="lg"
+          />
+        </div>
       </Link>
       <div className={`flex flex-col gap-2 px-1 ${compact ? "py-2" : "py-3"}`}>
         {product.stockStatus !== "in_stock" ? (

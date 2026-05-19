@@ -7,6 +7,7 @@ type ProductVisualProps = HTMLAttributes<HTMLDivElement> & {
   tone: UrbanixProduct["imageTone"];
   className?: string;
   imageUrl?: string;
+  imageFit?: "contain" | "cover";
   alt?: string;
 };
 
@@ -19,7 +20,14 @@ const toneStyles: Record<UrbanixProduct["imageTone"], string> = {
   cable: "from-[#f6f0e7] via-[#ffffff] to-[#d8e7fb] text-[#1f2937]",
 };
 
-export function ProductVisual({ alt = "Product image", className, imageUrl, tone, ...props }: ProductVisualProps) {
+export function ProductVisual({
+  alt = "Product image",
+  className,
+  imageFit = "cover",
+  imageUrl,
+  tone,
+  ...props
+}: ProductVisualProps) {
   const Icon = tone === "car" ? Smartphone : tone === "perfume" ? Gem : tone === "cable" ? Cable : Fan;
 
   if (imageUrl) {
@@ -31,7 +39,11 @@ export function ProductVisual({ alt = "Product image", className, imageUrl, tone
           className
         )}
       >
-        <img alt={alt} className="size-full object-cover" src={imageUrl} />
+        <img
+          alt={alt}
+          className={cn("size-full", imageFit === "contain" ? "object-contain" : "object-cover")}
+          src={imageUrl}
+        />
       </div>
     );
   }

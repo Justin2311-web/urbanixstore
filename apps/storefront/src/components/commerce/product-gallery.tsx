@@ -61,14 +61,15 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
       {/* ── Main image — 4:3 ratio keeps it compact ── */}
       <div className="relative overflow-hidden rounded-2xl">
         <div className="absolute left-2.5 top-2.5 z-10">
-          <PromotionBadge percent={product.promotionPercent} />
+          <PromotionBadge percent={product.promotionPercent} size="sm" />
         </div>
 
         {/* aspect-[4/3] overrides ProductVisual's default aspect-square via twMerge */}
         <ProductVisual
           alt={product.name}
-          className="aspect-[4/3] shadow-[0_12px_36px_rgba(15,23,42,0.08)]"
+          className="aspect-[4/3] bg-white p-2 shadow-[0_12px_36px_rgba(15,23,42,0.08)] sm:p-3"
           data-product-main-image
+          imageFit="contain"
           imageUrl={activeImage}
           tone={tones[safeActiveIndex] ?? product.imageTone}
         />
@@ -133,7 +134,8 @@ export function ProductGallery({ product }: { product: UrbanixProduct }) {
             >
               <ProductVisual
                 alt={`${product.name} thumbnail ${index + 1}`}
-                className="rounded-md"
+                className="aspect-square rounded-md bg-white p-0.5"
+                imageFit="contain"
                 imageUrl={imageUrls.length > 0 ? item : undefined}
                 tone={
                   imageUrls.length > 0
