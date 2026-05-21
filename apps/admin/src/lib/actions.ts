@@ -601,45 +601,71 @@ export async function saveHomepage(formData: FormData) {
 export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const sb = createAdminClient();
   const { data: existingBanner } = await sb.from("banners").select("*").eq("id", true).maybeSingle();
+  const existingRow = (existingBanner ?? {}) as Record<string, unknown>;
+  const existingPromoMeta = (() => {
+    const raw = existingBanner?.promo_strip_text;
+    if (typeof raw !== "string" || !raw.trim().startsWith("{")) return null;
+    try {
+      const parsed = JSON.parse(raw) as {
+        heroButtonText?: Record<string, string>;
+        heroSubtitle?: Record<string, string>;
+        heroTitle?: Record<string, string>;
+        promoStripText?: Record<string, string>;
+      };
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  })();
+  const existingText = (key: string, fallback = "") => {
+    const value = existingRow[key];
+    return typeof value === "string" ? value : fallback;
+  };
+  const submittedOrExisting = (key: string, existing = "") =>
+    formData.has(key) ? fd(formData, key) : existing;
 
   const hero_title_en = fd(formData, "hero_title_en") || fd(formData, "heroTitle") || fd(formData, "hero_title");
-  const hero_title_zh = fd(formData, "hero_title_zh");
-  const hero_title_ms = fd(formData, "hero_title_ms");
+  const hero_title_zh = submittedOrExisting("hero_title_zh", existingText("hero_title_zh", existingPromoMeta?.heroTitle?.zh ?? ""));
+  const hero_title_ms = submittedOrExisting("hero_title_ms", existingText("hero_title_ms", existingPromoMeta?.heroTitle?.ms ?? ""));
   const hero_subtitle_en = fd(formData, "hero_subtitle_en") || fd(formData, "heroSubtitle") || fd(formData, "hero_subtitle");
-  const hero_subtitle_zh = fd(formData, "hero_subtitle_zh");
-  const hero_subtitle_ms = fd(formData, "hero_subtitle_ms");
+  const hero_subtitle_zh = submittedOrExisting("hero_subtitle_zh", existingText("hero_subtitle_zh", existingPromoMeta?.heroSubtitle?.zh ?? ""));
+  const hero_subtitle_ms = submittedOrExisting("hero_subtitle_ms", existingText("hero_subtitle_ms", existingPromoMeta?.heroSubtitle?.ms ?? ""));
   const hero_button_text_en = fd(formData, "hero_button_text_en") || fd(formData, "heroButtonText") || fd(formData, "hero_button_text");
-  const hero_button_text_zh = fd(formData, "hero_button_text_zh");
-  const hero_button_text_ms = fd(formData, "hero_button_text_ms");
+  const hero_button_text_zh = submittedOrExisting("hero_button_text_zh", existingText("hero_button_text_zh", existingPromoMeta?.heroButtonText?.zh ?? ""));
+  const hero_button_text_ms = submittedOrExisting("hero_button_text_ms", existingText("hero_button_text_ms", existingPromoMeta?.heroButtonText?.ms ?? ""));
   const hero_title = hero_title_en || existingBanner?.hero_title || "Stay Cool. Move Smart.";
   const hero_subtitle = hero_subtitle_en || existingBanner?.hero_subtitle || null;
-  const hero_image_url = fd(formData, "heroImage") || fd(formData, "hero_image_url") || null;
+  const hero_image_url = formData.has("heroImage") || formData.has("hero_image_url")
+    ? fd(formData, "heroImage") || fd(formData, "hero_image_url") || null
+    : existingBanner?.hero_image_url ?? null;
   const hero_button_text = hero_button_text_en || existingBanner?.hero_button_text || null;
-  const hero_button_link = fd(formData, "heroButtonLink") || fd(formData, "hero_button_link") || null;
+  const hero_button_link = formData.has("heroButtonLink") || formData.has("hero_button_link")
+    ? fd(formData, "heroButtonLink") || fd(formData, "hero_button_link") || null
+    : existingBanner?.hero_button_link ?? null;
   const promo_strip_text_legacy = fd(formData, "promotionStripText") || fd(formData, "promo_strip_text") || null;
   const promo_strip_text_en = fd(formData, "promo_strip_text_en") || promo_strip_text_legacy || null;
-  const promo_strip_text_zh = fd(formData, "promo_strip_text_zh") || null;
-  const promo_strip_text_ms = fd(formData, "promo_strip_text_ms") || null;
+  const promo_strip_text_zh = submittedOrExisting("promo_strip_text_zh", existingText("promo_strip_text_zh", existingPromoMeta?.promoStripText?.zh ?? "")) || null;
+  const promo_strip_text_ms = submittedOrExisting("promo_strip_text_ms", existingText("promo_strip_text_ms", existingPromoMeta?.promoStripText?.ms ?? "")) || null;
   const promo_strip_text = JSON.stringify({
     heroButtonText: {
       en: hero_button_text_en || hero_button_text || "",
-      ms: hero_button_text_ms || hero_button_text_en || hero_button_text || "",
-      zh: hero_button_text_zh || hero_button_text_en || hero_button_text || "",
+      ms: hero_button_text_ms || "",
+      zh: hero_button_text_zh || "",
     },
     heroSubtitle: {
       en: hero_subtitle_en || hero_subtitle || "",
-      ms: hero_subtitle_ms || hero_subtitle_en || hero_subtitle || "",
-      zh: hero_subtitle_zh || hero_subtitle_en || hero_subtitle || "",
+      ms: hero_subtitle_ms || "",
+      zh: hero_subtitle_zh || "",
     },
     heroTitle: {
       en: hero_title_en || hero_title,
-      ms: hero_title_ms || hero_title_en || hero_title,
-      zh: hero_title_zh || hero_title_en || hero_title,
+      ms: hero_title_ms || "",
+      zh: hero_title_zh || "",
     },
     promoStripText: {
       en: promo_strip_text_en || promo_strip_text_legacy || "",
-      ms: promo_strip_text_ms || promo_strip_text_en || promo_strip_text_legacy || "",
-      zh: promo_strip_text_zh || promo_strip_text_en || promo_strip_text_legacy || "",
+      ms: promo_strip_text_ms || "",
+      zh: promo_strip_text_zh || "",
     },
   });
   const is_active = fdBool(formData, "isActive") || fdBool(formData, "is_active");
@@ -667,6 +693,13 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
     trust_badge_text: existingBanner?.trust_badge_text ?? [] as string[],
   };
 
+  console.info("[Admin] saveCmsBanner payload:", {
+    heroButtonText: { en: hero_button_text_en || hero_button_text || "", ms: hero_button_text_ms || "", zh: hero_button_text_zh || "" },
+    heroSubtitle: { en: hero_subtitle_en || hero_subtitle || "", ms: hero_subtitle_ms || "", zh: hero_subtitle_zh || "" },
+    heroTitle: { en: hero_title_en || hero_title, ms: hero_title_ms || "", zh: hero_title_zh || "" },
+    promoStripText: { en: promo_strip_text_en || promo_strip_text_legacy || "", ms: promo_strip_text_ms || "", zh: promo_strip_text_zh || "" },
+  });
+
   const { error } = await sb
     .from("banners")
     .upsert(payload, { onConflict: "id" });
@@ -674,6 +707,40 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   if (error) {
     console.error("[Admin] saveCmsBanner error:", error);
     redirect(`${redirectBase}?saveError=${encodeURIComponent(error.message)}`);
+  }
+
+  const { error: multilingualColumnError } = await sb
+    .from("banners")
+    .update({
+      hero_button_text_en: hero_button_text_en || hero_button_text || "",
+      hero_button_text_ms,
+      hero_button_text_zh,
+      hero_subtitle_en: hero_subtitle_en || hero_subtitle || "",
+      hero_subtitle_ms,
+      hero_subtitle_zh,
+      hero_title_en: hero_title_en || hero_title,
+      hero_title_ms,
+      hero_title_zh,
+      promo_strip_text_en: promo_strip_text_en || promo_strip_text_legacy || "",
+      promo_strip_text_ms: promo_strip_text_ms || "",
+      promo_strip_text_zh: promo_strip_text_zh || "",
+    })
+    .eq("id", true);
+
+  if (multilingualColumnError) {
+    console.info("[Admin] saveCmsBanner stored multilingual hero values in promo_strip_text JSON fallback:", multilingualColumnError.message);
+  }
+
+  const { data: savedBanner, error: savedBannerError } = await sb
+    .from("banners")
+    .select("hero_title,hero_subtitle,hero_button_text,hero_button_link,hero_image_url,promo_strip_text,is_active")
+    .eq("id", true)
+    .maybeSingle();
+
+  if (savedBannerError) {
+    console.error("[Admin] saveCmsBanner readback error:", savedBannerError);
+  } else {
+    console.info("[Admin] saveCmsBanner saved:", savedBanner);
   }
 
   revalidateAll();

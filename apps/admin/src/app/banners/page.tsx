@@ -28,10 +28,10 @@ export default async function BannersPage({
     {
       code: "zh",
       cta: homepage.localizedHeroButtonText?.zh ?? "",
-      label: "Chinese",
+      label: "中文",
       promo: homepage.localizedPromoStripText?.zh ?? "",
       subtitle: homepage.localizedHeroSubtitle?.zh ?? "",
-      title: "Chinese",
+      title: "中文",
       value: homepage.localizedHeroTitle?.zh ?? "",
     },
     {

@@ -928,22 +928,22 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
 
   const plainPromoText = promoStripMeta ? "" : (typeof row.promo_strip_text === "string" ? row.promo_strip_text : "");
   const promoTextEn = (typeof r.promo_strip_text_en === "string" && r.promo_strip_text_en) ? r.promo_strip_text_en : promoStripMeta?.promoStripText?.en || plainPromoText || defaultUrbanixStoreData.homepage.promotionStripText;
-  const promoTextZh = (typeof r.promo_strip_text_zh === "string" && r.promo_strip_text_zh) ? r.promo_strip_text_zh : promoStripMeta?.promoStripText?.zh || promoTextEn;
-  const promoTextMs = (typeof r.promo_strip_text_ms === "string" && r.promo_strip_text_ms) ? r.promo_strip_text_ms : promoStripMeta?.promoStripText?.ms || promoTextEn;
+  const promoTextZh = (typeof r.promo_strip_text_zh === "string" && r.promo_strip_text_zh) ? r.promo_strip_text_zh : promoStripMeta?.promoStripText?.zh || "";
+  const promoTextMs = (typeof r.promo_strip_text_ms === "string" && r.promo_strip_text_ms) ? r.promo_strip_text_ms : promoStripMeta?.promoStripText?.ms || "";
   const localizedPromoStripText: LocalizedTextValue = { en: promoTextEn, zh: promoTextZh, ms: promoTextMs };
   const heroTitleEn = (typeof r.hero_title_en === "string" && r.hero_title_en) ? r.hero_title_en : promoStripMeta?.heroTitle?.en || row.hero_title || defaultUrbanixStoreData.homepage.heroTitle;
-  const heroTitleZh = (typeof r.hero_title_zh === "string" && r.hero_title_zh) ? r.hero_title_zh : promoStripMeta?.heroTitle?.zh || heroTitleEn;
-  const heroTitleMs = (typeof r.hero_title_ms === "string" && r.hero_title_ms) ? r.hero_title_ms : promoStripMeta?.heroTitle?.ms || heroTitleEn;
+  const heroTitleZh = (typeof r.hero_title_zh === "string" && r.hero_title_zh) ? r.hero_title_zh : promoStripMeta?.heroTitle?.zh || "";
+  const heroTitleMs = (typeof r.hero_title_ms === "string" && r.hero_title_ms) ? r.hero_title_ms : promoStripMeta?.heroTitle?.ms || "";
   const localizedHeroTitle: LocalizedTextValue = { en: heroTitleEn, zh: heroTitleZh, ms: heroTitleMs };
   const heroSubtitleDefault = row.hero_subtitle || defaultUrbanixStoreData.homepage.heroSubtitle;
   const heroSubtitleEn = (typeof r.hero_subtitle_en === "string" && r.hero_subtitle_en) ? r.hero_subtitle_en : promoStripMeta?.heroSubtitle?.en || heroSubtitleDefault;
-  const heroSubtitleZh = (typeof r.hero_subtitle_zh === "string" && r.hero_subtitle_zh) ? r.hero_subtitle_zh : promoStripMeta?.heroSubtitle?.zh || heroSubtitleEn;
-  const heroSubtitleMs = (typeof r.hero_subtitle_ms === "string" && r.hero_subtitle_ms) ? r.hero_subtitle_ms : promoStripMeta?.heroSubtitle?.ms || heroSubtitleEn;
+  const heroSubtitleZh = (typeof r.hero_subtitle_zh === "string" && r.hero_subtitle_zh) ? r.hero_subtitle_zh : promoStripMeta?.heroSubtitle?.zh || "";
+  const heroSubtitleMs = (typeof r.hero_subtitle_ms === "string" && r.hero_subtitle_ms) ? r.hero_subtitle_ms : promoStripMeta?.heroSubtitle?.ms || "";
   const localizedHeroSubtitle: LocalizedTextValue = { en: heroSubtitleEn, zh: heroSubtitleZh, ms: heroSubtitleMs };
   const heroButtonTextDefault = row.hero_button_text || defaultUrbanixStoreData.homepage.heroButtonText;
   const heroButtonTextEn = (typeof r.hero_button_text_en === "string" && r.hero_button_text_en) ? r.hero_button_text_en : promoStripMeta?.heroButtonText?.en || heroButtonTextDefault;
-  const heroButtonTextZh = (typeof r.hero_button_text_zh === "string" && r.hero_button_text_zh) ? r.hero_button_text_zh : promoStripMeta?.heroButtonText?.zh || heroButtonTextEn;
-  const heroButtonTextMs = (typeof r.hero_button_text_ms === "string" && r.hero_button_text_ms) ? r.hero_button_text_ms : promoStripMeta?.heroButtonText?.ms || heroButtonTextEn;
+  const heroButtonTextZh = (typeof r.hero_button_text_zh === "string" && r.hero_button_text_zh) ? r.hero_button_text_zh : promoStripMeta?.heroButtonText?.zh || "";
+  const heroButtonTextMs = (typeof r.hero_button_text_ms === "string" && r.hero_button_text_ms) ? r.hero_button_text_ms : promoStripMeta?.heroButtonText?.ms || "";
   const localizedHeroButtonText: LocalizedTextValue = { en: heroButtonTextEn, zh: heroButtonTextZh, ms: heroButtonTextMs };
 
   return {
