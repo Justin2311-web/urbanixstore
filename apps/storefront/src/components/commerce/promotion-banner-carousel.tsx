@@ -31,9 +31,9 @@ export function PromotionBannerCarousel({
         imageClickUrl: fallback.heroButtonLink,
         isActive: true,
         localizedCtaText: {
-          en: fallback.heroButtonText,
-          ms: fallback.heroButtonText,
-          zh: fallback.heroButtonText,
+          en: fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
+          ms: fallback.localizedHeroButtonText?.ms || fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
+          zh: fallback.localizedHeroButtonText?.zh || fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
         },
         localizedSubtitle: { en: "", ms: "", zh: "" },
         localizedTitle: { en: "", ms: "", zh: "" },

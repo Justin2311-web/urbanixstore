@@ -108,6 +108,9 @@ export type HomepageContent = {
   heroButtonLink: string;
   heroImage: string;
   heroImageUrl?: string;
+  localizedHeroTitle?: LocalizedTextValue;
+  localizedHeroSubtitle?: LocalizedTextValue;
+  localizedHeroButtonText?: LocalizedTextValue;
   featuredCategoryCards: string[];
   promotionStripText: string;
   promoStripText?: string;

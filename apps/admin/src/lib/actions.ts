@@ -600,15 +600,48 @@ export async function saveHomepage(formData: FormData) {
 
 export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const sb = createAdminClient();
-  const hero_title = fd(formData, "heroTitle") || fd(formData, "hero_title");
-  const hero_subtitle = fd(formData, "heroSubtitle") || fd(formData, "hero_subtitle") || null;
+  const { data: existingBanner } = await sb.from("banners").select("*").eq("id", true).maybeSingle();
+
+  const hero_title_en = fd(formData, "hero_title_en") || fd(formData, "heroTitle") || fd(formData, "hero_title");
+  const hero_title_zh = fd(formData, "hero_title_zh");
+  const hero_title_ms = fd(formData, "hero_title_ms");
+  const hero_subtitle_en = fd(formData, "hero_subtitle_en") || fd(formData, "heroSubtitle") || fd(formData, "hero_subtitle");
+  const hero_subtitle_zh = fd(formData, "hero_subtitle_zh");
+  const hero_subtitle_ms = fd(formData, "hero_subtitle_ms");
+  const hero_button_text_en = fd(formData, "hero_button_text_en") || fd(formData, "heroButtonText") || fd(formData, "hero_button_text");
+  const hero_button_text_zh = fd(formData, "hero_button_text_zh");
+  const hero_button_text_ms = fd(formData, "hero_button_text_ms");
+  const hero_title = hero_title_en || existingBanner?.hero_title || "Stay Cool. Move Smart.";
+  const hero_subtitle = hero_subtitle_en || existingBanner?.hero_subtitle || null;
   const hero_image_url = fd(formData, "heroImage") || fd(formData, "hero_image_url") || null;
-  const hero_button_text = fd(formData, "heroButtonText") || fd(formData, "hero_button_text") || null;
+  const hero_button_text = hero_button_text_en || existingBanner?.hero_button_text || null;
   const hero_button_link = fd(formData, "heroButtonLink") || fd(formData, "hero_button_link") || null;
-  const promo_strip_text = fd(formData, "promotionStripText") || fd(formData, "promo_strip_text") || null;
-  const promo_strip_text_en = fd(formData, "promo_strip_text_en") || promo_strip_text || null;
+  const promo_strip_text_legacy = fd(formData, "promotionStripText") || fd(formData, "promo_strip_text") || null;
+  const promo_strip_text_en = fd(formData, "promo_strip_text_en") || promo_strip_text_legacy || null;
   const promo_strip_text_zh = fd(formData, "promo_strip_text_zh") || null;
   const promo_strip_text_ms = fd(formData, "promo_strip_text_ms") || null;
+  const promo_strip_text = JSON.stringify({
+    heroButtonText: {
+      en: hero_button_text_en || hero_button_text || "",
+      ms: hero_button_text_ms || hero_button_text_en || hero_button_text || "",
+      zh: hero_button_text_zh || hero_button_text_en || hero_button_text || "",
+    },
+    heroSubtitle: {
+      en: hero_subtitle_en || hero_subtitle || "",
+      ms: hero_subtitle_ms || hero_subtitle_en || hero_subtitle || "",
+      zh: hero_subtitle_zh || hero_subtitle_en || hero_subtitle || "",
+    },
+    heroTitle: {
+      en: hero_title_en || hero_title,
+      ms: hero_title_ms || hero_title_en || hero_title,
+      zh: hero_title_zh || hero_title_en || hero_title,
+    },
+    promoStripText: {
+      en: promo_strip_text_en || promo_strip_text_legacy || "",
+      ms: promo_strip_text_ms || promo_strip_text_en || promo_strip_text_legacy || "",
+      zh: promo_strip_text_zh || promo_strip_text_en || promo_strip_text_legacy || "",
+    },
+  });
   const is_active = fdBool(formData, "isActive") || fdBool(formData, "is_active");
   const announcement_enabled = fdBool(formData, "announcementEnabled");
   const announcement_link = fd(formData, "announcementLink") || null;
@@ -625,16 +658,13 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
     hero_button_text,
     hero_button_link,
     promo_strip_text,
-    promo_strip_text_en,
-    promo_strip_text_zh,
-    promo_strip_text_ms,
     is_active,
     announcement_enabled,
     announcement_link,
     announcement_bg_color,
     announcement_text_color,
-    featured_category_cards: [] as string[],
-    trust_badge_text: [] as string[],
+    featured_category_cards: existingBanner?.featured_category_cards ?? [] as string[],
+    trust_badge_text: existingBanner?.trust_badge_text ?? [] as string[],
   };
 
   const { error } = await sb

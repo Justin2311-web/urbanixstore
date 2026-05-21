@@ -909,11 +909,42 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
   }
 
   const r = row as Record<string, unknown>;
+  const promoStripMeta = (() => {
+    if (typeof row.promo_strip_text !== "string" || !row.promo_strip_text.trim().startsWith("{")) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(row.promo_strip_text) as {
+        heroButtonText?: LocalizedTextValue;
+        heroSubtitle?: LocalizedTextValue;
+        heroTitle?: LocalizedTextValue;
+        promoStripText?: LocalizedTextValue;
+      };
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  })();
 
-  const promoTextEn = (typeof r.promo_strip_text_en === "string" && r.promo_strip_text_en) ? r.promo_strip_text_en : (typeof row.promo_strip_text === "string" ? row.promo_strip_text : "") || defaultUrbanixStoreData.homepage.promotionStripText;
-  const promoTextZh = (typeof r.promo_strip_text_zh === "string" && r.promo_strip_text_zh) ? r.promo_strip_text_zh : promoTextEn;
-  const promoTextMs = (typeof r.promo_strip_text_ms === "string" && r.promo_strip_text_ms) ? r.promo_strip_text_ms : promoTextEn;
+  const plainPromoText = promoStripMeta ? "" : (typeof row.promo_strip_text === "string" ? row.promo_strip_text : "");
+  const promoTextEn = (typeof r.promo_strip_text_en === "string" && r.promo_strip_text_en) ? r.promo_strip_text_en : promoStripMeta?.promoStripText?.en || plainPromoText || defaultUrbanixStoreData.homepage.promotionStripText;
+  const promoTextZh = (typeof r.promo_strip_text_zh === "string" && r.promo_strip_text_zh) ? r.promo_strip_text_zh : promoStripMeta?.promoStripText?.zh || promoTextEn;
+  const promoTextMs = (typeof r.promo_strip_text_ms === "string" && r.promo_strip_text_ms) ? r.promo_strip_text_ms : promoStripMeta?.promoStripText?.ms || promoTextEn;
   const localizedPromoStripText: LocalizedTextValue = { en: promoTextEn, zh: promoTextZh, ms: promoTextMs };
+  const heroTitleEn = (typeof r.hero_title_en === "string" && r.hero_title_en) ? r.hero_title_en : promoStripMeta?.heroTitle?.en || row.hero_title || defaultUrbanixStoreData.homepage.heroTitle;
+  const heroTitleZh = (typeof r.hero_title_zh === "string" && r.hero_title_zh) ? r.hero_title_zh : promoStripMeta?.heroTitle?.zh || heroTitleEn;
+  const heroTitleMs = (typeof r.hero_title_ms === "string" && r.hero_title_ms) ? r.hero_title_ms : promoStripMeta?.heroTitle?.ms || heroTitleEn;
+  const localizedHeroTitle: LocalizedTextValue = { en: heroTitleEn, zh: heroTitleZh, ms: heroTitleMs };
+  const heroSubtitleDefault = row.hero_subtitle || defaultUrbanixStoreData.homepage.heroSubtitle;
+  const heroSubtitleEn = (typeof r.hero_subtitle_en === "string" && r.hero_subtitle_en) ? r.hero_subtitle_en : promoStripMeta?.heroSubtitle?.en || heroSubtitleDefault;
+  const heroSubtitleZh = (typeof r.hero_subtitle_zh === "string" && r.hero_subtitle_zh) ? r.hero_subtitle_zh : promoStripMeta?.heroSubtitle?.zh || heroSubtitleEn;
+  const heroSubtitleMs = (typeof r.hero_subtitle_ms === "string" && r.hero_subtitle_ms) ? r.hero_subtitle_ms : promoStripMeta?.heroSubtitle?.ms || heroSubtitleEn;
+  const localizedHeroSubtitle: LocalizedTextValue = { en: heroSubtitleEn, zh: heroSubtitleZh, ms: heroSubtitleMs };
+  const heroButtonTextDefault = row.hero_button_text || defaultUrbanixStoreData.homepage.heroButtonText;
+  const heroButtonTextEn = (typeof r.hero_button_text_en === "string" && r.hero_button_text_en) ? r.hero_button_text_en : promoStripMeta?.heroButtonText?.en || heroButtonTextDefault;
+  const heroButtonTextZh = (typeof r.hero_button_text_zh === "string" && r.hero_button_text_zh) ? r.hero_button_text_zh : promoStripMeta?.heroButtonText?.zh || heroButtonTextEn;
+  const heroButtonTextMs = (typeof r.hero_button_text_ms === "string" && r.hero_button_text_ms) ? r.hero_button_text_ms : promoStripMeta?.heroButtonText?.ms || heroButtonTextEn;
+  const localizedHeroButtonText: LocalizedTextValue = { en: heroButtonTextEn, zh: heroButtonTextZh, ms: heroButtonTextMs };
 
   return {
     announcementBgColor: typeof r.announcement_bg_color === "string" ? r.announcement_bg_color : defaultUrbanixStoreData.homepage.announcementBgColor,
@@ -922,19 +953,18 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
     announcementTextColor: typeof r.announcement_text_color === "string" ? r.announcement_text_color : defaultUrbanixStoreData.homepage.announcementTextColor,
     featuredCategoryCards: asStringArray(row.featured_category_cards),
     heroButtonLink: row.hero_button_link ?? "/products",
-    heroButtonText: row.hero_button_text ?? "Shop Now",
+    heroButtonText: heroButtonTextEn,
     heroImage: row.hero_image_url ?? defaultUrbanixStoreData.homepage.heroImage,
     heroImageUrl: row.hero_image_url ?? "",
-    heroSubtitle: row.hero_subtitle ?? "",
-    heroTitle: row.hero_title,
+    heroSubtitle: heroSubtitleEn,
+    heroTitle: heroTitleEn,
     isActive: row.is_active,
+    localizedHeroButtonText,
+    localizedHeroSubtitle,
+    localizedHeroTitle,
     localizedPromoStripText,
-    promotionStripText: typeof row.promo_strip_text === "string" && row.promo_strip_text
-      ? row.promo_strip_text
-      : defaultUrbanixStoreData.homepage.promotionStripText,
-    promoStripText: typeof row.promo_strip_text === "string" && row.promo_strip_text
-      ? row.promo_strip_text
-      : defaultUrbanixStoreData.homepage.promoStripText,
+    promotionStripText: promoTextEn,
+    promoStripText: promoTextEn,
     trustBadgeText: withoutReturnBadges(asStringArray(row.trust_badge_text)),
   };
 }
