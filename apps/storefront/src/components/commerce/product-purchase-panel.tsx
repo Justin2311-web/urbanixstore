@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExternalLink, ShoppingBag, ShoppingCart, Store } from "lucide-react";
 import {
@@ -132,13 +132,15 @@ export function ProductPurchasePanel({
     selectedVariant?.groupName ||
     "Option";
 
-  useEffect(() => {
+  function previewVariantImage(variant: ProductVariantEntry) {
     window.dispatchEvent(
       new CustomEvent(`urbanix-product-variant-image:${product.id}`, {
-        detail: selectedVariant?.imageUrl || "",
+        detail: variant.imageUrl
+          ? { images: [variant.imageUrl], mode: "variant" }
+          : { images: [], mode: "product" },
       })
     );
-  }, [product.id, selectedVariant?.imageUrl]);
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -185,6 +187,7 @@ export function ProductPurchasePanel({
                   onClick={() => {
                     setSelectedVariant(v);
                     setValidationMessage("");
+                    previewVariantImage(v);
                   }}
                   type="button"
                   title={outOfStock ? "Out of stock" : `${label} - ${formatCurrency(vPricing.price)}`}
