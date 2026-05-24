@@ -587,6 +587,8 @@ export default async function FinancialReportPage({
           <span className="font-mono"> 20260524015601_admin_financial_report.sql </span>
           and
           <span className="font-mono"> 20260524024228_ecommerce_financial_management.sql </span>
+          and
+          <span className="font-mono"> 20260524031856_urbanix_finance_pricing_seed.sql </span>
           to enable add, edit, delete, charts, and saved records.
         </div>
       ) : null}
