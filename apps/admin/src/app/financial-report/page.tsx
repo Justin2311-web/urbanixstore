@@ -580,6 +580,8 @@ export default async function FinancialReportPage({
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
           Financial Report database tables are not available yet. Apply migration
           <span className="font-mono"> 20260524015601_admin_financial_report.sql </span>
+          and
+          <span className="font-mono"> 20260524024228_ecommerce_financial_management.sql </span>
           to enable add, edit, delete, charts, and saved records.
         </div>
       ) : null}
