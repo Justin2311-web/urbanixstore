@@ -410,6 +410,7 @@ export default async function FinancialReportPage({
       .lte("created_at", `${range.to}T23:59:59.999Z`)
       .eq("payment_status", "paid")
       .in("order_status", INCLUDED_ORDER_STATUSES)
+      .not("order_number", "ilike", "TEST-%")
       .order("created_at", { ascending: false }),
     sb.from("order_items").select("order_id, product_id, product_name, product_sku, quantity, total_price"),
     sb.from("products").select("id, name, sku, price, promotion_price, stock_quantity").order("created_at", { ascending: false }),
@@ -443,6 +444,9 @@ export default async function FinancialReportPage({
   const manualRevenueTotal = sum(manualRevenue);
   const totalRevenue = websiteRevenueTotal + manualRevenueTotal;
   const totalExpenses = sum(expenses);
+  const procurementInvestment = expenses
+    .filter((item) => item.category === "Product Cost")
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
   const orderProfitRows = websiteOrders.map((order) => {
     const items = orderItemsByOrderId.get(order.id) ?? [];
     const cogs = items.reduce((total, item) => {
@@ -467,10 +471,11 @@ export default async function FinancialReportPage({
   const grossProfit = totalRevenue - cogsTotal;
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-  const inventoryInvestment = products.reduce((total, product) => {
+  const stockValue = products.reduce((total, product) => {
     const cost = productCostByProductId.get(product.id) ?? productCostBySku.get(product.sku);
     return total + Number(product.stock_quantity || 0) * productUnitCost(cost, financeSettings);
   }, 0);
+  const inventoryInvestment = procurementInvestment || stockValue;
   const workingCapitalRemaining = Number(financeSettings.startup_capital || 0) - totalExpenses + totalRevenue;
   const currentMonth = isoDate(new Date()).slice(0, 7);
   const monthlyRevenue = [
