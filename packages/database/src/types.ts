@@ -84,6 +84,56 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["finance_revenue"]["Insert"]>;
       };
+      finance_settings: {
+        Row: {
+          created_at: string;
+          currency: string;
+          default_packaging_cost: number;
+          default_shipping_cost: number;
+          id: boolean;
+          startup_capital: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          currency?: string;
+          default_packaging_cost?: number;
+          default_shipping_cost?: number;
+          id?: boolean;
+          startup_capital?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["finance_settings"]["Insert"]>;
+      };
+      finance_product_costs: {
+        Row: {
+          created_at: string;
+          id: string;
+          packaging_cost_per_unit: number;
+          platform_fee_percent: number;
+          product_id: string | null;
+          product_name: string;
+          selling_price: number;
+          shipping_cost_per_unit: number;
+          sku: string | null;
+          supplier_cost: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          packaging_cost_per_unit?: number;
+          platform_fee_percent?: number;
+          product_id?: string | null;
+          product_name: string;
+          selling_price?: number;
+          shipping_cost_per_unit?: number;
+          sku?: string | null;
+          supplier_cost?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["finance_product_costs"]["Insert"]>;
+      };
       categories: {
         Row: {
           created_at: string;

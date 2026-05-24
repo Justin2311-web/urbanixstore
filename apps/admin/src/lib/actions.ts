@@ -730,6 +730,81 @@ export async function deleteFinanceRevenue(formData: FormData) {
   redirect("/financial-report?saved=1");
 }
 
+export async function saveFinanceSettings(formData: FormData) {
+  const payload = {
+    currency: fd(formData, "currency") || "MYR",
+    default_packaging_cost: financeAmount(formData, "default_packaging_cost"),
+    default_shipping_cost: financeAmount(formData, "default_shipping_cost"),
+    id: true,
+    startup_capital: financeAmount(formData, "startup_capital"),
+  };
+
+  const { error } = await createAdminClient()
+    .from("finance_settings")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    console.error("[Admin] saveFinanceSettings error:", error);
+    redirect(`/financial-report/settings?saveError=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/financial-report");
+  revalidatePath("/financial-report/settings");
+  redirect("/financial-report/settings?saved=1");
+}
+
+export async function saveFinanceProductCost(formData: FormData) {
+  const sb = createAdminClient();
+  const id = fd(formData, "id");
+  const product_name = fd(formData, "product_name");
+
+  if (!product_name) financeRedirect("Product name is required");
+
+  const productId = fd(formData, "product_id");
+  const payload = {
+    packaging_cost_per_unit: financeAmount(formData, "packaging_cost_per_unit"),
+    platform_fee_percent: financeAmount(formData, "platform_fee_percent"),
+    product_id: productId || null,
+    product_name,
+    selling_price: financeAmount(formData, "selling_price"),
+    shipping_cost_per_unit: financeAmount(formData, "shipping_cost_per_unit"),
+    sku: fd(formData, "sku") || null,
+    supplier_cost: financeAmount(formData, "supplier_cost"),
+  };
+
+  if (payload.platform_fee_percent > 100) {
+    financeRedirect("Platform fee percent cannot be more than 100");
+  }
+
+  const result = id
+    ? await sb.from("finance_product_costs").update(payload).eq("id", id)
+    : productId
+      ? await sb.from("finance_product_costs").upsert(payload, { onConflict: "product_id" })
+      : await sb.from("finance_product_costs").insert(payload);
+
+  if (result.error) {
+    console.error("[Admin] saveFinanceProductCost error:", result.error);
+    financeRedirect(result.error.message);
+  }
+
+  revalidatePath("/financial-report");
+  redirect("/financial-report?saved=1");
+}
+
+export async function deleteFinanceProductCost(formData: FormData) {
+  const id = fd(formData, "id");
+  if (!id) financeRedirect("Missing product cost ID");
+
+  const { error } = await createAdminClient().from("finance_product_costs").delete().eq("id", id);
+  if (error) {
+    console.error("[Admin] deleteFinanceProductCost error:", error);
+    financeRedirect(error.message);
+  }
+
+  revalidatePath("/financial-report");
+  redirect("/financial-report?saved=1");
+}
+
 export async function saveHomepage(formData: FormData) {
   return saveCmsBanner(formData, "/homepage");
 }
