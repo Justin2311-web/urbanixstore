@@ -594,6 +594,142 @@ export async function saveInventory(formData: FormData) {
 
 // ─── CMS / BANNERS ────────────────────────────────────────────────────────────
 
+// FINANCIAL REPORT
+
+const expenseCategories = new Set([
+  "Product Cost",
+  "Shipping / Logistics",
+  "Advertising",
+  "Packaging",
+  "Platform Fee",
+  "Software / Tools",
+  "SSM / Business Registration",
+  "Sample / Testing Product",
+  "Office / Misc",
+  "Other",
+]);
+
+const revenueSources = new Set([
+  "Website",
+  "Shopee",
+  "Lazada",
+  "TikTok Shop",
+  "Manual / Offline",
+  "Other",
+]);
+
+function financeRedirect(message: string) {
+  redirect(`/financial-report?saveError=${encodeURIComponent(message)}`);
+}
+
+function financeAmount(formData: FormData, key: string) {
+  const value = fdNum(formData, key);
+  if (!Number.isFinite(value) || value < 0) {
+    financeRedirect("Amount must be a valid non-negative number");
+  }
+  return value;
+}
+
+export async function saveFinanceExpense(formData: FormData) {
+  const sb = createAdminClient();
+  const id = fd(formData, "id");
+  const title = fd(formData, "title");
+  const category = fd(formData, "category");
+  const amount = financeAmount(formData, "amount");
+  const expense_date = fd(formData, "expense_date");
+
+  if (!title) financeRedirect("Expense title is required");
+  if (!expenseCategories.has(category)) financeRedirect("Expense category is required");
+  if (!expense_date) financeRedirect("Expense date is required");
+
+  const payload = {
+    amount,
+    attachment_url: fd(formData, "attachment_url") || null,
+    category,
+    currency: fd(formData, "currency") || "MYR",
+    expense_date,
+    notes: fd(formData, "notes") || null,
+    payment_method: fd(formData, "payment_method") || null,
+    title,
+  };
+
+  const result = id
+    ? await sb.from("finance_expenses").update(payload).eq("id", id)
+    : await sb.from("finance_expenses").insert(payload);
+
+  if (result.error) {
+    console.error("[Admin] saveFinanceExpense error:", result.error);
+    financeRedirect(result.error.message);
+  }
+
+  revalidatePath("/financial-report");
+  redirect("/financial-report?saved=1");
+}
+
+export async function deleteFinanceExpense(formData: FormData) {
+  const id = fd(formData, "id");
+  if (!id) financeRedirect("Missing expense ID");
+
+  const { error } = await createAdminClient().from("finance_expenses").delete().eq("id", id);
+  if (error) {
+    console.error("[Admin] deleteFinanceExpense error:", error);
+    financeRedirect(error.message);
+  }
+
+  revalidatePath("/financial-report");
+  redirect("/financial-report?saved=1");
+}
+
+export async function saveFinanceRevenue(formData: FormData) {
+  const sb = createAdminClient();
+  const id = fd(formData, "id");
+  const title = fd(formData, "title");
+  const source = fd(formData, "source");
+  const amount = financeAmount(formData, "amount");
+  const revenue_date = fd(formData, "revenue_date");
+  const related_order_id = fd(formData, "related_order_id");
+
+  if (!title) financeRedirect("Revenue title is required");
+  if (!revenueSources.has(source)) financeRedirect("Revenue source is required");
+  if (!revenue_date) financeRedirect("Revenue date is required");
+
+  const payload = {
+    amount,
+    currency: fd(formData, "currency") || "MYR",
+    notes: fd(formData, "notes") || null,
+    related_order_id: related_order_id || null,
+    revenue_date,
+    source,
+    title,
+  };
+
+  const result = id
+    ? await sb.from("finance_revenue").update(payload).eq("id", id)
+    : await sb.from("finance_revenue").insert(payload);
+
+  if (result.error) {
+    console.error("[Admin] saveFinanceRevenue error:", result.error);
+    financeRedirect(result.error.message);
+  }
+
+  revalidatePath("/financial-report");
+  redirect("/financial-report?saved=1");
+}
+
+export async function deleteFinanceRevenue(formData: FormData) {
+  const id = fd(formData, "id");
+  if (!id) financeRedirect("Missing revenue ID");
+
+  const { error } = await createAdminClient().from("finance_revenue").delete().eq("id", id);
+  if (error) {
+    console.error("[Admin] deleteFinanceRevenue error:", error);
+    financeRedirect(error.message);
+  }
+
+  revalidatePath("/financial-report");
+  redirect("/financial-report?saved=1");
+}
+
 export async function saveHomepage(formData: FormData) {
   return saveCmsBanner(formData, "/homepage");
 }

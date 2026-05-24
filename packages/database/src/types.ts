@@ -28,6 +28,62 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
       };
+      finance_expenses: {
+        Row: {
+          amount: number;
+          attachment_url: string | null;
+          category: string;
+          created_at: string;
+          currency: string;
+          expense_date: string;
+          id: string;
+          notes: string | null;
+          payment_method: string | null;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          attachment_url?: string | null;
+          category: string;
+          created_at?: string;
+          currency?: string;
+          expense_date: string;
+          id?: string;
+          notes?: string | null;
+          payment_method?: string | null;
+          title: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["finance_expenses"]["Insert"]>;
+      };
+      finance_revenue: {
+        Row: {
+          amount: number;
+          created_at: string;
+          currency: string;
+          id: string;
+          notes: string | null;
+          related_order_id: string | null;
+          revenue_date: string;
+          source: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          notes?: string | null;
+          related_order_id?: string | null;
+          revenue_date: string;
+          source: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["finance_revenue"]["Insert"]>;
+      };
       categories: {
         Row: {
           created_at: string;
