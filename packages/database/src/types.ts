@@ -370,6 +370,7 @@ export type Database = {
           favicon_url: string | null;
           footer_content: Json | null;
           east_malaysia_free_shipping_min_amount: number;
+          east_malaysia_free_shipping_threshold: number;
           east_malaysia_shipping_fee: number;
           free_shipping_min_amount: number;
           id: boolean;
@@ -379,6 +380,7 @@ export type Database = {
           nav_items: Json | null;
           shipping_fee: number;
           west_malaysia_free_shipping_min_amount: number;
+          west_malaysia_free_shipping_threshold: number;
           west_malaysia_shipping_fee: number;
           social_links: Json;
           store_name: string;
@@ -394,6 +396,7 @@ export type Database = {
           favicon_url?: string | null;
           footer_content?: Json | null;
           east_malaysia_free_shipping_min_amount?: number;
+          east_malaysia_free_shipping_threshold?: number;
           east_malaysia_shipping_fee?: number;
           free_shipping_min_amount?: number;
           id?: boolean;
@@ -403,6 +406,7 @@ export type Database = {
           nav_items?: Json | null;
           shipping_fee?: number;
           west_malaysia_free_shipping_min_amount?: number;
+          west_malaysia_free_shipping_threshold?: number;
           west_malaysia_shipping_fee?: number;
           social_links?: Json;
           store_name?: string;

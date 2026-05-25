@@ -1087,6 +1087,8 @@ export async function saveStoreSettings(formData: FormData) {
     east_malaysia_shipping_fee: fdNum(formData, "east_malaysia_shipping_fee"),
     west_malaysia_free_shipping_min_amount: fdNum(formData, "west_malaysia_free_shipping_min_amount"),
     east_malaysia_free_shipping_min_amount: fdNum(formData, "east_malaysia_free_shipping_min_amount"),
+    west_malaysia_free_shipping_threshold: fdNum(formData, "west_malaysia_free_shipping_min_amount"),
+    east_malaysia_free_shipping_threshold: fdNum(formData, "east_malaysia_free_shipping_min_amount"),
     logo_url: fd(formData, "logo_url") || null,
     favicon_url: fd(formData, "favicon_url") || null,
     is_store_active: fdBool(formData, "is_store_active"),

@@ -872,17 +872,24 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
 
   const settingsRow = row as Database["public"]["Tables"]["store_settings"]["Row"] & {
     east_malaysia_free_shipping_min_amount?: number | null;
+    east_malaysia_free_shipping_threshold?: number | null;
     east_malaysia_shipping_fee?: number | null;
     west_malaysia_free_shipping_min_amount?: number | null;
+    west_malaysia_free_shipping_threshold?: number | null;
     west_malaysia_shipping_fee?: number | null;
   };
   const westMalaysiaShippingFee = Number(settingsRow.west_malaysia_shipping_fee ?? row.shipping_fee ?? 7);
   const eastMalaysiaShippingFee = Number(settingsRow.east_malaysia_shipping_fee ?? 15);
   const westMalaysiaFreeShippingMinimumAmount = Number(
-    settingsRow.west_malaysia_free_shipping_min_amount ?? row.free_shipping_min_amount ?? 80
+    settingsRow.west_malaysia_free_shipping_threshold ??
+      settingsRow.west_malaysia_free_shipping_min_amount ??
+      row.free_shipping_min_amount ??
+      80
   );
   const eastMalaysiaFreeShippingMinimumAmount = Number(
-    settingsRow.east_malaysia_free_shipping_min_amount ?? 150
+    settingsRow.east_malaysia_free_shipping_threshold ??
+      settingsRow.east_malaysia_free_shipping_min_amount ??
+      150
   );
 
   return {
@@ -1673,6 +1680,7 @@ export async function updateStoreSettings(settings: StoreSettings) {
       currency: settings.currency ?? "MYR",
       favicon_url: settings.favicon || settings.faviconUrl || null,
       east_malaysia_free_shipping_min_amount: settings.eastMalaysiaFreeShippingMinimumAmount ?? 150,
+      east_malaysia_free_shipping_threshold: settings.eastMalaysiaFreeShippingMinimumAmount ?? 150,
       east_malaysia_shipping_fee: settings.eastMalaysiaShippingFee ?? 15,
       free_shipping_min_amount: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
       id: true,
@@ -1694,6 +1702,7 @@ export async function updateStoreSettings(settings: StoreSettings) {
       store_tagline: settings.storeTagline,
       whatsapp_number: settings.whatsappNumber,
       west_malaysia_free_shipping_min_amount: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
+      west_malaysia_free_shipping_threshold: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
       west_malaysia_shipping_fee: settings.westMalaysiaShippingFee ?? settings.shippingFee,
     },
     { onConflict: "id" }
