@@ -53,8 +53,12 @@ export type StoreSettings = {
   contactEmail: string;
   contactPhone: string;
   shippingFee: number;
+  westMalaysiaShippingFee?: number;
+  eastMalaysiaShippingFee?: number;
   freeShippingMinimumAmount: number;
   freeShippingMinAmount?: number;
+  westMalaysiaFreeShippingMinimumAmount?: number;
+  eastMalaysiaFreeShippingMinimumAmount?: number;
   currency?: string;
   socialLinks: {
     facebook: string;
@@ -360,6 +364,11 @@ export type OrderTotals = {
   discount: number;
   shipping: number;
   total: number;
+  shippingRegion?: ShippingRegion;
+  freeShippingThreshold?: number;
+  isFreeShippingApplied?: boolean;
+  shippingPending?: boolean;
+  freeShippingDiscount?: number;
 };
 
 export type CheckoutCustomer = {
@@ -397,6 +406,9 @@ export type UrbanixOrder = {
   deliveryNote?: string;
   subtotal?: number;
   shippingFee?: number;
+  shippingRegion?: ShippingRegion;
+  freeShippingThreshold?: number;
+  isFreeShippingApplied?: boolean;
   discountAmount?: number;
   totalAmount?: number;
 };
@@ -645,9 +657,13 @@ export const defaultStoreSettings: StoreSettings = {
   whatsappNumber: "60198993269",
   contactEmail: "hello@urbanix.store",
   contactPhone: "+60 12-345 6789",
-  shippingFee: 6,
-  freeShippingMinimumAmount: 40,
-  freeShippingMinAmount: 40,
+  shippingFee: 7,
+  westMalaysiaShippingFee: 7,
+  eastMalaysiaShippingFee: 15,
+  freeShippingMinimumAmount: 80,
+  freeShippingMinAmount: 80,
+  westMalaysiaFreeShippingMinimumAmount: 80,
+  eastMalaysiaFreeShippingMinimumAmount: 150,
   currency: "MYR",
   socialLinks: {
     facebook: "",
@@ -837,22 +853,135 @@ export function getCartLines(items: Record<string, number>, products = urbanixPr
     .filter((line): line is CartLine => Boolean(line));
 }
 
+export type ShippingRegion = "west" | "east";
+
+export const eastMalaysiaStates = ["Sabah", "Sarawak", "Labuan"] as const;
+
+export const westMalaysiaStates = [
+  "Johor",
+  "Kedah",
+  "Kelantan",
+  "Kuala Lumpur",
+  "Melaka",
+  "Negeri Sembilan",
+  "Pahang",
+  "Penang",
+  "Perak",
+  "Perlis",
+  "Putrajaya",
+  "Selangor",
+  "Terengganu",
+] as const;
+
+export const malaysiaStates = [...westMalaysiaStates, ...eastMalaysiaStates] as const;
+
+function normalizeStateName(state?: string | null) {
+  return (state ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\bwp\b/g, "")
+    .replace(/\bfederal territory\b/g, "")
+    .replace(/[^a-z]/g, "");
+}
+
+export function getShippingRegionByState(state?: string | null): ShippingRegion | null {
+  const normalized = normalizeStateName(state);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === "sabah" || normalized === "sarawak" || normalized === "labuan") {
+    return "east";
+  }
+
+  return "west";
+}
+
+export function getShippingRegionLabel(region: ShippingRegion) {
+  return region === "east" ? "East Malaysia" : "West Malaysia";
+}
+
+export function getShippingSettings(settings: StoreSettings) {
+  const westFee = settings.westMalaysiaShippingFee ?? settings.shippingFee ?? 7;
+  const eastFee = settings.eastMalaysiaShippingFee ?? 15;
+  const westThreshold =
+    settings.westMalaysiaFreeShippingMinimumAmount ??
+    settings.freeShippingMinimumAmount ??
+    settings.freeShippingMinAmount ??
+    80;
+  const eastThreshold = settings.eastMalaysiaFreeShippingMinimumAmount ?? 150;
+
+  return {
+    eastMalaysiaFreeShippingMinimumAmount: eastThreshold,
+    eastMalaysiaShippingFee: eastFee,
+    westMalaysiaFreeShippingMinimumAmount: westThreshold,
+    westMalaysiaShippingFee: westFee,
+  };
+}
+
+export function calculateShippingFee({
+  settings,
+  state,
+  subtotal,
+}: {
+  settings: StoreSettings;
+  state?: string | null;
+  subtotal: number;
+}) {
+  const region = getShippingRegionByState(state);
+  const shippingSettings = getShippingSettings(settings);
+
+  if (!region || subtotal <= 0) {
+    return {
+      fee: 0,
+      freeShippingDiscount: 0,
+      freeShippingThreshold: undefined,
+      isFreeShippingApplied: false,
+      pending: !region,
+      region,
+    };
+  }
+
+  const baseFee =
+    region === "east"
+      ? shippingSettings.eastMalaysiaShippingFee
+      : shippingSettings.westMalaysiaShippingFee;
+  const freeShippingThreshold =
+    region === "east"
+      ? shippingSettings.eastMalaysiaFreeShippingMinimumAmount
+      : shippingSettings.westMalaysiaFreeShippingMinimumAmount;
+  const isFreeShippingApplied = subtotal >= freeShippingThreshold;
+
+  return {
+    fee: isFreeShippingApplied ? 0 : baseFee,
+    freeShippingDiscount: isFreeShippingApplied ? baseFee : 0,
+    freeShippingThreshold,
+    isFreeShippingApplied,
+    pending: false,
+    region,
+  };
+}
+
 export function calculateOrderTotals(
   lines: CartLine[],
-  settings: Pick<StoreSettings, "freeShippingMinimumAmount" | "shippingFee"> = {
-    freeShippingMinimumAmount: platformConfig.freeShippingThreshold,
-    shippingFee: 6,
-  }
+  settings: StoreSettings = defaultStoreSettings,
+  state?: string | null
 ): OrderTotals {
   const subtotal = lines.reduce((total, line) => total + line.lineTotal, 0);
   const discount = subtotal >= 60 ? Number((subtotal * 0.1).toFixed(2)) : 0;
-  const shipping = subtotal === 0 || subtotal >= settings.freeShippingMinimumAmount ? 0 : settings.shippingFee;
+  const shipping = calculateShippingFee({ settings, state, subtotal });
 
   return {
     discount,
-    shipping,
+    freeShippingDiscount: shipping.freeShippingDiscount,
+    freeShippingThreshold: shipping.freeShippingThreshold,
+    isFreeShippingApplied: shipping.isFreeShippingApplied,
+    shipping: shipping.fee,
+    shippingPending: shipping.pending,
+    shippingRegion: shipping.region ?? undefined,
     subtotal,
-    total: Math.max(0, subtotal - discount + shipping),
+    total: Math.max(0, subtotal - discount + shipping.fee),
   };
 }
 

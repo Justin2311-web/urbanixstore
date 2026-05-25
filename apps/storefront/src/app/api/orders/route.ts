@@ -3,6 +3,8 @@
 // inferred as `never`). Runtime correctness is ensured by the RLS policies.
 import { NextResponse } from "next/server";
 import { createStorefrontClient } from "@/lib/supabase";
+import { calculateShippingFee } from "@ecommerce/shared";
+import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 
 export const dynamic = "force-dynamic";
 
@@ -46,16 +48,12 @@ export async function POST(request: Request) {
       customerPhone,
       customerEmail,
       deliveryNote,
-      discountAmount,
       items,
       orderNumber,
       paymentMethod,
       paymentMethodType,
       receiptUrl,
       shippingAddress,
-      shippingFee,
-      subtotal,
-      totalAmount,
     } = body;
 
     if (!customerName?.trim() || !customerPhone?.trim()) {
@@ -70,8 +68,28 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    if (!shippingAddress?.state?.trim()) {
+      return NextResponse.json(
+        { error: "State is required to calculate shipping." },
+        { status: 400 }
+      );
+    }
 
     const sb = createStorefrontClient();
+    const { settings } = await readUrbanixStoreDataAsync();
+    const serverSubtotal = Number(
+      items.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0).toFixed(2)
+    );
+    const serverDiscountAmount = serverSubtotal >= 60 ? Number((serverSubtotal * 0.1).toFixed(2)) : 0;
+    const shipping = calculateShippingFee({
+      settings,
+      state: shippingAddress.state,
+      subtotal: serverSubtotal,
+    });
+    const serverTotalAmount = Math.max(
+      0,
+      Number((serverSubtotal - serverDiscountAmount + shipping.fee).toFixed(2))
+    );
 
     const { data: order, error: orderError } = await sb
       .from("orders")
@@ -82,10 +100,13 @@ export async function POST(request: Request) {
         customer_email: customerEmail?.trim() || null,
         delivery_note: deliveryNote?.trim() || null,
         shipping_address: shippingAddress,
-        subtotal,
-        shipping_fee: shippingFee,
-        discount_amount: discountAmount,
-        total_amount: totalAmount,
+        subtotal: serverSubtotal,
+        shipping_fee: shipping.fee,
+        shipping_region: shipping.region,
+        free_shipping_threshold: shipping.freeShippingThreshold ?? null,
+        is_free_shipping_applied: shipping.isFreeShippingApplied,
+        discount_amount: serverDiscountAmount,
+        total_amount: serverTotalAmount,
         payment_method: paymentMethod,
         payment_method_type: paymentMethodType || null,
         order_status: "pending",
@@ -123,6 +144,15 @@ export async function POST(request: Request) {
       ok: true,
       orderId: order.id,
       orderNumber: order.order_number,
+      totals: {
+        discountAmount: serverDiscountAmount,
+        freeShippingThreshold: shipping.freeShippingThreshold ?? null,
+        isFreeShippingApplied: shipping.isFreeShippingApplied,
+        shippingFee: shipping.fee,
+        shippingRegion: shipping.region,
+        subtotal: serverSubtotal,
+        totalAmount: serverTotalAmount,
+      },
     });
   } catch (error) {
     console.error("[Storefront] /api/orders error:", error);

@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, Upload, X } from "lucide-react";
 import type { CheckoutCustomer, PaymentSettings, QrPaymentMethod, StoreSettings, UrbanixOrder, UrbanixProduct } from "@ecommerce/shared";
-import { calculateOrderTotals } from "@ecommerce/shared";
+import { calculateOrderTotals, malaysiaStates } from "@ecommerce/shared";
 import { buildCartLines } from "@/lib/cart-utils";
 import { useCart } from "@/components/cart/cart-provider";
 import { EmptyState } from "@/components/commerce/empty-state";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { createOrderNumber, saveOrder } from "@/lib/order-storage";
 import { loadCustomerProfile, profileToCheckoutCustomer, saveCustomerProfileLocally, syncCustomerProfile } from "@/lib/customer-profile";
 import { freeShippingCopy } from "@/lib/shipping-text";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 const MAX_RECEIPT_MB = 10;
 const MAX_RECEIPT_BYTES = MAX_RECEIPT_MB * 1024 * 1024;
@@ -47,6 +48,7 @@ export function CheckoutView({
   qrMethods?: QrPaymentMethod[];
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const { clearCart, items } = useCart();
   const [customer, setCustomer] = useState(initialCustomer);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -69,7 +71,7 @@ export function CheckoutView({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const lines = buildCartLines(items, products);
-  const totals = calculateOrderTotals(lines, settings);
+  const totals = calculateOrderTotals(lines, settings, customer.state);
   const shippingText = freeShippingCopy(settings);
 
   useEffect(() => {
@@ -262,13 +264,39 @@ export function CheckoutView({
         body: JSON.stringify(orderPayload),
       });
 
-      const orderData = await orderRes.json() as { ok?: boolean; orderId?: string; orderNumber?: string; error?: string };
+      const orderData = await orderRes.json() as {
+        ok?: boolean;
+        orderId?: string;
+        orderNumber?: string;
+        error?: string;
+        totals?: {
+          discountAmount: number;
+          freeShippingThreshold: number | null;
+          isFreeShippingApplied: boolean;
+          shippingFee: number;
+          shippingRegion: "west" | "east" | null;
+          subtotal: number;
+          totalAmount: number;
+        };
+      };
 
       if (!orderRes.ok) {
         throw new Error(orderData.error ?? "Failed to place order. Please try again.");
       }
 
       // 3. Save to localStorage for success page / order history
+      const confirmedTotals = orderData.totals
+        ? {
+            discount: orderData.totals.discountAmount,
+            freeShippingThreshold: orderData.totals.freeShippingThreshold ?? undefined,
+            isFreeShippingApplied: orderData.totals.isFreeShippingApplied,
+            shipping: orderData.totals.shippingFee,
+            shippingRegion: orderData.totals.shippingRegion ?? undefined,
+            subtotal: orderData.totals.subtotal,
+            total: orderData.totals.totalAmount,
+          }
+        : totals;
+
       const order: UrbanixOrder = {
         createdAt: new Date().toISOString(),
         customer,
@@ -280,7 +308,10 @@ export function CheckoutView({
         paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
         paymentStatus: "pending",
         receiptUrl: finalReceiptUrl,
-        totals,
+        freeShippingThreshold: confirmedTotals.freeShippingThreshold,
+        isFreeShippingApplied: confirmedTotals.isFreeShippingApplied,
+        shippingRegion: confirmedTotals.shippingRegion,
+        totals: confirmedTotals,
       };
 
       const savedProfile = saveCustomerProfileLocally({
@@ -390,12 +421,17 @@ export function CheckoutView({
                 />
               </FieldError>
               <FieldError error={errors.state}>
-                <Input
+                <select
                   aria-invalid={Boolean(errors.state)}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                   onChange={(event) => updateField("state", event.target.value)}
-                  placeholder="State / Province"
                   value={customer.state}
-                />
+                >
+                  <option value="">{t("shipping.selectState", "Select your state to calculate shipping fee")}</option>
+                  {malaysiaStates.map((state) => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
               </FieldError>
               <FieldError error={errors.postcode}>
                 <Input

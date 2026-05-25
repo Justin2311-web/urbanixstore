@@ -57,9 +57,30 @@ export default async function SettingsPage({
             <Field label="WhatsApp number"><Input defaultValue={settings.whatsappNumber} name="whatsapp_number" /></Field>
             <Field label="Contact email"><Input defaultValue={settings.contactEmail} name="contact_email" /></Field>
             <Field label="Contact phone"><Input defaultValue={settings.contactPhone} name="contact_phone" /></Field>
-            <Field label="Shipping fee (RM)"><Input defaultValue={settings.shippingFee} name="shipping_fee" step="0.01" type="number" /></Field>
-            <Field label="Free shipping minimum (RM)"><Input defaultValue={settings.freeShippingMinimumAmount} name="free_shipping_min_amount" step="0.01" type="number" /></Field>
             <CheckField defaultChecked={settings.storeActive} label="Store active" name="is_store_active" />
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Shipping Settings</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Sabah, Sarawak, and Labuan use East Malaysia rates. All other Malaysian states use West Malaysia rates.
+            </p>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <Field label="West Malaysia Shipping Fee (RM)">
+              <Input defaultValue={settings.westMalaysiaShippingFee ?? settings.shippingFee} name="west_malaysia_shipping_fee" step="0.01" type="number" />
+            </Field>
+            <Field label="East Malaysia Shipping Fee (RM)">
+              <Input defaultValue={settings.eastMalaysiaShippingFee ?? 15} name="east_malaysia_shipping_fee" step="0.01" type="number" />
+            </Field>
+            <Field label="West Malaysia Free Shipping Threshold (RM)">
+              <Input defaultValue={settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount} name="west_malaysia_free_shipping_min_amount" step="0.01" type="number" />
+            </Field>
+            <Field label="East Malaysia Free Shipping Threshold (RM)">
+              <Input defaultValue={settings.eastMalaysiaFreeShippingMinimumAmount ?? 150} name="east_malaysia_free_shipping_min_amount" step="0.01" type="number" />
+            </Field>
           </CardContent>
         </Card>
 

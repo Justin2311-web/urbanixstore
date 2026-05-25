@@ -1,8 +1,11 @@
+"use client";
+
 import type { CartLine, OrderTotals } from "@ecommerce/shared";
-import { formatCurrency } from "@ecommerce/shared";
+import { formatCurrency, getShippingRegionLabel } from "@ecommerce/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocalizedProductVisual } from "@/components/commerce/localized-product-visual";
 import { LocalizedValue } from "@/components/i18n/localized-value";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 export function OrderSummaryCard({
   lines = [],
@@ -13,6 +16,11 @@ export function OrderSummaryCard({
   totals: OrderTotals;
   showItems?: boolean;
 }) {
+  const { t } = useLanguage();
+  const regionLabel = totals.shippingRegion
+    ? t(`shipping.region.${totals.shippingRegion}`, getShippingRegionLabel(totals.shippingRegion))
+    : t("shipping.selectState", "Select your state to calculate shipping fee");
+
   return (
     <Card>
       <CardHeader>
@@ -44,19 +52,35 @@ export function OrderSummaryCard({
             ))}
           </div>
         ) : null}
-        <SummaryRow label="Subtotal" value={formatCurrency(totals.subtotal)} />
+        <SummaryRow label={t("checkout.subtotal", "Subtotal")} value={formatCurrency(totals.subtotal)} />
         <SummaryRow
           accent
-          label="Discount"
+          label={t("checkout.discount", "Discount")}
           value={totals.discount > 0 ? `-${formatCurrency(totals.discount)}` : formatCurrency(0)}
         />
         <SummaryRow
-          success={totals.shipping === 0}
-          label="Shipping"
-          value={totals.shipping === 0 ? "Free" : formatCurrency(totals.shipping)}
+          label={t("shipping.region", "Shipping region")}
+          value={regionLabel}
         />
+        <SummaryRow
+          success={!totals.shippingPending && totals.shipping === 0}
+          label={t("shipping.fee", "Shipping Fee")}
+          value={totals.shippingPending ? "-" : totals.shipping === 0 ? t("shipping.free", "Free Shipping") : formatCurrency(totals.shipping)}
+        />
+        {totals.isFreeShippingApplied ? (
+          <SummaryRow
+            success
+            label={t("shipping.freeDiscount", "Free shipping discount")}
+            value={`-${formatCurrency(totals.freeShippingDiscount ?? 0)}`}
+          />
+        ) : null}
+        {totals.isFreeShippingApplied ? (
+          <p className="rounded-lg bg-green-50 px-3 py-2 text-xs font-bold text-green-700">
+            {t("shipping.freeApplied", "Free shipping applied")}
+          </p>
+        ) : null}
         <div className="mt-2 border-t pt-3">
-          <SummaryRow strong label="Total" value={formatCurrency(totals.total)} />
+          <SummaryRow strong label={t("checkout.total", "Final total")} value={formatCurrency(totals.total)} />
         </div>
       </CardContent>
     </Card>

@@ -322,11 +322,13 @@ export async function saveStoreSettings(formData: FormData) {
     contactPhone: text(formData, "contactPhone"),
     favicon: text(formData, "favicon"),
     faviconUrl: text(formData, "favicon"),
-    freeShippingMinimumAmount: numberValue(formData, "freeShippingMinimumAmount"),
-    freeShippingMinAmount: numberValue(formData, "freeShippingMinimumAmount"),
+    eastMalaysiaFreeShippingMinimumAmount: numberValue(formData, "eastMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "east_malaysia_free_shipping_min_amount") || 150,
+    eastMalaysiaShippingFee: numberValue(formData, "eastMalaysiaShippingFee") || numberValue(formData, "east_malaysia_shipping_fee") || 15,
+    freeShippingMinimumAmount: numberValue(formData, "westMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "freeShippingMinimumAmount") || numberValue(formData, "west_malaysia_free_shipping_min_amount"),
+    freeShippingMinAmount: numberValue(formData, "westMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "freeShippingMinimumAmount") || numberValue(formData, "west_malaysia_free_shipping_min_amount"),
     logo: text(formData, "logo"),
     logoUrl: text(formData, "logo"),
-    shippingFee: numberValue(formData, "shippingFee"),
+    shippingFee: numberValue(formData, "westMalaysiaShippingFee") || numberValue(formData, "shippingFee") || numberValue(formData, "west_malaysia_shipping_fee"),
     socialLinks: {
       facebook: text(formData, "facebook"),
       instagram: text(formData, "instagram"),
@@ -337,6 +339,8 @@ export async function saveStoreSettings(formData: FormData) {
     storeName: text(formData, "storeName"),
     storeTagline: text(formData, "storeTagline"),
     whatsappNumber: text(formData, "whatsappNumber"),
+    westMalaysiaFreeShippingMinimumAmount: numberValue(formData, "westMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "freeShippingMinimumAmount") || numberValue(formData, "west_malaysia_free_shipping_min_amount"),
+    westMalaysiaShippingFee: numberValue(formData, "westMalaysiaShippingFee") || numberValue(formData, "shippingFee") || numberValue(formData, "west_malaysia_shipping_fee"),
   };
 
   try {

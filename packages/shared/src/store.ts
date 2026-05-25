@@ -549,8 +549,10 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     ...defaultUrbanixStoreData.settings,
     contactEmail: settingsMap.get("contact_email") || defaultUrbanixStoreData.settings.contactEmail,
     contactPhone: settingsMap.get("contact_phone") || defaultUrbanixStoreData.settings.contactPhone,
-    freeShippingMinimumAmount: Number(settingsMap.get("free_shipping_threshold") || 40),
-    freeShippingMinAmount: Number(settingsMap.get("free_shipping_threshold") || 40),
+    eastMalaysiaFreeShippingMinimumAmount: Number(settingsMap.get("east_malaysia_free_shipping_threshold") || 150),
+    eastMalaysiaShippingFee: Number(settingsMap.get("east_malaysia_shipping_fee") || 15),
+    freeShippingMinimumAmount: Number(settingsMap.get("west_malaysia_free_shipping_threshold") || settingsMap.get("free_shipping_threshold") || 80),
+    freeShippingMinAmount: Number(settingsMap.get("west_malaysia_free_shipping_threshold") || settingsMap.get("free_shipping_threshold") || 80),
     freeShippingText,
     logo: settingsMap.get("logo_url") || defaultUrbanixStoreData.settings.logo,
     logoUrl: settingsMap.get("logo_url") || defaultUrbanixStoreData.settings.logoUrl,
@@ -558,6 +560,7 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
       lazada: settingsMap.get("lazada_url") || "",
       shopee: settingsMap.get("shopee_url") || "",
     },
+    shippingFee: Number(settingsMap.get("west_malaysia_shipping_fee") || settingsMap.get("shipping_fee") || 7),
     socialLinks: {
       facebook: settingsMap.get("facebook_url") || "",
       instagram: settingsMap.get("instagram_url") || "",
@@ -566,6 +569,8 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     storeName: settingsMap.get("store_name") || defaultUrbanixStoreData.settings.storeName,
     storeTagline: footerText(footer, "store_tagline", { en: defaultUrbanixStoreData.settings.storeTagline }).en,
     whatsappNumber: settingsMap.get("whatsapp_number") || defaultUrbanixStoreData.settings.whatsappNumber,
+    westMalaysiaFreeShippingMinimumAmount: Number(settingsMap.get("west_malaysia_free_shipping_threshold") || settingsMap.get("free_shipping_threshold") || 80),
+    westMalaysiaShippingFee: Number(settingsMap.get("west_malaysia_shipping_fee") || settingsMap.get("shipping_fee") || 7),
   };
   const homepage: HomepageContent = {
     ...defaultUrbanixStoreData.homepage,
@@ -865,14 +870,31 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
       .filter((item) => item && typeof item.label === "string" && typeof item.href === "string");
   }
 
+  const settingsRow = row as Database["public"]["Tables"]["store_settings"]["Row"] & {
+    east_malaysia_free_shipping_min_amount?: number | null;
+    east_malaysia_shipping_fee?: number | null;
+    west_malaysia_free_shipping_min_amount?: number | null;
+    west_malaysia_shipping_fee?: number | null;
+  };
+  const westMalaysiaShippingFee = Number(settingsRow.west_malaysia_shipping_fee ?? row.shipping_fee ?? 7);
+  const eastMalaysiaShippingFee = Number(settingsRow.east_malaysia_shipping_fee ?? 15);
+  const westMalaysiaFreeShippingMinimumAmount = Number(
+    settingsRow.west_malaysia_free_shipping_min_amount ?? row.free_shipping_min_amount ?? 80
+  );
+  const eastMalaysiaFreeShippingMinimumAmount = Number(
+    settingsRow.east_malaysia_free_shipping_min_amount ?? 150
+  );
+
   return {
     contactEmail: row.contact_email ?? "",
     contactPhone: row.contact_phone ?? "",
     currency: row.currency,
     favicon: row.favicon_url ?? defaultUrbanixStoreData.settings.favicon,
     faviconUrl: row.favicon_url ?? defaultUrbanixStoreData.settings.faviconUrl,
-    freeShippingMinimumAmount: Number(row.free_shipping_min_amount),
-    freeShippingMinAmount: Number(row.free_shipping_min_amount),
+    eastMalaysiaFreeShippingMinimumAmount,
+    eastMalaysiaShippingFee,
+    freeShippingMinimumAmount: westMalaysiaFreeShippingMinimumAmount,
+    freeShippingMinAmount: westMalaysiaFreeShippingMinimumAmount,
     freeShippingText: defaultUrbanixStoreData.settings.freeShippingText,
     logo: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logo,
     logoUrl: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logoUrl,
@@ -889,7 +911,7 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
       shopee: typeof (socialLinks as Record<string, unknown>).shopee_logo === "string" ? (socialLinks as Record<string, unknown>).shopee_logo as string : "",
       lazada: typeof (socialLinks as Record<string, unknown>).lazada_logo === "string" ? (socialLinks as Record<string, unknown>).lazada_logo as string : "",
     },
-    shippingFee: Number(row.shipping_fee),
+    shippingFee: westMalaysiaShippingFee,
     socialLinks: {
       facebook: typeof (socialLinks as Record<string, unknown>).facebook === "string" ? (socialLinks as Record<string, unknown>).facebook as string : "",
       instagram: typeof (socialLinks as Record<string, unknown>).instagram === "string" ? (socialLinks as Record<string, unknown>).instagram as string : "",
@@ -900,6 +922,8 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     storeName: row.store_name,
     storeTagline: row.store_tagline,
     whatsappNumber: row.whatsapp_number || defaultUrbanixStoreData.settings.whatsappNumber,
+    westMalaysiaFreeShippingMinimumAmount,
+    westMalaysiaShippingFee,
   };
 }
 
@@ -1273,7 +1297,7 @@ function isAssetUrl(value?: string | null): boolean {
   return Boolean(value && (/^(https?:)?\/\//.test(value) || value.startsWith("/")));
 }
 
-function mapOrder(row: { id: string; order_number: string; customer_name: string; customer_phone: string; customer_email?: string | null; shipping_address?: unknown; delivery_note?: string | null; subtotal: number; shipping_fee: number; discount_amount: number; total_amount: number; payment_method: string; payment_status: string; order_status: string; created_at: string; updated_at?: string; order_items?: Array<{ id: string; product_name: string; product_sku: string; quantity: number; unit_price: number; total_price: number }> }): UrbanixOrder {
+function mapOrder(row: { id: string; order_number: string; customer_name: string; customer_phone: string; customer_email?: string | null; shipping_address?: unknown; delivery_note?: string | null; subtotal: number; shipping_fee: number; shipping_region?: string | null; free_shipping_threshold?: number | null; is_free_shipping_applied?: boolean | null; discount_amount: number; total_amount: number; payment_method: string; payment_status: string; order_status: string; created_at: string; updated_at?: string; order_items?: Array<{ id: string; product_name: string; product_sku: string; quantity: number; unit_price: number; total_price: number }> }): UrbanixOrder {
   const address = (row.shipping_address ?? {}) as Partial<CheckoutCustomer>;
   const customer: CheckoutCustomer = {
     addressLine1: address.addressLine1 ?? "",
@@ -1315,11 +1339,17 @@ function mapOrder(row: { id: string; order_number: string; customer_name: string
     paymentStatus: row.payment_status as UrbanixOrder["paymentStatus"],
     shippingAddress: customer,
     shippingFee: Number(row.shipping_fee),
+    shippingRegion: row.shipping_region === "east" ? "east" : row.shipping_region === "west" ? "west" : undefined,
+    freeShippingThreshold: row.free_shipping_threshold == null ? undefined : Number(row.free_shipping_threshold),
+    isFreeShippingApplied: Boolean(row.is_free_shipping_applied),
     subtotal: Number(row.subtotal),
     totalAmount: Number(row.total_amount),
     totals: {
       discount: Number(row.discount_amount),
+      freeShippingThreshold: row.free_shipping_threshold == null ? undefined : Number(row.free_shipping_threshold),
+      isFreeShippingApplied: Boolean(row.is_free_shipping_applied),
       shipping: Number(row.shipping_fee),
+      shippingRegion: row.shipping_region === "east" ? "east" : row.shipping_region === "west" ? "west" : undefined,
       subtotal: Number(row.subtotal),
       total: Number(row.total_amount),
     },
@@ -1624,13 +1654,14 @@ export async function updateStoreSettings(settings: StoreSettings) {
 
   if (!supabase) {
     const data = readUrbanixStoreData();
-    data.settings = {
-      ...settings,
-      faviconUrl: settings.faviconUrl ?? settings.favicon,
-      freeShippingMinAmount: settings.freeShippingMinAmount ?? settings.freeShippingMinimumAmount,
-      isStoreActive: settings.isStoreActive ?? settings.storeActive,
-      logoUrl: settings.logoUrl ?? settings.logo,
-    };
+      data.settings = {
+        ...settings,
+        faviconUrl: settings.faviconUrl ?? settings.favicon,
+        freeShippingMinAmount: settings.freeShippingMinAmount ?? settings.freeShippingMinimumAmount,
+        shippingFee: settings.westMalaysiaShippingFee ?? settings.shippingFee,
+        isStoreActive: settings.isStoreActive ?? settings.storeActive,
+        logoUrl: settings.logoUrl ?? settings.logo,
+      };
     writeUrbanixStoreData(data);
     return;
   }
@@ -1641,12 +1672,14 @@ export async function updateStoreSettings(settings: StoreSettings) {
       contact_phone: settings.contactPhone,
       currency: settings.currency ?? "MYR",
       favicon_url: settings.favicon || settings.faviconUrl || null,
-      free_shipping_min_amount: settings.freeShippingMinimumAmount,
+      east_malaysia_free_shipping_min_amount: settings.eastMalaysiaFreeShippingMinimumAmount ?? 150,
+      east_malaysia_shipping_fee: settings.eastMalaysiaShippingFee ?? 15,
+      free_shipping_min_amount: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
       id: true,
       is_store_active: settings.storeActive,
       logo_url: settings.logo || settings.logoUrl || null,
       maintenance_message: settings.maintenanceMessage ?? null,
-      shipping_fee: settings.shippingFee,
+      shipping_fee: settings.westMalaysiaShippingFee ?? settings.shippingFee,
       social_links: {
         ...settings.socialLinks,
         shopee: settings.platformLinks?.shopee ?? "",
@@ -1660,6 +1693,8 @@ export async function updateStoreSettings(settings: StoreSettings) {
       store_name: settings.storeName,
       store_tagline: settings.storeTagline,
       whatsapp_number: settings.whatsappNumber,
+      west_malaysia_free_shipping_min_amount: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
+      west_malaysia_shipping_fee: settings.westMalaysiaShippingFee ?? settings.shippingFee,
     },
     { onConflict: "id" }
   );
@@ -1781,6 +1816,9 @@ export async function upsertOrder(order: UrbanixOrder) {
     payment_status: order.paymentStatus,
     shipping_address: order.customer as unknown as Json,
     shipping_fee: order.totals.shipping,
+    shipping_region: order.totals.shippingRegion ?? order.shippingRegion ?? null,
+    free_shipping_threshold: order.totals.freeShippingThreshold ?? order.freeShippingThreshold ?? null,
+    is_free_shipping_applied: order.totals.isFreeShippingApplied ?? order.isFreeShippingApplied ?? false,
     subtotal: order.totals.subtotal,
     total_amount: order.totals.total,
   });
@@ -1815,6 +1853,9 @@ function normalizeOrder(order: UrbanixOrder): UrbanixOrder {
     discountAmount: order.discountAmount ?? order.totals.discount,
     shippingAddress: order.shippingAddress ?? order.customer,
     shippingFee: order.shippingFee ?? order.totals.shipping,
+    shippingRegion: order.shippingRegion ?? order.totals.shippingRegion,
+    freeShippingThreshold: order.freeShippingThreshold ?? order.totals.freeShippingThreshold,
+    isFreeShippingApplied: order.isFreeShippingApplied ?? order.totals.isFreeShippingApplied,
     subtotal: order.subtotal ?? order.totals.subtotal,
     totalAmount: order.totalAmount ?? order.totals.total,
     updatedAt: new Date().toISOString(),

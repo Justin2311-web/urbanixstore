@@ -299,6 +299,9 @@ export type Database = {
           receipt_url: string | null;
           shipping_address: Json;
           shipping_fee: number;
+          shipping_region: "west" | "east" | null;
+          free_shipping_threshold: number | null;
+          is_free_shipping_applied: boolean;
           subtotal: number;
           total_amount: number;
           tracking_number: string | null;
@@ -321,6 +324,9 @@ export type Database = {
           receipt_url?: string | null;
           shipping_address?: Json;
           shipping_fee?: number;
+          shipping_region?: "west" | "east" | null;
+          free_shipping_threshold?: number | null;
+          is_free_shipping_applied?: boolean;
           subtotal?: number;
           total_amount?: number;
           tracking_number?: string | null;
@@ -363,6 +369,8 @@ export type Database = {
           currency: string;
           favicon_url: string | null;
           footer_content: Json | null;
+          east_malaysia_free_shipping_min_amount: number;
+          east_malaysia_shipping_fee: number;
           free_shipping_min_amount: number;
           id: boolean;
           is_store_active: boolean;
@@ -370,6 +378,8 @@ export type Database = {
           maintenance_message: string | null;
           nav_items: Json | null;
           shipping_fee: number;
+          west_malaysia_free_shipping_min_amount: number;
+          west_malaysia_shipping_fee: number;
           social_links: Json;
           store_name: string;
           store_tagline: string;
@@ -383,6 +393,8 @@ export type Database = {
           currency?: string;
           favicon_url?: string | null;
           footer_content?: Json | null;
+          east_malaysia_free_shipping_min_amount?: number;
+          east_malaysia_shipping_fee?: number;
           free_shipping_min_amount?: number;
           id?: boolean;
           is_store_active?: boolean;
@@ -390,6 +402,8 @@ export type Database = {
           maintenance_message?: string | null;
           nav_items?: Json | null;
           shipping_fee?: number;
+          west_malaysia_free_shipping_min_amount?: number;
+          west_malaysia_shipping_fee?: number;
           social_links?: Json;
           store_name?: string;
           store_tagline?: string;

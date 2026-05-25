@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { Flash } from "@/components/flash";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { updateOrderStatus } from "@/lib/actions";
+import { getShippingRegionLabel } from "@ecommerce/shared";
 
 type OrderDetailRow = Database["public"]["Tables"]["orders"]["Row"] & {
   order_items: Array<Database["public"]["Tables"]["order_items"]["Row"]>;
@@ -98,6 +99,22 @@ export default async function OrderDetailPage({
                   <td colSpan={3} className="table-td text-right font-medium text-gray-500">Shipping</td>
                   <td className="table-td text-right font-semibold">{formatCurrency(Number(order.shipping_fee))}</td>
                 </tr>
+                {order.shipping_region && (
+                  <tr>
+                    <td colSpan={3} className="table-td text-right font-medium text-gray-500">Shipping Region</td>
+                    <td className="table-td text-right font-semibold">
+                      {getShippingRegionLabel(order.shipping_region)}
+                    </td>
+                  </tr>
+                )}
+                {order.is_free_shipping_applied && (
+                  <tr>
+                    <td colSpan={3} className="table-td text-right font-medium text-green-600">Free Shipping</td>
+                    <td className="table-td text-right font-semibold text-green-600">
+                      Applied over {formatCurrency(Number(order.free_shipping_threshold ?? 0))}
+                    </td>
+                  </tr>
+                )}
                 {Number(order.discount_amount) > 0 && (
                   <tr>
                     <td colSpan={3} className="table-td text-right font-medium text-green-600">Discount</td>

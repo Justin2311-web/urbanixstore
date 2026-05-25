@@ -92,6 +92,17 @@ const en = {
   "account.emailInvalid": "Enter a valid email address.",
   "account.whySave": "Why save your information?",
   "account.whySaveText": "Your next WhatsApp order can include your name, phone and delivery address automatically. No password or login is required.",
+  "checkout.subtotal": "Subtotal",
+  "checkout.discount": "Discount",
+  "checkout.total": "Final total",
+  "shipping.region": "Shipping region",
+  "shipping.region.west": "West Malaysia",
+  "shipping.region.east": "East Malaysia",
+  "shipping.fee": "Shipping Fee",
+  "shipping.free": "Free Shipping",
+  "shipping.selectState": "Select your state to calculate shipping fee",
+  "shipping.freeApplied": "Free shipping applied",
+  "shipping.freeDiscount": "Free shipping discount",
 };
 
 const zh: typeof en = {
@@ -180,6 +191,17 @@ const zh: typeof en = {
   "account.emailInvalid": "请输入有效的电邮地址。",
   "account.whySave": "为什么保存资料？",
   "account.whySaveText": "下一次 WhatsApp 下单时，可以自动带入姓名、电话和地址。不需要密码或登录。",
+  "checkout.subtotal": "小计",
+  "checkout.discount": "折扣",
+  "checkout.total": "最终总额",
+  "shipping.region": "配送地区",
+  "shipping.region.west": "西马",
+  "shipping.region.east": "东马",
+  "shipping.fee": "邮费",
+  "shipping.free": "免邮",
+  "shipping.selectState": "请选择州属以计算邮费",
+  "shipping.freeApplied": "已享有免邮优惠",
+  "shipping.freeDiscount": "免邮优惠",
 };
 
 const ms: typeof en = {
@@ -268,6 +290,17 @@ const ms: typeof en = {
   "account.emailInvalid": "Masukkan alamat emel yang sah.",
   "account.whySave": "Kenapa simpan maklumat?",
   "account.whySaveText": "Pesanan WhatsApp seterusnya boleh memasukkan nama, telefon dan alamat anda secara automatik. Tiada kata laluan atau login diperlukan.",
+  "checkout.subtotal": "Subtotal",
+  "checkout.discount": "Diskaun",
+  "checkout.total": "Jumlah akhir",
+  "shipping.region": "Wilayah penghantaran",
+  "shipping.region.west": "Semenanjung Malaysia",
+  "shipping.region.east": "Sabah / Sarawak / Labuan",
+  "shipping.fee": "Caj Penghantaran",
+  "shipping.free": "Penghantaran Percuma",
+  "shipping.selectState": "Sila pilih negeri untuk kira caj penghantaran",
+  "shipping.freeApplied": "Penghantaran percuma telah digunakan",
+  "shipping.freeDiscount": "Diskaun penghantaran percuma",
 };
 
 export const translations: Record<LanguageCode, Record<string, string>> = { en, zh, ms };
