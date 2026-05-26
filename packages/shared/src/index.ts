@@ -135,9 +135,15 @@ export type PromotionBanner = {
   subtitle: string;
   localizedSubtitle?: LocalizedTextValue;
   ctaText: string;
+  buttonText?: {
+    en: string;
+    zh?: string;
+    bm?: string;
+  };
   localizedCtaText?: LocalizedTextValue;
   targetUrl: string;
   buttonEnabled: boolean;
+  buttonPosition?: "bottom-left" | "bottom-right" | "top-left" | "top-right";
   buttonUrl: string;
   imageClickUrl: string;
   desktopImageUrl: string;

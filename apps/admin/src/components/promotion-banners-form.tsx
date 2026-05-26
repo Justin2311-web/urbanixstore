@@ -29,10 +29,24 @@ function localizedImagesFrom(value: string, localized?: Partial<Record<BannerLan
   };
 }
 
+function localizedTextFrom(
+  legacy: string,
+  localized?: Partial<Record<BannerLang, string>>,
+  buttonText?: PromotionBanner["buttonText"]
+) {
+  return {
+    en: localized?.en || buttonText?.en || legacy || "",
+    zh: localized?.zh || buttonText?.zh || "",
+    ms: localized?.ms || buttonText?.bm || "",
+  };
+}
+
 function newBanner(sortOrder: number): BannerRow {
   return {
     buttonEnabled: true,
+    buttonPosition: "bottom-left",
     buttonUrl: "",
+    buttonText: { bm: "Beli Sekarang", en: "Shop Now", zh: "立即选购" },
     ctaText: "Shop Now",
     desktopImageUrl: "",
     id: "",
@@ -89,23 +103,48 @@ export function PromotionBannersForm({ banners }: { banners: PromotionBanner[] }
                 </>
               );
             })()}
-            <Field label="Title">
-              <Input defaultValue={banner.title} name={`${banner.key}-title`} required />
-            </Field>
-            <Field label="Subtitle / description">
-              <Input defaultValue={banner.subtitle} name={`${banner.key}-subtitle`} />
-            </Field>
-            <Field label="CTA button text">
-              <Input defaultValue={banner.ctaText} name={`${banner.key}-ctaText`} />
-            </Field>
+            <div className="grid gap-4 md:col-span-2 xl:grid-cols-3">
+              {bannerLanguages.map(({ code, label }) => {
+                const titles = localizedTextFrom(banner.title, banner.localizedTitle);
+                const subtitles = localizedTextFrom(banner.subtitle, banner.localizedSubtitle);
+                const buttonTexts = localizedTextFrom(banner.ctaText, banner.localizedCtaText, banner.buttonText);
+
+                return (
+                  <div className="grid gap-3 rounded-2xl border border-border p-3" key={`copy-${code}`}>
+                    <Field label={`Title (${label})`}>
+                      <Input defaultValue={titles[code]} name={`${banner.key}-title-${code}`} required={code === "en"} />
+                    </Field>
+                    <Field label={`Description (${label})`}>
+                      <Input defaultValue={subtitles[code]} name={`${banner.key}-subtitle-${code}`} />
+                    </Field>
+                    <Field label={`Button Text (${label})`}>
+                      <Input defaultValue={buttonTexts[code]} name={`${banner.key}-buttonText-${code}`} />
+                    </Field>
+                  </div>
+                );
+              })}
+            </div>
             <Field label="Target URL / product URL">
               <Input defaultValue={banner.targetUrl} name={`${banner.key}-targetUrl`} />
+            </Field>
+            <Field label="Button position">
+              <select
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                defaultValue={banner.buttonPosition ?? "bottom-left"}
+                name={`${banner.key}-buttonPosition`}
+              >
+                <option value="bottom-left">Bottom left</option>
+                <option value="bottom-right">Bottom right</option>
+                <option value="top-left">Top left</option>
+                <option value="top-right">Top right</option>
+              </select>
             </Field>
             <Field label="Sort order">
               <Input defaultValue={banner.sortOrder || index + 1} min="1" name={`${banner.key}-sortOrder`} type="number" />
             </Field>
-            <div className="grid gap-2 self-end sm:grid-cols-2">
+            <div className="grid gap-2 self-end sm:grid-cols-3">
               <CheckField defaultChecked={banner.isActive} label="Active" name={`${banner.key}-isActive`} />
+              <CheckField defaultChecked={banner.buttonEnabled} label="Show button" name={`${banner.key}-buttonEnabled`} />
               <CheckField label="Delete" name={`${banner.key}-delete`} />
             </div>
             {bannerLanguages.map(({ code, label }) => {

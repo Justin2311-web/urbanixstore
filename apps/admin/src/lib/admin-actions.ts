@@ -387,7 +387,22 @@ export async function savePromotionBanners(formData: FormData) {
 
   for (const [index, key] of keys.entries()) {
     const id = text(formData, `${key}-id`);
-    const title = text(formData, `${key}-title`);
+    const localizedTitle = {
+      en: text(formData, `${key}-title-en`),
+      ms: text(formData, `${key}-title-ms`),
+      zh: text(formData, `${key}-title-zh`),
+    };
+    const localizedSubtitle = {
+      en: text(formData, `${key}-subtitle-en`),
+      ms: text(formData, `${key}-subtitle-ms`),
+      zh: text(formData, `${key}-subtitle-zh`),
+    };
+    const localizedCtaText = {
+      en: text(formData, `${key}-buttonText-en`),
+      ms: text(formData, `${key}-buttonText-ms`),
+      zh: text(formData, `${key}-buttonText-zh`),
+    };
+    const title = localizedTitle.en || localizedTitle.zh || localizedTitle.ms;
 
     if (!title && !id) {
       continue;
@@ -417,16 +432,25 @@ export async function savePromotionBanners(formData: FormData) {
     }
 
     banners.push({
-      buttonEnabled: true,
+      buttonEnabled: formData.get(`${key}-buttonEnabled`) === "on",
+      buttonPosition: (text(formData, `${key}-buttonPosition`) || "bottom-left") as PromotionBanner["buttonPosition"],
       buttonUrl: text(formData, `${key}-targetUrl`) || "/products",
-      ctaText: text(formData, `${key}-ctaText`) || "Shop Now",
+      buttonText: {
+        bm: localizedCtaText.ms,
+        en: localizedCtaText.en,
+        zh: localizedCtaText.zh,
+      },
+      ctaText: localizedCtaText.en,
       desktopImageUrl: encodeLocalizedImages(desktopImages),
       id,
       imageClickUrl: text(formData, `${key}-targetUrl`) || "/products",
       isActive: formData.get(`${key}-isActive`) === "on",
+      localizedCtaText,
+      localizedSubtitle,
+      localizedTitle,
       mobileImageUrl: encodeLocalizedImages(mobileImages),
       sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
-      subtitle: text(formData, `${key}-subtitle`),
+      subtitle: localizedSubtitle.en || localizedSubtitle.zh || localizedSubtitle.ms,
       targetUrl: text(formData, `${key}-targetUrl`) || "/products",
       title,
     });

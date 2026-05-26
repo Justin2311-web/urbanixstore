@@ -503,7 +503,7 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     .map((row): PromotionBanner => {
       const buttonUrl = cell(row, "button_url") || cell(row, "target_url") || "";
       const imageClickUrl = cell(row, "image_click_url") || cell(row, "target_url") || buttonUrl || "/products";
-      const buttonText = cell(row, "button_text_en");
+      const buttonText = cell(row, "cta_text_en");
 
       return {
         buttonEnabled: booleanCell(row, "button_enabled", Boolean(buttonText && buttonUrl)),
@@ -513,7 +513,7 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
         id: cell(row, "banner_id"),
         imageClickUrl,
         isActive: true,
-        localizedCtaText: localized(buttonText, cell(row, "button_text_zh"), cell(row, "button_text_ms")),
+        localizedCtaText: localized(buttonText, cell(row, "cta_text_zh"), cell(row, "cta_text_ms")),
         localizedSubtitle: localized("", "", ""),
         localizedTitle: localized("", "", ""),
         mobileImageUrl: cell(row, "mobile_image_url"),
@@ -1014,16 +1014,19 @@ function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners
     cta_text_en?: string | null;
     cta_text_zh?: string | null;
     cta_text_ms?: string | null;
+    button_enabled?: boolean | null;
+    button_position?: PromotionBanner["buttonPosition"] | null;
   };
   const localizedTitle: LocalizedTextValue = {
     en: r.title_en?.trim() || row.title,
     zh: r.title_zh?.trim() || r.title_en?.trim() || row.title,
     ms: r.title_ms?.trim() || r.title_en?.trim() || row.title,
   };
+  const buttonTextEn = r.cta_text_en?.trim() || row.cta_text || "";
   const localizedCtaText: LocalizedTextValue = {
-    en: r.cta_text_en?.trim() || row.cta_text || "Shop Now",
-    zh: r.cta_text_zh?.trim() || r.cta_text_en?.trim() || row.cta_text || "Shop Now",
-    ms: r.cta_text_ms?.trim() || r.cta_text_en?.trim() || row.cta_text || "Shop Now",
+    en: buttonTextEn,
+    zh: r.cta_text_zh?.trim() || buttonTextEn,
+    ms: r.cta_text_ms?.trim() || buttonTextEn,
   };
   const localizedSubtitle: LocalizedTextValue = {
     en: row.subtitle ?? "",
@@ -1032,10 +1035,16 @@ function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners
   };
 
   return {
-    buttonEnabled: Boolean(row.cta_text && targetUrl),
+    buttonEnabled: r.button_enabled ?? Boolean((localizedCtaText.en || localizedCtaText.zh || localizedCtaText.ms) && targetUrl),
+    buttonPosition: r.button_position ?? "bottom-left",
     buttonUrl: targetUrl,
     createdAt: row.created_at,
-    ctaText: row.cta_text ?? "Shop Now",
+    buttonText: {
+      bm: localizedCtaText.ms,
+      en: localizedCtaText.en,
+      zh: localizedCtaText.zh,
+    },
+    ctaText: row.cta_text ?? localizedCtaText.en,
     desktopImageUrl: desktopImages.en,
     id: row.id,
     imageClickUrl: targetUrl,
@@ -1764,15 +1773,26 @@ export async function upsertPromotionBanners(banners: PromotionBanner[], deleted
 
   const result = await supabase.from("promotion_banners").upsert(
     banners.map((banner, index) => ({
-      cta_text: banner.ctaText,
+      cta_text: banner.localizedCtaText?.en ?? banner.buttonText?.en ?? banner.ctaText,
+      cta_text_en: banner.localizedCtaText?.en ?? banner.buttonText?.en ?? banner.ctaText,
+      cta_text_ms: banner.localizedCtaText?.ms ?? banner.buttonText?.bm ?? null,
+      cta_text_zh: banner.localizedCtaText?.zh ?? banner.buttonText?.zh ?? null,
+      button_enabled: banner.buttonEnabled,
+      button_position: banner.buttonPosition ?? "bottom-left",
       desktop_image_url: banner.desktopImageUrl || null,
       id: banner.id || undefined,
       is_active: banner.isActive,
       mobile_image_url: banner.mobileImageUrl || null,
       sort_order: banner.sortOrder || index + 1,
       subtitle: banner.subtitle,
+      subtitle_en: banner.localizedSubtitle?.en ?? banner.subtitle,
+      subtitle_ms: banner.localizedSubtitle?.ms ?? null,
+      subtitle_zh: banner.localizedSubtitle?.zh ?? null,
       target_url: banner.targetUrl || "/products",
       title: banner.title,
+      title_en: banner.localizedTitle?.en ?? banner.title,
+      title_ms: banner.localizedTitle?.ms ?? null,
+      title_zh: banner.localizedTitle?.zh ?? null,
     })),
     { onConflict: "id" }
   );
