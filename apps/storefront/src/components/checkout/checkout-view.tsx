@@ -54,8 +54,8 @@ export function CheckoutView({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Active QR methods — only those enabled in admin
-  const activeQrMethods = qrMethods.filter((m) => m.isActive);
+  // Only show QR methods that are enabled and ready for customers to pay with.
+  const activeQrMethods = qrMethods.filter((m) => m.isActive && Boolean(m.qrImageUrl));
   const [selectedMethodId, setSelectedMethodId] = useState<string>(
     activeQrMethods[0]?.id ?? ""
   );
@@ -199,6 +199,16 @@ export function CheckoutView({
     event.preventDefault();
 
     if (!validate()) return;
+    if (!selectedMethod) {
+      setSubmitError("No payment methods available. Please contact the store.");
+      return;
+    }
+    if (!receiptFile) {
+      const message = "Please upload your payment receipt before placing the order.";
+      setReceiptError(message);
+      setSubmitError(message);
+      return;
+    }
 
     setSubmitting(true);
     setSubmitError(null);
@@ -206,23 +216,21 @@ export function CheckoutView({
     try {
       const orderNumber = createOrderNumber();
 
-      // 1. Upload receipt if one was selected
+      // 1. Upload receipt before creating the order
       let finalReceiptUrl: string | null = null;
-      if (receiptFile) {
-        setReceiptUploading(true);
-        try {
-          finalReceiptUrl = await uploadReceiptToSupabase(receiptFile, orderNumber);
-          setReceiptUrl(finalReceiptUrl);
-        } catch (uploadErr) {
-          setReceiptError(
-            uploadErr instanceof Error ? uploadErr.message : "Receipt upload failed."
-          );
-          setSubmitting(false);
-          setReceiptUploading(false);
-          return;
-        }
+      setReceiptUploading(true);
+      try {
+        finalReceiptUrl = await uploadReceiptToSupabase(receiptFile, orderNumber);
+        setReceiptUrl(finalReceiptUrl);
+      } catch (uploadErr) {
+        setReceiptError(
+          uploadErr instanceof Error ? uploadErr.message : "Receipt upload failed."
+        );
+        setSubmitting(false);
         setReceiptUploading(false);
+        return;
       }
+      setReceiptUploading(false);
 
       // 2. Save order to Supabase via API route
       const orderPayload = {
@@ -530,7 +538,7 @@ export function CheckoutView({
               {/* Receipt Upload */}
               <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                 <p className="mb-3 text-sm font-bold">
-                  Upload Payment Receipt <span className="font-normal text-muted-foreground">(recommended)</span>
+                  Upload Payment Receipt <span className="font-normal text-muted-foreground">(required)</span>
                 </p>
 
                 {receiptFile ? (
