@@ -178,6 +178,10 @@ export async function POST(request: Request) {
     if (!validState) return fail("Select a valid Malaysia state.");
     if (!items?.length) return fail("Order must have at least one item.");
 
+    if (!receiptUrl?.trim()) {
+      return fail("Please upload your payment receipt before placing the order.");
+    }
+
     let validatedReceiptUrl: string | null = null;
     try {
       validatedReceiptUrl = validateReceiptUrl(receiptUrl, orderNumber);
