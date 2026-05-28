@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { BYPASS_COOKIE, BYPASS_VALUE } from "@/lib/auth-constants";
+import { BYPASS_COOKIE, getBypassValue } from "@/lib/auth-constants";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,7 +13,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (request.cookies.get(BYPASS_COOKIE)?.value === BYPASS_VALUE) {
+  const bypassValue = await getBypassValue();
+  if (bypassValue && request.cookies.get(BYPASS_COOKIE)?.value === bypassValue) {
     return NextResponse.next();
   }
 
@@ -28,7 +29,9 @@ export async function proxy(request: NextRequest) {
 
   const supabase = createServerClient(url, key, {
     cookies: {
-      getAll() { return request.cookies.getAll(); },
+      getAll() {
+        return request.cookies.getAll();
+      },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
@@ -52,6 +55,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

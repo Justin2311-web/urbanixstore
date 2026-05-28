@@ -55,9 +55,12 @@ export function OrderSummaryCard({
         <SummaryRow label={t("checkout.subtotal", "Subtotal")} value={formatCurrency(totals.subtotal)} />
         <SummaryRow
           accent
-          label={t("checkout.discount", "Discount")}
+          label={t("checkout.automaticDiscount", "Automatic promo discount")}
           value={totals.discount > 0 ? `-${formatCurrency(totals.discount)}` : formatCurrency(0)}
         />
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("checkout.automaticDiscountNote", "10% off is applied automatically when subtotal reaches RM60.")}
+        </p>
         <SummaryRow
           label={t("shipping.region", "Shipping region")}
           value={regionLabel}

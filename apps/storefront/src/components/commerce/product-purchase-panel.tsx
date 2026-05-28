@@ -38,7 +38,10 @@ export function ProductPurchasePanel({
   const hasNewVariants = variants.length > 0;
 
   // ── Legacy simple variant groups (old format, no per-variant pricing) ──────
-  const legacyVariantGroups = product.productVariants ?? [];
+  const legacyVariantGroups = useMemo(
+    () => product.productVariants ?? [],
+    [product.productVariants]
+  );
   const hasLegacyVariants = !hasNewVariants && legacyVariantGroups.length > 0;
 
   // ── Selected variant state ─────────────────────────────────────────────────

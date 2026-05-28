@@ -94,6 +94,8 @@ const en = {
   "account.whySaveText": "Your next WhatsApp order can include your name, phone and delivery address automatically. No password or login is required.",
   "checkout.subtotal": "Subtotal",
   "checkout.discount": "Discount",
+  "checkout.automaticDiscount": "Automatic promo discount",
+  "checkout.automaticDiscountNote": "10% off is applied automatically when subtotal reaches RM60.",
   "checkout.total": "Final total",
   "shipping.region": "Shipping region",
   "shipping.region.west": "West Malaysia",

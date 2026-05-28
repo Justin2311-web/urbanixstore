@@ -18,7 +18,7 @@ import { loadCustomerProfile, profileToCheckoutCustomer, saveCustomerProfileLoca
 import { freeShippingCopy } from "@/lib/shipping-text";
 import { useLanguage } from "@/components/i18n/language-provider";
 
-const MAX_RECEIPT_MB = 10;
+const MAX_RECEIPT_MB = 5;
 const MAX_RECEIPT_BYTES = MAX_RECEIPT_MB * 1024 * 1024;
 const ACCEPTED_RECEIPT_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const ACCEPTED_RECEIPT_EXTS = ".jpg,.jpeg,.png,.webp,.pdf";
@@ -37,7 +37,6 @@ const initialCustomer: CheckoutCustomer = {
 };
 
 export function CheckoutView({
-  payments,
   products,
   settings,
   qrMethods = [],
@@ -163,18 +162,20 @@ export function CheckoutView({
   }
 
   async function uploadReceiptToSupabase(file: File, orderNumber: string): Promise<string> {
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const filePath = `receipts/${orderNumber}/${Date.now()}.${ext}`;
-
     const res = await fetch("/api/signed-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bucket: "uploads", filePath }),
+      body: JSON.stringify({
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        orderNumber,
+      }),
     });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({})) as { error?: string };
-      throw new Error(errData.error ?? "Could not prepare upload.");
+      throw new Error(errData.error ?? "Receipt upload failed. Please try again.");
     }
 
     const { signedUrl, publicUrl } = await res.json() as { signedUrl: string; publicUrl: string };

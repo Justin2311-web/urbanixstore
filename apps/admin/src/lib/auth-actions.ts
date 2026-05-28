@@ -3,7 +3,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { BYPASS_COOKIE, BYPASS_VALUE } from "@/lib/auth-constants";
+import { BYPASS_COOKIE, getBypassValue } from "@/lib/auth-constants";
 
 async function getSupabaseClient() {
   const cookieStore = await cookies();
@@ -32,24 +32,32 @@ export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  // Env-var bypass credentials — works without Supabase Auth
-  const adminEmail =
-    process.env.ADMIN_EMAIL ?? "urbanixstore.official@gmail.com";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "UrbanixAdmin2026!";
+  const adminEmail = process.env.ADMIN_EMAIL?.trim();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const isProduction = process.env.NODE_ENV === "production";
 
-  if (email === adminEmail && password === adminPassword) {
+  if (!adminEmail || !adminPassword) {
+    console.error("[Admin Auth] Missing ADMIN_EMAIL or ADMIN_PASSWORD.");
+    if (isProduction) redirect("/login?error=1");
+  } else if (email === adminEmail && password === adminPassword) {
+    const bypassValue = await getBypassValue();
+
+    if (!bypassValue) {
+      console.error("[Admin Auth] Unable to create admin session cookie.");
+      redirect("/login?error=1");
+    }
+
     const cookieStore = await cookies();
-    cookieStore.set(BYPASS_COOKIE, BYPASS_VALUE, {
+    cookieStore.set(BYPASS_COOKIE, bypassValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       path: "/",
     });
     redirect("/");
   }
 
-  // Fallback: try Supabase Auth
   const supabase = await getSupabaseClient();
   if (!supabase) {
     redirect("/login?error=1");

@@ -15,18 +15,17 @@ const STORAGE_KEY = "urbanix-theme";
 const TRANSITIONS_CLASS = "theme-transitions";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "light";
+    return window.localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+  });
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    const resolved: Theme = stored === "dark" ? "dark" : "light";
-
-    if (resolved === "dark") {
+    if (theme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-    setThemeState(resolved);
 
     // Enable smooth transitions only after initial theme is applied to avoid flash
     const timer = window.setTimeout(() => {
@@ -36,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [theme]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
