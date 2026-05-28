@@ -6,6 +6,7 @@ import { CartCountBadge } from "@/components/cart/cart-count-badge";
 import { SearchBar } from "@/components/commerce/search-bar";
 import { LanguageSelector } from "@/components/i18n/language-selector";
 import { LocalizedText } from "@/components/i18n/localized-text";
+import { LocalizedValue } from "@/components/i18n/localized-value";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { getWhatsAppNumber } from "@/lib/order-links";
@@ -17,7 +18,7 @@ export async function AppHeader() {
   const announcementEnabled = homepage.announcementEnabled !== false;
   const announcementBg = homepage.announcementBgColor ?? "#1a1a1a";
   const announcementColor = homepage.announcementTextColor ?? "#ffffff";
-  const announcementText = settings.freeShippingText?.en ?? homepage.promotionStripText;
+  const announcementText = homepage.localizedPromoStripText?.en ?? homepage.promotionStripText;
   const announcementLink = homepage.announcementLink;
 
   return (
@@ -30,14 +31,14 @@ export async function AppHeader() {
             href={announcementLink}
             style={{ backgroundColor: announcementBg, color: announcementColor }}
           >
-            <AnnouncementMarquee text={announcementText} />
+            <AnnouncementMarquee text={announcementText} value={homepage.localizedPromoStripText} />
           </Link>
         ) : (
           <div
             className="overflow-hidden py-2"
             style={{ backgroundColor: announcementBg, color: announcementColor }}
           >
-            <AnnouncementMarquee text={announcementText} />
+            <AnnouncementMarquee text={announcementText} value={homepage.localizedPromoStripText} />
           </div>
         )
       ) : null}
@@ -112,13 +113,13 @@ export async function AppHeader() {
 }
 
 /** Renders 4 copies of text in a flex row; CSS animates the row left by -50% for seamless loop */
-function AnnouncementMarquee({ text }: { text: string }) {
+function AnnouncementMarquee({ text, value }: { text: string; value?: { en: string; zh?: string; ms?: string } }) {
   const copies = [text, text, text, text];
   return (
     <div className="marquee-track" aria-label={text}>
       {copies.map((copy, i) => (
         <span key={i} className="whitespace-nowrap px-16 text-xs font-semibold" aria-hidden={i > 0 ? "true" : undefined}>
-          {copy}
+          <LocalizedValue fallback={copy} value={value} />
         </span>
       ))}
     </div>

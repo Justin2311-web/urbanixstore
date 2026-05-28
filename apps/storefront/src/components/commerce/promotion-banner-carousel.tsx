@@ -5,9 +5,25 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HomepageContent, LocalizedTextValue, PromotionBanner } from "@ecommerce/shared";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+function localizedBannerText(
+  value: LocalizedTextValue | undefined,
+  language: "en" | "zh" | "ms",
+  legacy = ""
+) {
+  return value?.[language] || value?.en || legacy || "";
+}
+
+const buttonPositionClasses: Record<NonNullable<PromotionBanner["buttonPosition"]>, string> = {
+  "bottom-left": "bottom-4 left-4 sm:bottom-6 sm:left-6",
+  "bottom-right": "bottom-4 right-4 sm:bottom-6 sm:right-6",
+  "top-left": "left-4 top-4 sm:left-6 sm:top-6",
+  "top-right": "right-4 top-4 sm:right-6 sm:top-6",
+};
 
 export function PromotionBannerCarousel({
   banners,
@@ -18,23 +34,40 @@ export function PromotionBannerCarousel({
   fallback: HomepageContent;
   freeShippingText?: LocalizedTextValue;
 }) {
-  const slides = banners.length > 0
+  const { language } = useLanguage();
+  const slides: PromotionBanner[] = banners.length > 0
     ? banners
     : [{
         buttonEnabled: true,
+        buttonPosition: "bottom-left",
         buttonUrl: fallback.heroButtonLink,
+        buttonText: {
+          bm: fallback.localizedHeroButtonText?.ms || fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
+          en: fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
+          zh: fallback.localizedHeroButtonText?.zh || fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
+        },
         ctaText: fallback.heroButtonText,
         desktopImageUrl: fallback.heroImageUrl || "",
         id: "fallback",
         imageClickUrl: fallback.heroButtonLink,
         isActive: true,
         localizedCtaText: {
-          en: fallback.heroButtonText,
-          ms: fallback.heroButtonText,
-          zh: fallback.heroButtonText,
+          en: fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
+          ms: fallback.localizedHeroButtonText?.ms || fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
+          zh: fallback.localizedHeroButtonText?.zh || fallback.localizedHeroButtonText?.en || fallback.heroButtonText,
         },
         localizedSubtitle: { en: "", ms: "", zh: "" },
         localizedTitle: { en: "", ms: "", zh: "" },
+        localizedDesktopImageUrls: {
+          en: fallback.heroImageUrl || "",
+          ms: fallback.heroImageUrl || "",
+          zh: fallback.heroImageUrl || "",
+        },
+        localizedMobileImageUrls: {
+          en: fallback.heroImageUrl || "",
+          ms: fallback.heroImageUrl || "",
+          zh: fallback.heroImageUrl || "",
+        },
         mobileImageUrl: fallback.heroImageUrl || "",
         sortOrder: 1,
         subtitle: "",
@@ -45,11 +78,26 @@ export function PromotionBannerCarousel({
   const activeSlide = slides[activeIndex];
   const imageHref = activeSlide.imageClickUrl || activeSlide.targetUrl || "/products";
   const buttonHref = activeSlide.buttonUrl || imageHref;
-  const buttonText = activeSlide.localizedCtaText ? (
-    <LocalizedValue fallback={activeSlide.ctaText} value={activeSlide.localizedCtaText} />
-  ) : activeSlide.ctaText;
-  const hasImage = Boolean(activeSlide.desktopImageUrl || activeSlide.mobileImageUrl);
-  const showButton = activeSlide.buttonEnabled && Boolean(activeSlide.ctaText && buttonHref);
+  const titleText = localizedBannerText(activeSlide.localizedTitle, language, activeSlide.title);
+  const subtitleText = localizedBannerText(activeSlide.localizedSubtitle, language, activeSlide.subtitle);
+  const buttonText = localizedBannerText(
+    activeSlide.localizedCtaText,
+    language,
+    activeSlide.buttonText?.[language === "ms" ? "bm" : language] || activeSlide.ctaText
+  );
+  const desktopImageUrl =
+    activeSlide.localizedDesktopImageUrls?.[language] ||
+    activeSlide.localizedDesktopImageUrls?.en ||
+    activeSlide.desktopImageUrl ||
+    "";
+  const mobileImageUrl =
+    activeSlide.localizedMobileImageUrls?.[language] ||
+    activeSlide.localizedMobileImageUrls?.en ||
+    activeSlide.mobileImageUrl ||
+    "";
+  const hasImage = Boolean(desktopImageUrl || mobileImageUrl);
+  const showTextOverlay = Boolean(titleText || subtitleText);
+  const showButton = activeSlide.buttonEnabled && Boolean(buttonText && buttonHref);
 
   useEffect(() => {
     if (slides.length <= 1) return;
@@ -81,13 +129,13 @@ export function PromotionBannerCarousel({
                   alt=""
                   className="hidden size-full object-cover transition duration-700 md:block"
                   data-banner-desktop-image
-                  src={activeSlide.desktopImageUrl || activeSlide.mobileImageUrl}
+                  src={desktopImageUrl || mobileImageUrl}
                 />
                 <img
                   alt=""
                   className="size-full object-cover transition duration-700 md:hidden"
                   data-banner-mobile-image
-                  src={activeSlide.mobileImageUrl || activeSlide.desktopImageUrl}
+                  src={mobileImageUrl || desktopImageUrl}
                 />
               </>
             ) : (
@@ -103,11 +151,29 @@ export function PromotionBannerCarousel({
           </div>
         </Link>
 
+        {showTextOverlay ? (
+          <div className="pointer-events-none absolute left-4 top-4 z-20 max-w-[78%] rounded-3xl bg-black/28 p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.22)] backdrop-blur-md sm:left-6 sm:top-6 sm:max-w-[48%] sm:p-5">
+            {titleText ? (
+              <h2 className="text-balance text-xl font-extrabold leading-tight drop-shadow sm:text-3xl lg:text-4xl">
+                {titleText}
+              </h2>
+            ) : null}
+            {subtitleText ? (
+              <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-white/88 sm:text-base">
+                {subtitleText}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {showButton ? (
           <Link
             className={buttonVariants({
               className:
-                "absolute bottom-4 left-4 z-20 rounded-full bg-linear-to-r from-primary via-[#14c8ff] to-[#7c3cff] px-6 text-white shadow-[0_12px_32px_rgba(26,86,219,0.38)] hover:scale-[1.02] sm:bottom-6 sm:left-6",
+                cn(
+                  "absolute z-20 rounded-full bg-linear-to-r from-primary via-[#14c8ff] to-[#7c3cff] px-6 text-white shadow-[0_12px_32px_rgba(26,86,219,0.38)] hover:scale-[1.02]",
+                  buttonPositionClasses[(activeSlide.buttonPosition ?? "bottom-left") as NonNullable<PromotionBanner["buttonPosition"]>]
+                ),
               size: "lg",
             })}
             data-banner-button

@@ -3,8 +3,8 @@ import { ArrowRight, BadgeCheck, Headphones, Sparkles, Truck, Zap } from "lucide
 import { formatCurrency } from "@ecommerce/shared";
 import { listActivePromotionBanners, listStorefrontCategories, listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { CategoryCard } from "@/components/commerce/category-card";
+import { LocalizedProductVisual } from "@/components/commerce/localized-product-visual";
 import { ProductCard } from "@/components/commerce/product-card";
-import { ProductVisual } from "@/components/commerce/product-visual";
 import { PromotionBannerCarousel } from "@/components/commerce/promotion-banner-carousel";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
@@ -18,110 +18,125 @@ export default async function Home() {
   const categories = listStorefrontCategories(data);
   const products = listStorefrontProducts(data);
   const featuredProducts = products.filter((product) => product.featured).slice(0, 4);
-  const featuredCategories = categories.filter((category) => data.homepage.featuredCategoryCards.includes(category.id));
+  const featuredCategoryKeys = new Set(data.homepage.featuredCategoryCards ?? []);
+  const configuredCategories = categories.filter(
+    (category) =>
+      featuredCategoryKeys.has(category.id) ||
+      featuredCategoryKeys.has(category.slug ?? "") ||
+      featuredCategoryKeys.has(category.name)
+  );
+  const featuredCategories = (configuredCategories.length > 0 ? configuredCategories : categories).slice(0, 4);
   const promotionBanners = listActivePromotionBanners(data);
   const visualProducts = featuredProducts.filter((product) => product.image || product.mainImageUrl || product.galleryImages?.[0]);
   const heroProducts = (visualProducts.length >= 3 ? visualProducts : featuredProducts).slice(0, 3);
+  const heroImage = data.homepage.heroImageUrl || data.homepage.heroImage || "";
+  const hasHeroImage = /^https?:\/\//.test(heroImage) || heroImage.startsWith("/");
 
   return (
     <main className="pb-20 md:pb-0">
-      <section className="urbanix-container pt-7 sm:pt-10">
-        <div className="urbanix-hero-shell grid gap-7 p-5 sm:p-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:p-10">
-          <div className="relative z-10 flex flex-col gap-6">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-primary dark:border-[rgba(59,158,255,0.22)] dark:bg-[rgba(59,158,255,0.12)] dark:text-[#8bdcff]">
-              <Sparkles className="size-3.5" />
-              Urban Lifestyle Tech
+      {data.homepage.isActive !== false ? (
+        <section className="urbanix-container pt-7 sm:pt-10">
+          <div className="urbanix-hero-shell grid gap-7 p-5 sm:p-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:p-10">
+            {hasHeroImage ? (
+              <img
+                alt=""
+                className="absolute inset-0 size-full object-cover opacity-10 mix-blend-multiply dark:opacity-16 dark:mix-blend-screen"
+                data-hero-background-image
+                src={heroImage}
+              />
+            ) : null}
+            <div className="relative z-10 flex flex-col gap-6">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-primary dark:border-[rgba(59,158,255,0.22)] dark:bg-[rgba(59,158,255,0.12)] dark:text-[#8bdcff]">
+                <Sparkles className="size-3.5" />
+                Urban Lifestyle Tech
+              </div>
+              <div>
+                <h1 className="urbanix-gradient-text max-w-3xl text-5xl font-black leading-[0.95] sm:text-6xl lg:text-7xl">
+                  <LocalizedValue fallback={data.homepage.heroTitle} value={data.homepage.localizedHeroTitle} />
+                </h1>
+                <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+                  <LocalizedValue fallback={data.homepage.heroSubtitle} value={data.homepage.localizedHeroSubtitle} />
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  className={buttonVariants({
+                    className: "rounded-full bg-linear-to-r from-primary via-[#14c8ff] to-[#7c3cff] text-white shadow-[0_16px_40px_rgba(26,86,219,0.28)] hover:scale-[1.02]",
+                    size: "lg",
+                  })}
+                  href={data.homepage.heroButtonLink || "/products"}
+                >
+                  <LocalizedValue fallback={data.homepage.heroButtonText} value={data.homepage.localizedHeroButtonText} /> <ArrowRight />
+                </Link>
+                <Link
+                  className={buttonVariants({
+                    className: "rounded-full border-primary/20 bg-white/65 text-primary backdrop-blur hover:bg-white dark:border-[rgba(59,158,255,0.22)] dark:bg-white/8 dark:text-[#c8eeff] dark:hover:bg-white/12",
+                    size: "lg",
+                    variant: "outline",
+                  })}
+                  href="/categories"
+                >
+                  Explore Categories
+                </Link>
+              </div>
+              <div className="hidden max-w-xl grid-cols-3 gap-2 text-xs font-bold text-muted-foreground sm:grid">
+                {["Premium Feel", "Fast Order", "Youth Picks"].map((item) => (
+                  <div className="rounded-2xl border border-border/60 bg-card/70 px-3 py-2 dark:border-[rgba(59,158,255,0.12)] dark:bg-white/5" key={item}>
+                    {item}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div>
-              <h1 className="urbanix-gradient-text max-w-3xl text-5xl font-black leading-[0.95] sm:text-6xl lg:text-7xl">
-                Drive Smarter. Live Urban.
-              </h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Smart car accessories, turbo fans, scents, and everyday tech picks curated for Malaysia’s young urban crowd.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                className={buttonVariants({
-                  className: "rounded-full bg-linear-to-r from-primary via-[#14c8ff] to-[#7c3cff] text-white shadow-[0_16px_40px_rgba(26,86,219,0.28)] hover:scale-[1.02]",
-                  size: "lg",
-                })}
-                href="/products"
-              >
-                Shop Now <ArrowRight />
-              </Link>
-              <Link
-                className={buttonVariants({
-                  className: "rounded-full border-primary/20 bg-white/65 text-primary backdrop-blur hover:bg-white dark:border-[rgba(59,158,255,0.22)] dark:bg-white/8 dark:text-[#c8eeff] dark:hover:bg-white/12",
-                  size: "lg",
-                  variant: "outline",
-                })}
-                href="/categories"
-              >
-                Explore Categories
-              </Link>
-            </div>
-            <div className="hidden max-w-xl grid-cols-3 gap-2 text-xs font-bold text-muted-foreground sm:grid">
-              {["Premium Feel", "Fast Order", "Youth Picks"].map((item) => (
-                <div className="rounded-2xl border border-border/60 bg-card/70 px-3 py-2 dark:border-[rgba(59,158,255,0.12)] dark:bg-white/5" key={item}>
-                  {item}
-                </div>
+            <div className="relative z-10 grid gap-3 self-start sm:grid-cols-3 lg:grid-cols-2">
+              {heroProducts.map((product, index) => (
+                <Link
+                  className={`group overflow-hidden rounded-3xl border border-white/75 bg-white/70 p-2 shadow-[0_18px_50px_rgba(17,37,68,0.12)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-primary/30 dark:border-[rgba(59,158,255,0.16)] dark:bg-white/8 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)] ${
+                    index === 0 ? "sm:col-span-3 lg:col-span-2" : ""
+                  }`}
+                  href={`/products/${product.slug}`}
+                  key={product.id}
+                >
+                  <div className={index === 0 ? "grid gap-3 sm:grid-cols-[0.78fr_1fr] sm:items-center" : ""}>
+                    <LocalizedProductVisual
+                      alt={product.name}
+                      className={index === 0 ? "aspect-[4/3]" : "aspect-square"}
+                      product={product}
+                      tone={product.imageTone}
+                    />
+                    <div className="px-2 py-3">
+                      <p className="line-clamp-2 text-sm font-black text-foreground transition group-hover:text-primary">
+                        <LocalizedValue fallback={product.name} value={product.localizedName} />
+                      </p>
+                      <div className="mt-2">
+                        {product.originalPrice && product.originalPrice > product.price ? (
+                          <p className="text-[0.68rem] leading-none text-muted-foreground line-through">
+                            {formatCurrency(product.originalPrice)}
+                          </p>
+                        ) : null}
+                        <p className="text-base font-black text-primary dark:text-[#ffd166]">
+                          {formatCurrency(product.price)}
+                        </p>
+                      </div>
+                      {product.variantGroups?.length ? (
+                        <p className="mt-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-muted-foreground">Options Available</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
-          <div className="relative z-10 grid gap-3 self-start sm:grid-cols-3 lg:grid-cols-2">
-            {heroProducts.map((product, index) => (
-              <Link
-                className={`group overflow-hidden rounded-3xl border border-white/75 bg-white/70 p-2 shadow-[0_18px_50px_rgba(17,37,68,0.12)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-primary/30 dark:border-[rgba(59,158,255,0.16)] dark:bg-white/8 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)] ${
-                  index === 0 ? "sm:col-span-3 lg:col-span-2" : ""
-                }`}
-                href={`/products/${product.slug}`}
-                key={product.id}
-              >
-                <div className={index === 0 ? "grid gap-3 sm:grid-cols-[0.78fr_1fr] sm:items-center" : ""}>
-                  <ProductVisual
-                    alt={product.name}
-                    className={index === 0 ? "aspect-[4/3]" : "aspect-square"}
-                    imageUrl={product.image || product.mainImageUrl || product.galleryImages?.[0]}
-                    tone={product.imageTone}
-                  />
-                  <div className="px-2 py-3">
-                    <p className="line-clamp-2 text-sm font-black text-foreground transition group-hover:text-primary">
-                      <LocalizedValue fallback={product.name} value={product.localizedName} />
-                    </p>
-                    <div className="mt-2">
-                      {product.originalPrice && product.originalPrice > product.price ? (
-                        <p className="text-[0.68rem] leading-none text-muted-foreground line-through">
-                          {formatCurrency(product.originalPrice)}
-                        </p>
-                      ) : null}
-                      <p className="text-base font-black text-primary dark:text-[#ffd166]">
-                        {formatCurrency(product.price)}
-                      </p>
-                    </div>
-                    {product.variantGroups?.length ? (
-                      <p className="mt-1 text-[0.68rem] font-extrabold uppercase tracking-wide text-muted-foreground">Options Available</p>
-                    ) : null}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <PromotionBannerCarousel
         banners={promotionBanners}
-        fallback={{
-          ...data.homepage,
-          heroSubtitle: "Shop confidently with WhatsApp ordering, Cloudinary product visuals, and marketplace-ready links.",
-          heroTitle: data.settings.freeShippingText?.en ?? data.homepage.heroTitle,
-        }}
+        fallback={data.homepage}
         freeShippingText={data.settings.freeShippingText}
       />
 
       <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/categories" subtitle="Car holders, car perfumes, turbo fans, and daily urban accessories." title="Shop by Category" titleKey="home.shopByCategory" />
+        <SectionHeader action="/categories" subtitle="Car holders, car scents, cooling essentials, and daily urban accessories." subtitleKey="home.categoryCaption" title="Shop by Category" titleKey="home.shopByCategory" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {featuredCategories.map((category) => (
             <CategoryCard category={category} key={category.id} />
@@ -130,7 +145,7 @@ export default async function Home() {
       </section>
 
       <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/products" subtitle="Clean product cards, quick actions, and mobile-first shopping." title="Featured Picks" titleKey="home.featuredPicks" />
+        <SectionHeader action="/products" subtitle="Clean product cards, quick actions, and mobile-first shopping." subtitleKey="home.featuredCaption" title="Featured Picks" titleKey="home.featuredPicks" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {featuredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
@@ -146,7 +161,7 @@ export default async function Home() {
           <div className="relative z-10">
             <h2 className="text-2xl font-black sm:text-3xl">Urban Drive Sale</h2>
             <p className="mt-1 text-sm font-semibold text-muted-foreground">
-              <LocalizedValue fallback={data.homepage.promotionStripText} value={data.settings.freeShippingText} /> · Up to 30% off selected accessories.
+              <LocalizedValue fallback={data.homepage.promotionStripText} value={data.homepage.localizedPromoStripText} /> | Up to 30% off selected accessories.
             </p>
           </div>
           <Link className={buttonVariants({ className: "relative z-10 rounded-full", variant: "secondary" })} href="/products">
@@ -180,14 +195,14 @@ export default async function Home() {
   );
 }
 
-function SectionHeader({ action, subtitle, title, titleKey }: { title: string; titleKey: string; action: string; subtitle?: string }) {
+function SectionHeader({ action, subtitle, subtitleKey, title, titleKey }: { title: string; titleKey: string; action: string; subtitle?: string; subtitleKey?: string }) {
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-2xl font-black uppercase tracking-wide text-primary dark:text-[#8bdcff] sm:text-3xl">
           <LocalizedText fallback={title} k={titleKey} />
         </h2>
-        {subtitle ? <p className="max-w-xl text-sm text-muted-foreground">{subtitle}</p> : null}
+        {subtitle ? <p className="max-w-xl text-sm text-muted-foreground">{subtitleKey ? <LocalizedText fallback={subtitle} k={subtitleKey} /> : subtitle}</p> : null}
         <div className="h-0.5 w-8 rounded-full bg-primary/40 dark:bg-[rgba(59,158,255,0.4)]" />
       </div>
       <Link

@@ -6,16 +6,17 @@ import { signOut } from "@/lib/auth-actions";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/", label: "Dashboard", icon: "📊" },
-  { href: "/products", label: "Products", icon: "📦" },
-  { href: "/categories", label: "Categories", icon: "🗂️" },
-  { href: "/banners", label: "Banners", icon: "🖼️" },
-  { href: "/inventory", label: "Inventory", icon: "🏷️" },
-  { href: "/orders", label: "Orders", icon: "🛒" },
-  { href: "/customers", label: "Customers", icon: "👥" },
-  { href: "/cms", label: "Homepage", icon: "🏠" },
-  { href: "/payments", label: "Payments", icon: "💳" },
-  { href: "/settings", label: "Settings", icon: "⚙️" },
+  { href: "/", label: "Dashboard", icon: "DB" },
+  { href: "/products", label: "Products", icon: "PK" },
+  { href: "/categories", label: "Categories", icon: "CT" },
+  { href: "/banners", label: "Banners", icon: "BN" },
+  { href: "/inventory", label: "Inventory", icon: "IV" },
+  { href: "/orders", label: "Orders", icon: "OR" },
+  { href: "/financial-report", label: "Financial Report", icon: "RM" },
+  { href: "/customers", label: "Customers", icon: "CU" },
+  { href: "/cms", label: "Homepage", icon: "HP" },
+  { href: "/payments", label: "Payments", icon: "PY" },
+  { href: "/settings", label: "Settings", icon: "ST" },
 ];
 
 export function Sidebar() {
@@ -23,21 +24,17 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full flex-col border-r border-gray-200 bg-white">
-      {/* Logo */}
       <div className="flex h-16 items-center border-b border-gray-200 px-5">
         <Link href="/" className="text-lg font-extrabold text-[#0e5c56]">
           Urbanix Admin
         </Link>
       </div>
 
-      {/* Nav links */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-0.5">
           {links.map((link) => {
             const isActive =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
+              link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
 
             return (
               <li key={link.href}>
@@ -50,7 +47,9 @@ export function Sidebar() {
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   )}
                 >
-                  <span className="text-base">{link.icon}</span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gray-100 text-[10px] font-black text-gray-500">
+                    {link.icon}
+                  </span>
                   {link.label}
                 </Link>
               </li>
@@ -59,14 +58,15 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Sign out */}
       <div className="border-t border-gray-200 px-3 py-3">
         <form action={signOut}>
           <button
             type="submit"
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600"
           >
-            <span>🚪</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gray-100 text-[10px] font-black text-gray-500">
+              OUT
+            </span>
             Sign Out
           </button>
         </form>
@@ -75,11 +75,10 @@ export function Sidebar() {
   );
 }
 
-// Mobile top bar (shows current section name)
 export function MobileNav() {
   const pathname = usePathname();
-  const current = links.find((l) =>
-    l.href === "/" ? pathname === "/" : pathname.startsWith(l.href)
+  const current = links.find((link) =>
+    link.href === "/" ? pathname === "/" : pathname.startsWith(link.href)
   );
 
   return (

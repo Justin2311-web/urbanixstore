@@ -58,11 +58,25 @@ export default async function CmsPage({
                 label="Announcement bar enabled"
                 name="announcementEnabled"
               />
-              <Field label="Announcement text (shown in bar)">
+              <Field label="Announcement text — EN">
                 <Input
-                  defaultValue={homepage.promotionStripText}
+                  defaultValue={homepage.localizedPromoStripText?.en ?? homepage.promotionStripText}
                   name="promotionStripText"
                   placeholder="Free shipping for orders above RM40"
+                />
+              </Field>
+              <Field label="Announcement text — 中文">
+                <Input
+                  defaultValue={homepage.localizedPromoStripText?.zh ?? ""}
+                  name="promo_strip_text_zh"
+                  placeholder="西马满 RM80 免邮｜东马满 RM150 免邮"
+                />
+              </Field>
+              <Field label="Announcement text — BM">
+                <Input
+                  defaultValue={homepage.localizedPromoStripText?.ms ?? ""}
+                  name="promo_strip_text_ms"
+                  placeholder="Penghantaran percuma untuk pesanan melebihi RM40"
                 />
               </Field>
               <Field label="Announcement link (optional)">

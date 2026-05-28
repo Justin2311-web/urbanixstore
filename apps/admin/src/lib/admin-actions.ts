@@ -86,6 +86,18 @@ function jsonStringArray(formData: FormData, key: string) {
   }
 }
 
+type BannerLang = "en" | "zh" | "ms";
+const bannerLangs: BannerLang[] = ["en", "zh", "ms"];
+
+function encodeLocalizedImages(images: Record<BannerLang, string>) {
+  const fallback = images.en || images.zh || images.ms || "";
+  return JSON.stringify({
+    en: images.en || fallback,
+    zh: images.zh || images.en || fallback,
+    ms: images.ms || images.en || fallback,
+  });
+}
+
 function fileValues(formData: FormData, key: string) {
   return formData
     .getAll(key)
@@ -207,7 +219,7 @@ export async function saveProduct(formData: FormData) {
     promotionStartAt: text(formData, "promotionStartDate"),
     rating: numberValue(formData, "rating") || existingProduct?.rating || 4.7,
     relatedCategory: categoryId,
-    returnNote: text(formData, "returnNote") || "Returns accepted within 30 days for unused items in original packaging.",
+    returnNote: existingProduct?.returnNote ?? "",
     shippingInfo: text(formData, "shippingInfo") || "Free shipping applies for eligible orders.",
     shortDescription: text(formData, "shortDescription"),
     sku: text(formData, "sku"),
@@ -310,11 +322,13 @@ export async function saveStoreSettings(formData: FormData) {
     contactPhone: text(formData, "contactPhone"),
     favicon: text(formData, "favicon"),
     faviconUrl: text(formData, "favicon"),
-    freeShippingMinimumAmount: numberValue(formData, "freeShippingMinimumAmount"),
-    freeShippingMinAmount: numberValue(formData, "freeShippingMinimumAmount"),
+    eastMalaysiaFreeShippingMinimumAmount: numberValue(formData, "eastMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "east_malaysia_free_shipping_min_amount") || 150,
+    eastMalaysiaShippingFee: numberValue(formData, "eastMalaysiaShippingFee") || numberValue(formData, "east_malaysia_shipping_fee") || 15,
+    freeShippingMinimumAmount: numberValue(formData, "westMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "freeShippingMinimumAmount") || numberValue(formData, "west_malaysia_free_shipping_min_amount"),
+    freeShippingMinAmount: numberValue(formData, "westMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "freeShippingMinimumAmount") || numberValue(formData, "west_malaysia_free_shipping_min_amount"),
     logo: text(formData, "logo"),
     logoUrl: text(formData, "logo"),
-    shippingFee: numberValue(formData, "shippingFee"),
+    shippingFee: numberValue(formData, "westMalaysiaShippingFee") || numberValue(formData, "shippingFee") || numberValue(formData, "west_malaysia_shipping_fee"),
     socialLinks: {
       facebook: text(formData, "facebook"),
       instagram: text(formData, "instagram"),
@@ -325,6 +339,8 @@ export async function saveStoreSettings(formData: FormData) {
     storeName: text(formData, "storeName"),
     storeTagline: text(formData, "storeTagline"),
     whatsappNumber: text(formData, "whatsappNumber"),
+    westMalaysiaFreeShippingMinimumAmount: numberValue(formData, "westMalaysiaFreeShippingMinimumAmount") || numberValue(formData, "freeShippingMinimumAmount") || numberValue(formData, "west_malaysia_free_shipping_min_amount"),
+    westMalaysiaShippingFee: numberValue(formData, "westMalaysiaShippingFee") || numberValue(formData, "shippingFee") || numberValue(formData, "west_malaysia_shipping_fee"),
   };
 
   try {
@@ -371,7 +387,22 @@ export async function savePromotionBanners(formData: FormData) {
 
   for (const [index, key] of keys.entries()) {
     const id = text(formData, `${key}-id`);
-    const title = text(formData, `${key}-title`);
+    const localizedTitle = {
+      en: text(formData, `${key}-title-en`),
+      ms: text(formData, `${key}-title-ms`),
+      zh: text(formData, `${key}-title-zh`),
+    };
+    const localizedSubtitle = {
+      en: text(formData, `${key}-subtitle-en`),
+      ms: text(formData, `${key}-subtitle-ms`),
+      zh: text(formData, `${key}-subtitle-zh`),
+    };
+    const localizedCtaText = {
+      en: text(formData, `${key}-buttonText-en`),
+      ms: text(formData, `${key}-buttonText-ms`),
+      zh: text(formData, `${key}-buttonText-zh`),
+    };
+    const title = localizedTitle.en || localizedTitle.zh || localizedTitle.ms;
 
     if (!title && !id) {
       continue;
@@ -385,27 +416,41 @@ export async function savePromotionBanners(formData: FormData) {
       continue;
     }
 
-    const desktopFile = fileValues(formData, `${key}-desktopFile`)[0];
-    const mobileFile = fileValues(formData, `${key}-mobileFile`)[0];
     const folder = id || slugify(title) || `banner-${index + 1}`;
-    const desktopImageUrl = desktopFile
-      ? await uploadUrbanixAsset(desktopFile, "banners", folder)
-      : text(formData, `${key}-desktopImageUrl`);
-    const mobileImageUrl = mobileFile
-      ? await uploadUrbanixAsset(mobileFile, "banners", folder)
-      : text(formData, `${key}-mobileImageUrl`);
+    const desktopImages = { en: "", zh: "", ms: "" };
+    const mobileImages = { en: "", zh: "", ms: "" };
+
+    for (const lang of bannerLangs) {
+      const desktopFile = fileValues(formData, `${key}-desktopFile-${lang}`)[0];
+      const mobileFile = fileValues(formData, `${key}-mobileFile-${lang}`)[0];
+      desktopImages[lang] = desktopFile
+        ? await uploadUrbanixAsset(desktopFile, "banners", `${folder}/desktop-${lang}`)
+        : text(formData, `${key}-desktopImageUrl-${lang}`);
+      mobileImages[lang] = mobileFile
+        ? await uploadUrbanixAsset(mobileFile, "banners", `${folder}/mobile-${lang}`)
+        : text(formData, `${key}-mobileImageUrl-${lang}`);
+    }
 
     banners.push({
-      buttonEnabled: true,
+      buttonEnabled: formData.get(`${key}-buttonEnabled`) === "on",
+      buttonPosition: (text(formData, `${key}-buttonPosition`) || "bottom-left") as PromotionBanner["buttonPosition"],
       buttonUrl: text(formData, `${key}-targetUrl`) || "/products",
-      ctaText: text(formData, `${key}-ctaText`) || "Shop Now",
-      desktopImageUrl,
+      buttonText: {
+        bm: localizedCtaText.ms,
+        en: localizedCtaText.en,
+        zh: localizedCtaText.zh,
+      },
+      ctaText: localizedCtaText.en,
+      desktopImageUrl: encodeLocalizedImages(desktopImages),
       id,
       imageClickUrl: text(formData, `${key}-targetUrl`) || "/products",
       isActive: formData.get(`${key}-isActive`) === "on",
-      mobileImageUrl,
+      localizedCtaText,
+      localizedSubtitle,
+      localizedTitle,
+      mobileImageUrl: encodeLocalizedImages(mobileImages),
       sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
-      subtitle: text(formData, `${key}-subtitle`),
+      subtitle: localizedSubtitle.en || localizedSubtitle.zh || localizedSubtitle.ms,
       targetUrl: text(formData, `${key}-targetUrl`) || "/products",
       title,
     });

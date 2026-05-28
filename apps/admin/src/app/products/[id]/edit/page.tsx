@@ -20,6 +20,9 @@ type ProductWithImages = Database["public"]["Tables"]["products"]["Row"] & {
   description_en?: string | null;
   description_zh?: string | null;
   description_ms?: string | null;
+  main_image_url_en?: string | null;
+  main_image_url_zh?: string | null;
+  main_image_url_ms?: string | null;
 };
 
 export default async function EditProductPage({
@@ -37,7 +40,7 @@ export default async function EditProductPage({
     sb
       .from("products")
       .select(
-        "id, name, name_en, name_zh, name_ms, sku, slug, category_id, price, promotion_price, promotion_start_at, promotion_end_at, stock_quantity, is_active, is_featured, short_description, short_description_en, short_description_zh, short_description_ms, description, description_en, description_zh, description_ms, highlights, specifications, shipping_info, return_note, rating, main_image_url, product_variants, product_images(image_url, sort_order)"
+        "id, name, name_en, name_zh, name_ms, sku, slug, category_id, price, promotion_price, promotion_start_at, promotion_end_at, stock_quantity, is_active, is_featured, short_description, short_description_en, short_description_zh, short_description_ms, description, description_en, description_zh, description_ms, highlights, specifications, shipping_info, rating, main_image_url, main_image_url_en, main_image_url_zh, main_image_url_ms, product_variants, product_images(image_url, sort_order)"
       )
       .eq("id", id)
       .single(),
@@ -55,7 +58,17 @@ export default async function EditProductPage({
 
   // Parse product_variants JSONB — detect new format (with originalPrice) vs old (with values)
   const rawVariants = Array.isArray(product.product_variants) ? product.product_variants : [];
-  type NewVariant = { name: string; sku: string; originalPrice: number; promotionPrice?: number | null; stockQuantity: number };
+  type NewVariant = {
+    name: string;
+    localizedName?: { en: string; zh?: string; ms?: string };
+    groupName?: string;
+    localizedGroupName?: { en: string; zh?: string; ms?: string };
+    sku: string;
+    originalPrice: number;
+    promotionPrice?: number | null;
+    stockQuantity: number;
+    imageUrl?: string;
+  };
   type OldVariant = { name: string; values: string[] };
 
   const isNewFormat =
@@ -65,6 +78,20 @@ export default async function EditProductPage({
   const variantEntries: NewVariant[] | null = isNewFormat
     ? (rawVariants as NewVariant[])
     : null; // null → form will auto-seed from legacy price
+
+  function tryParseJsonArray(value: string | null | undefined): string[] {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter((u: unknown): u is string => typeof u === "string") : [];
+    } catch {
+      return value.startsWith("http") ? [value] : [];
+    }
+  }
+
+  const imagesEn = tryParseJsonArray(product.main_image_url_en);
+  const imagesZh = tryParseJsonArray(product.main_image_url_zh);
+  const imagesMs = tryParseJsonArray(product.main_image_url_ms);
 
   // Build product shape for the form
   const formProduct = {
@@ -92,14 +119,28 @@ export default async function EditProductPage({
     description_en: product.description_en || product.description || "",
     description_zh: product.description_zh || "",
     description_ms: product.description_ms || "",
-    highlights: Array.isArray(product.highlights) ? (product.highlights as string[]) : [],
-    specifications: Array.isArray(product.specifications) ? (product.specifications as string[]) : [],
+    highlights: Array.isArray(product.highlights) ? (product.highlights as string[]) : ((product.highlights as Record<string, unknown>)?.en as string[] ?? []),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    highlights_en: Array.isArray(product.highlights) ? (product.highlights as string[]) : ((product.highlights as any)?.en ?? []),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    highlights_zh: (product.highlights as any)?.zh ?? [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    highlights_ms: (product.highlights as any)?.ms ?? [],
+    specifications: Array.isArray(product.specifications) ? (product.specifications as string[]) : ((product.specifications as Record<string, unknown>)?.en as string[] ?? []),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    specifications_en: Array.isArray(product.specifications) ? (product.specifications as string[]) : ((product.specifications as any)?.en ?? []),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    specifications_zh: (product.specifications as any)?.zh ?? [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    specifications_ms: (product.specifications as any)?.ms ?? [],
     shipping_info: product.shipping_info || "",
-    return_note: product.return_note || "",
     rating: product.rating,
     // New-format variant entries (null → form seeds default from legacy price)
     variant_entries: variantEntries,
     images: (product.product_images ?? []).sort((a, b) => a.sort_order - b.sort_order),
+    images_en: imagesEn.map((url, i) => ({ image_url: url, sort_order: i })),
+    images_zh: imagesZh.map((url, i) => ({ image_url: url, sort_order: i })),
+    images_ms: imagesMs.map((url, i) => ({ image_url: url, sort_order: i })),
   };
 
   // Suppress "declared but never read" for OldVariant (used only for JSONB detection)

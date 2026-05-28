@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
+import { freeShippingCopy } from "@/lib/shipping-text";
 
 export function CartView({
   products,
@@ -25,6 +26,7 @@ export function CartView({
   const { count, items } = useCart();
   const lines = buildCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
+  const shippingText = freeShippingCopy(settings);
 
   if (lines.length === 0) {
     return (
@@ -56,7 +58,7 @@ export function CartView({
 
         <aside className="flex flex-col gap-4">
           <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
-            <LocalizedValue fallback="Free shipping for orders above RM40" value={settings.freeShippingText} />
+            <LocalizedValue fallback={shippingText.en} value={shippingText} />
           </div>
           <OrderSummaryCard lines={lines} totals={totals} />
           <Link

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Loader2, MapPin, Package, Search, Truck } from "lucide-react";
+import { Loader2, Package, Search, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,7 @@ type OrderItem = {
 };
 
 type TrackedOrder = {
-  id: string;
   orderNumber: string;
-  customerName: string;
   createdAt: string;
   orderStatus: string;
   paymentStatus: string;
@@ -27,6 +25,7 @@ type TrackedOrder = {
   hasReceipt: boolean;
   subtotal: number;
   shippingFee: number;
+  discountAmount: number;
   totalAmount: number;
   items: OrderItem[];
 };
@@ -99,8 +98,8 @@ export function TrackOrderView({
   }, []);
 
   async function doSearch(orderNum: string, ph: string) {
-    if (!orderNum.trim() && !ph.trim()) {
-      setError("Please enter an order number or phone number.");
+    if (!orderNum.trim() || !ph.trim()) {
+      setError("Please enter your order number and phone number.");
       return;
     }
 
@@ -114,16 +113,12 @@ export function TrackOrderView({
       if (ph.trim()) params.set("phone", ph.trim().replace(/\D/g, ""));
 
       const res = await fetch(`/api/orders/track?${params}`);
-      const data = await res.json() as { orders?: TrackedOrder[]; error?: string };
+      const data = await res.json() as { order?: TrackedOrder; error?: string };
 
-      if (!res.ok || !data.orders?.length) {
-        setError(
-          data.error === "No order found."
-            ? "No order found with those details. Please check and try again."
-            : (data.error ?? "Lookup failed. Please try again.")
-        );
+      if (!res.ok || !data.order) {
+        setError(data.error ?? "Order not found. Please check your order number and phone number.");
       } else {
-        setOrders(data.orders);
+        setOrders([data.order]);
       }
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -145,7 +140,7 @@ export function TrackOrderView({
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-accent">Urbanix Store</p>
           <h1 className="mt-2 text-3xl font-extrabold text-primary sm:text-4xl">Track Your Order</h1>
           <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-            Enter your order number and/or phone number to check your order status and shipment details.
+            Enter your order number and phone number to check your order status and shipment details.
           </p>
         </div>
       </section>
@@ -185,7 +180,7 @@ export function TrackOrderView({
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Enter either or both. The order number can be found in your order confirmation.
+                  Both fields are required. The order number can be found in your order confirmation.
                 </p>
                 <Button type="submit" variant="secondary" disabled={loading} className="w-full mt-1">
                   {loading ? (
@@ -212,7 +207,7 @@ export function TrackOrderView({
 
           {/* Results */}
           {orders && orders.map((order) => (
-            <OrderCard key={order.id} order={order} />
+            <OrderCard key={order.orderNumber} order={order} />
           ))}
         </div>
       </section>
@@ -237,9 +232,8 @@ function OrderCard({ order }: { order: TrackedOrder }) {
       </div>
 
       <div className="flex flex-col gap-4 p-5">
-        {/* Customer + date */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <InfoRow label="Customer" value={order.customerName} />
+        {/* Date */}
+        <div className="grid grid-cols-1 gap-3 text-sm">
           <InfoRow label="Order Date" value={formatDate(order.createdAt)} />
         </div>
 

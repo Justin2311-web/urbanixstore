@@ -7,7 +7,7 @@ import { saveCategory, deleteCategory } from "@/lib/actions";
 
 type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 
-const TONES = ["mint", "coral", "sky", "gold", "lavender", "green", "orange", "blue"] as const;
+const TONES = ["tech-blue", "neon-cyan", "premium-gold", "mint", "teal", "peach", "coral-red", "urban-purple", "fresh-teal", "steel-grey"] as const;
 
 export default async function CategoriesPage({
   searchParams,
@@ -40,8 +40,16 @@ export default async function CategoriesPage({
         <form action={saveCategory} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <input type="hidden" name="id" value="" />
           <div>
-            <label className="field-label">Name *</label>
+            <label className="field-label">Name * (EN)</label>
             <input name="name" required className="field-input" placeholder="e.g. Fans" />
+          </div>
+          <div>
+            <label className="field-label">Name (中文)</label>
+            <input name="name_zh" className="field-input" placeholder="e.g. 风扇" />
+          </div>
+          <div>
+            <label className="field-label">Name (BM)</label>
+            <input name="name_ms" className="field-input" placeholder="e.g. Kipas" />
           </div>
           <div>
             <label className="field-label">Slug</label>
@@ -58,8 +66,16 @@ export default async function CategoriesPage({
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="field-label">Description</label>
+            <label className="field-label">Description (EN)</label>
             <input name="description" className="field-input" placeholder="Optional short description" />
+          </div>
+          <div>
+            <label className="field-label">Description (中文)</label>
+            <input name="description_zh" className="field-input" placeholder="可选简短描述" />
+          </div>
+          <div>
+            <label className="field-label">Description (BM)</label>
+            <input name="description_ms" className="field-input" placeholder="Penerangan pilihan" />
           </div>
           <div className="sm:col-span-2">
             <label className="field-label">Image URL</label>
@@ -99,8 +115,16 @@ export default async function CategoriesPage({
                     <form action={saveCategory} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       <input type="hidden" name="id" value={cat.id} />
                       <div>
-                        <label className="field-label">Name *</label>
-                        <input name="name" required className="field-input" defaultValue={cat.name} />
+                        <label className="field-label">Name * (EN)</label>
+                        <input name="name" required className="field-input" defaultValue={(cat as CategoryRow & { name_en?: string | null }).name_en ?? cat.name} />
+                      </div>
+                      <div>
+                        <label className="field-label">Name (中文)</label>
+                        <input name="name_zh" className="field-input" defaultValue={(cat as CategoryRow & { name_zh?: string | null }).name_zh ?? ""} />
+                      </div>
+                      <div>
+                        <label className="field-label">Name (BM)</label>
+                        <input name="name_ms" className="field-input" defaultValue={(cat as CategoryRow & { name_ms?: string | null }).name_ms ?? ""} />
                       </div>
                       <div>
                         <label className="field-label">Slug</label>
@@ -117,8 +141,16 @@ export default async function CategoriesPage({
                         </select>
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="field-label">Description</label>
+                        <label className="field-label">Description (EN)</label>
                         <input name="description" className="field-input" defaultValue={cat.description ?? ""} />
+                      </div>
+                      <div>
+                        <label className="field-label">Description (中文)</label>
+                        <input name="description_zh" className="field-input" defaultValue={(cat as CategoryRow & { description_zh?: string | null }).description_zh ?? ""} />
+                      </div>
+                      <div>
+                        <label className="field-label">Description (BM)</label>
+                        <input name="description_ms" className="field-input" defaultValue={(cat as CategoryRow & { description_ms?: string | null }).description_ms ?? ""} />
                       </div>
                       <div className="sm:col-span-2">
                         <label className="field-label">Image URL</label>

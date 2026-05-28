@@ -1,87 +1,173 @@
-// @ts-nocheck
-// Supabase v2.105.x TypeScript inference regression — see orders/route.ts
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { createStorefrontClient } from "@/lib/supabase";
+import type { Database, Json } from "@ecommerce/database";
 
 export const dynamic = "force-dynamic";
+
+const genericLookupError = "Order not found. Please check your order number and phone number.";
+
+type OrderRow = Pick<
+  Database["public"]["Tables"]["orders"]["Row"],
+  | "id"
+  | "order_number"
+  | "created_at"
+  | "order_status"
+  | "payment_status"
+  | "tracking_number"
+  | "courier"
+  | "receipt_url"
+  | "subtotal"
+  | "shipping_fee"
+  | "discount_amount"
+  | "total_amount"
+  | "customer_phone"
+>;
+
+type OrderItemRow = Pick<
+  Database["public"]["Tables"]["order_items"]["Row"],
+  "product_name" | "product_sku" | "quantity" | "unit_price" | "total_price" | "selected_variants"
+>;
+
+type OrderLookupTable = {
+  select(columns: string): {
+    eq(column: string, value: string): {
+      in(column: string, values: string[]): {
+        maybeSingle(): Promise<{ data: OrderRow | null; error: { message: string } | null }>;
+      };
+    };
+  };
+};
+
+type OrderItemsLookupTable = {
+  select(columns: string): {
+    eq(column: string, value: string): {
+      order(column: string, options: { ascending: boolean }): Promise<{
+        data: OrderItemRow[] | null;
+        error: { message: string } | null;
+      }>;
+    };
+  };
+};
+
+function fail(status = 404) {
+  return NextResponse.json({ error: genericLookupError }, { status });
+}
+
+function createOrderLookupClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase URL or service role key for order tracking.");
+  }
+
+  return createClient<Database>(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+function normalizeOrderNumber(value: string | null) {
+  const normalized = value?.trim().toUpperCase() ?? "";
+  if (!/^[A-Z0-9-]{4,64}$/.test(normalized)) return null;
+  return normalized;
+}
+
+function normalizePhoneDigits(value: string | null) {
+  return value?.replace(/\D/g, "") ?? "";
+}
+
+function phoneCandidates(value: string | null) {
+  const digits = normalizePhoneDigits(value);
+  if (!/^(?:0?1\d{8,9}|601\d{8,9})$/.test(digits)) return [];
+
+  const candidates = new Set<string>([digits]);
+  if (digits.startsWith("60")) {
+    candidates.add(`0${digits.slice(2)}`);
+  } else if (digits.startsWith("0")) {
+    candidates.add(`6${digits}`);
+  }
+
+  return [...candidates];
+}
+
+function isPhoneMatch(storedPhone: string, candidates: string[]) {
+  const storedDigits = normalizePhoneDigits(storedPhone);
+  return candidates.includes(storedDigits);
+}
+
+function selectedVariantsForResponse(value: Json | null) {
+  if (!value || Array.isArray(value) || typeof value !== "object") return null;
+
+  const entries = Object.entries(value).filter(
+    (entry): entry is [string, string] =>
+      typeof entry[0] === "string" && typeof entry[1] === "string"
+  );
+
+  return entries.length ? Object.fromEntries(entries) : null;
+}
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const orderNumber = searchParams.get("order_number")?.trim().toUpperCase();
-    const phone = searchParams.get("phone")?.replace(/\D/g, "");
+    const orderNumber = normalizeOrderNumber(searchParams.get("order_number"));
+    const phones = phoneCandidates(searchParams.get("phone"));
 
-    if (!orderNumber && !phone) {
-      return NextResponse.json(
-        { error: "Provide an order number or phone number to track." },
-        { status: 400 }
-      );
-    }
+    if (!orderNumber || phones.length === 0) return fail(400);
 
-    const sb = createStorefrontClient();
+    const sb = createOrderLookupClient();
+    const ordersTable = sb.from("orders") as unknown as OrderLookupTable;
+    const orderItemsTable = sb.from("order_items") as unknown as OrderItemsLookupTable;
 
-    let query = sb
-      .from("orders")
+    const { data: order, error: orderError } = await ordersTable
       .select(
-        "id, order_number, customer_name, created_at, order_status, payment_status, tracking_number, courier, receipt_url, subtotal, shipping_fee, total_amount, order_items(product_name, product_sku, quantity, unit_price, total_price, selected_variants)"
+        "id, order_number, created_at, order_status, payment_status, tracking_number, courier, receipt_url, subtotal, shipping_fee, discount_amount, total_amount, customer_phone"
       )
-      .order("created_at", { ascending: false });
+      .eq("order_number", orderNumber)
+      .in("customer_phone", phones)
+      .maybeSingle();
 
-    if (orderNumber && phone) {
-      query = query.eq("order_number", orderNumber).eq("customer_phone", phone);
-    } else if (orderNumber) {
-      query = query.eq("order_number", orderNumber);
-    } else if (phone) {
-      query = query.eq("customer_phone", phone).limit(5);
+    if (orderError) {
+      console.error("[Storefront] /api/orders/track order lookup error:", orderError);
+      return fail(500);
     }
 
-    const { data, error } = await query;
+    if (!order || !isPhoneMatch(order.customer_phone, phones)) return fail();
 
-    if (error) {
-      console.error("[Storefront] /api/orders/track error:", error);
-      return NextResponse.json({ error: "Lookup failed." }, { status: 500 });
+    const { data: orderItems, error: itemsError } = await orderItemsTable
+      .select("product_name, product_sku, quantity, unit_price, total_price, selected_variants")
+      .eq("order_id", order.id)
+      .order("created_at", { ascending: true });
+
+    if (itemsError) {
+      console.error("[Storefront] /api/orders/track item lookup error:", itemsError);
+      return fail(500);
     }
 
-    if (!data || data.length === 0) {
-      return NextResponse.json({ error: "No order found." }, { status: 404 });
-    }
-
-    const safe = data.map((order) => ({
-      id: order.id,
-      orderNumber: order.order_number,
-      customerName: order.customer_name,
-      createdAt: order.created_at,
-      orderStatus: order.order_status,
-      paymentStatus: order.payment_status,
-      trackingNumber: order.tracking_number,
-      courier: order.courier,
-      hasReceipt: Boolean(order.receipt_url),
-      subtotal: order.subtotal,
-      shippingFee: order.shipping_fee,
-      totalAmount: order.total_amount,
-      items: (order.order_items as Array<{
-        product_name: string;
-        product_sku: string;
-        quantity: number;
-        unit_price: number;
-        total_price: number;
-        selected_variants?: Record<string, string> | null;
-      }>).map((item) => ({
-        productName: item.product_name,
-        productSku: item.product_sku,
-        quantity: item.quantity,
-        unitPrice: item.unit_price,
-        totalPrice: item.total_price,
-        selectedVariants: item.selected_variants ?? null,
-      })),
-    }));
-
-    return NextResponse.json({ orders: safe });
+    return NextResponse.json({
+      order: {
+        orderNumber: order.order_number,
+        createdAt: order.created_at,
+        orderStatus: order.order_status,
+        paymentStatus: order.payment_status,
+        trackingNumber: order.tracking_number,
+        courier: order.courier,
+        hasReceipt: Boolean(order.receipt_url),
+        subtotal: order.subtotal,
+        shippingFee: order.shipping_fee,
+        discountAmount: order.discount_amount,
+        totalAmount: order.total_amount,
+        items: (orderItems ?? []).map((item) => ({
+          productName: item.product_name,
+          productSku: item.product_sku,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          totalPrice: item.total_price,
+          selectedVariants: selectedVariantsForResponse(item.selected_variants),
+        })),
+      },
+    });
   } catch (error) {
     console.error("[Storefront] /api/orders/track error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
-    );
+    return fail(500);
   }
 }

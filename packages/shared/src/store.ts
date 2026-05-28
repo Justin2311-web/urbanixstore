@@ -147,6 +147,64 @@ function asStringArray(value: Json | undefined): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
+/** Parse a TEXT column that stores a JSON array of image URLs */
+function parseImageArray(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter((u): u is string => typeof u === "string" && isUsableAssetUrl(u));
+  }
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((u): u is string => typeof u === "string" && isUsableAssetUrl(u)) : [];
+  } catch {
+    return isUsableAssetUrl(value) ? [value] : [];
+  }
+}
+
+function parseLocalizedImageUrls(value: unknown): { en: string; zh: string; ms: string } {
+  if (!value || typeof value !== "string") {
+    return { en: "", zh: "", ms: "" };
+  }
+  try {
+    const parsed = JSON.parse(value) as Partial<Record<"en" | "zh" | "ms", unknown>>;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const en = typeof parsed.en === "string" && isUsableAssetUrl(parsed.en) ? parsed.en : "";
+      const zh = typeof parsed.zh === "string" && isUsableAssetUrl(parsed.zh) ? parsed.zh : "";
+      const ms = typeof parsed.ms === "string" && isUsableAssetUrl(parsed.ms) ? parsed.ms : "";
+      const fallback = en || zh || ms;
+      return { en: en || fallback, zh: zh || en || fallback, ms: ms || en || fallback };
+    }
+  } catch {
+    // Plain legacy URL, handled below.
+  }
+  const legacy = isUsableAssetUrl(value) ? value : "";
+  return { en: legacy, zh: legacy, ms: legacy };
+}
+
+/** Parse a JSONB column that may be multilingual {en:[...], zh:[...], ms:[...]} or a flat string[] */
+function parseMultilingualArray(value: Json | undefined | null): { en: string[]; zh: string[]; ms: string[] } {
+  if (Array.isArray(value)) {
+    const lines = asStringArray(value);
+    return { en: lines, zh: lines, ms: lines };
+  }
+  if (!value) return { en: [], zh: [], ms: [] };
+  const obj = value as Record<string, unknown>;
+  if (!Array.isArray(obj.en) && !Array.isArray(obj.zh) && !Array.isArray(obj.ms)) {
+    return { en: [], zh: [], ms: [] };
+  }
+  const en = asStringArray((obj.en as Json) ?? []);
+  return {
+    en,
+    zh: asStringArray((obj.zh as Json) ?? []).length > 0 ? asStringArray((obj.zh as Json) ?? []) : en,
+    ms: asStringArray((obj.ms as Json) ?? []).length > 0 ? asStringArray((obj.ms as Json) ?? []) : en,
+  };
+}
+
+function imageListToDbValue(images: string[]) {
+  return JSON.stringify(images.filter(isUsableAssetUrl).slice(0, 9));
+}
+
 function localized(en: string, zh?: string, ms?: string): LocalizedTextValue {
   return {
     en: en.trim(),
@@ -445,7 +503,7 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     .map((row): PromotionBanner => {
       const buttonUrl = cell(row, "button_url") || cell(row, "target_url") || "";
       const imageClickUrl = cell(row, "image_click_url") || cell(row, "target_url") || buttonUrl || "/products";
-      const buttonText = cell(row, "button_text_en");
+      const buttonText = cell(row, "cta_text_en");
 
       return {
         buttonEnabled: booleanCell(row, "button_enabled", Boolean(buttonText && buttonUrl)),
@@ -455,7 +513,7 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
         id: cell(row, "banner_id"),
         imageClickUrl,
         isActive: true,
-        localizedCtaText: localized(buttonText, cell(row, "button_text_zh"), cell(row, "button_text_ms")),
+        localizedCtaText: localized(buttonText, cell(row, "cta_text_zh"), cell(row, "cta_text_ms")),
         localizedSubtitle: localized("", "", ""),
         localizedTitle: localized("", "", ""),
         mobileImageUrl: cell(row, "mobile_image_url"),
@@ -491,8 +549,10 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     ...defaultUrbanixStoreData.settings,
     contactEmail: settingsMap.get("contact_email") || defaultUrbanixStoreData.settings.contactEmail,
     contactPhone: settingsMap.get("contact_phone") || defaultUrbanixStoreData.settings.contactPhone,
-    freeShippingMinimumAmount: Number(settingsMap.get("free_shipping_threshold") || 40),
-    freeShippingMinAmount: Number(settingsMap.get("free_shipping_threshold") || 40),
+    eastMalaysiaFreeShippingMinimumAmount: Number(settingsMap.get("east_malaysia_free_shipping_threshold") || 150),
+    eastMalaysiaShippingFee: Number(settingsMap.get("east_malaysia_shipping_fee") || 15),
+    freeShippingMinimumAmount: Number(settingsMap.get("west_malaysia_free_shipping_threshold") || settingsMap.get("free_shipping_threshold") || 80),
+    freeShippingMinAmount: Number(settingsMap.get("west_malaysia_free_shipping_threshold") || settingsMap.get("free_shipping_threshold") || 80),
     freeShippingText,
     logo: settingsMap.get("logo_url") || defaultUrbanixStoreData.settings.logo,
     logoUrl: settingsMap.get("logo_url") || defaultUrbanixStoreData.settings.logoUrl,
@@ -500,6 +560,7 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
       lazada: settingsMap.get("lazada_url") || "",
       shopee: settingsMap.get("shopee_url") || "",
     },
+    shippingFee: Number(settingsMap.get("west_malaysia_shipping_fee") || settingsMap.get("shipping_fee") || 7),
     socialLinks: {
       facebook: settingsMap.get("facebook_url") || "",
       instagram: settingsMap.get("instagram_url") || "",
@@ -508,6 +569,8 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
     storeName: settingsMap.get("store_name") || defaultUrbanixStoreData.settings.storeName,
     storeTagline: footerText(footer, "store_tagline", { en: defaultUrbanixStoreData.settings.storeTagline }).en,
     whatsappNumber: settingsMap.get("whatsapp_number") || defaultUrbanixStoreData.settings.whatsappNumber,
+    westMalaysiaFreeShippingMinimumAmount: Number(settingsMap.get("west_malaysia_free_shipping_threshold") || settingsMap.get("free_shipping_threshold") || 80),
+    westMalaysiaShippingFee: Number(settingsMap.get("west_malaysia_shipping_fee") || settingsMap.get("shipping_fee") || 7),
   };
   const homepage: HomepageContent = {
     ...defaultUrbanixStoreData.homepage,
@@ -539,11 +602,51 @@ function localCategoryTone(slug: string): ProductCategory["tone"] {
   return defaultUrbanixStoreData.categories.find((category) => category.id === slug)?.tone ?? "mint";
 }
 
+const categoryToneAliases: Record<string, ProductCategory["tone"]> = {
+  blue: "tech-blue",
+  cyan: "cyber-cyan",
+  "cyber-cyan": "cyber-cyan",
+  purple: "aurora-purple",
+  "aurora-purple": "aurora-purple",
+  emerald: "emerald-glow",
+  "emerald-glow": "emerald-glow",
+  graphite: "graphite",
+  silver: "ice-silver",
+  "ice-silver": "ice-silver",
+  teal: "fresh-teal",
+  green: "lime-green",
+  orange: "sunset-orange",
+  gold: "premium-gold",
+  lavender: "urban-purple",
+  coral: "coral-red",
+  grey: "steel-grey",
+  gray: "steel-grey",
+  slate: "steel-grey",
+  rose: "soft-pink",
+};
+
+function normalizeCategoryTone(value: string | null | undefined, fallback: ProductCategory["tone"] = "tech-blue"): ProductCategory["tone"] {
+  const tone = (value ?? "").trim();
+  const allowed = new Set<string>([
+    "teal", "mint", "peach", "lilac", "sky", "rose", "amber", "slate", "lime", "violet", "sand", "sun", "dark",
+    "fan-green", "fan-orange", "tech-blue", "cyber-cyan", "aurora-purple", "emerald-glow", "graphite", "ice-silver", "neon-cyan", "urban-purple", "lime-green", "sunset-orange",
+    "coral-red", "soft-pink", "premium-gold", "steel-grey", "fresh-teal", "coral", "gold", "lavender", "green", "orange", "blue",
+  ]);
+  if (allowed.has(tone)) return tone as ProductCategory["tone"];
+  return categoryToneAliases[tone] ?? fallback;
+}
+
 function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): ProductCategory {
   const rowC = row as typeof row & {
     name_en?: string | null;
     name_zh?: string | null;
     name_ms?: string | null;
+    description_en?: string | null;
+    description_zh?: string | null;
+    description_ms?: string | null;
+    image_url_en?: string | null;
+    image_url_zh?: string | null;
+    image_url_ms?: string | null;
   };
   const baseName = row.name;
   const localizedName: LocalizedTextValue = {
@@ -551,18 +654,30 @@ function mapCategory(row: Database["public"]["Tables"]["categories"]["Row"]): Pr
     zh: rowC.name_zh?.trim() || rowC.name_en?.trim() || baseName,
     ms: rowC.name_ms?.trim() || rowC.name_en?.trim() || baseName,
   };
+  const localizedDescription: LocalizedTextValue = {
+    en: rowC.description_en?.trim() || row.description || "",
+    zh: rowC.description_zh?.trim() || rowC.description_en?.trim() || row.description || "",
+    ms: rowC.description_ms?.trim() || rowC.description_en?.trim() || row.description || "",
+  };
+  const localizedImageUrls = {
+    en: rowC.image_url_en || row.image_url || "",
+    zh: rowC.image_url_zh || rowC.image_url_en || row.image_url || "",
+    ms: rowC.image_url_ms || rowC.image_url_en || row.image_url || "",
+  };
   return {
     active: row.is_active,
-    description: row.description ?? "",
+    description: localizedDescription.en,
     href: `/categories?category=${row.slug}`,
     id: row.slug,
-    imageUrl: row.image_url ?? "",
+    imageUrl: localizedImageUrls.en,
     isActive: row.is_active,
+    localizedDescription,
+    localizedImageUrls,
     localizedName,
     name: rowC.name_en?.trim() || baseName,
     slug: row.slug,
     sortOrder: row.sort_order,
-    tone: (row.tone as ProductCategory["tone"] | null) ?? localCategoryTone(row.slug),
+    tone: normalizeCategoryTone(row.tone, localCategoryTone(row.slug)),
   };
 }
 
@@ -578,14 +693,25 @@ function mapProduct({
   variantsByProductId?: Map<string, ProductVariantOption[]>;
 }): UrbanixProduct {
   const category = row.category_id ? categoriesById.get(row.category_id) : undefined;
-  const galleryImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url);
   const variantOptions = variantsByProductId?.get(row.id) ?? [];
 
   // Parse product_variants JSONB — could be new format (with originalPrice) or old (with values)
   const { variants: newVariants, productVariants: legacyVariants } = parseProductVariantEntries(row.product_variants);
 
-  // Derive pricing from the first variant (new format), or fall back to product-level columns
-  const defaultVariant = newVariants && newVariants.length > 0 ? newVariants[0] : undefined;
+  const fallbackVariant: ProductVariantEntry = {
+    groupName: "Option",
+    localizedGroupName: localized("Option", "选项", "Pilihan"),
+    localizedName: localized("Default", "默认", "Lalai"),
+    name: "Default",
+    originalPrice: Number(row.price),
+    promotionPrice: row.promotion_price === null ? null : Number(row.promotion_price),
+    sku: row.sku,
+    stockQuantity: row.stock_quantity,
+  };
+  const effectiveVariants = newVariants && newVariants.length > 0 ? newVariants : [fallbackVariant];
+
+  // Derive pricing from the first variant (new format), or a virtual legacy fallback variant.
+  const defaultVariant = effectiveVariants[0];
   const variantPricing = defaultVariant ? getVariantEffectivePrice(defaultVariant) : undefined;
 
   // Typed row with multilingual columns
@@ -599,6 +725,9 @@ function mapProduct({
     description_en?: string | null;
     description_zh?: string | null;
     description_ms?: string | null;
+    main_image_url_en?: string | null;
+    main_image_url_zh?: string | null;
+    main_image_url_ms?: string | null;
   };
 
   const baseName = row.name;
@@ -621,6 +750,27 @@ function mapProduct({
     ms: rowX.short_description_ms?.trim() || rowX.short_description_en?.trim() || baseShortDesc,
   };
 
+  // Parse multilingual image arrays (stored as JSON strings in TEXT columns)
+  const imgEn = parseImageArray(rowX.main_image_url_en);
+  const imgZh = parseImageArray(rowX.main_image_url_zh);
+  const imgMs = parseImageArray(rowX.main_image_url_ms);
+  const flatImages = (imagesByProductId.get(row.id) ?? []).map((image) => image.image_url).filter(isUsableAssetUrl);
+  const anyLanguageImages = imgEn.length > 0 ? imgEn : imgZh.length > 0 ? imgZh : imgMs.length > 0 ? imgMs : flatImages;
+  const localizedImages = (imgEn.length > 0 || imgZh.length > 0 || imgMs.length > 0) ? {
+    en: imgEn.length > 0 ? imgEn : anyLanguageImages,
+    zh: imgZh.length > 0 ? imgZh : imgEn.length > 0 ? imgEn : anyLanguageImages,
+    ms: imgMs.length > 0 ? imgMs : imgEn.length > 0 ? imgEn : anyLanguageImages,
+  } : undefined;
+
+  // Parse multilingual highlights/specs (stored as {en:[...], zh:[...], ms:[...]} JSONB)
+  const highlightsMulti = parseMultilingualArray(row.highlights);
+  const specsMulti = parseMultilingualArray(row.specifications);
+
+  // For gallery: prefer EN images array, fall back to product_images table, fall back to main_image_url
+  const resolvedGalleryImages = imgEn.length > 0
+    ? imgEn
+    : anyLanguageImages;
+
   const product: UrbanixProduct = {
     category: category?.name ?? "Uncategorized",
     categoryId: category?.id,
@@ -628,22 +778,25 @@ function mapProduct({
     description: baseDesc,
     featured: row.is_featured,
     fullDescription: baseDesc,
-    galleryImages,
-    highlights: asStringArray(row.highlights),
+    galleryImages: resolvedGalleryImages,
+    highlights: highlightsMulti?.en ?? asStringArray(row.highlights),
     id: row.slug,
-    image: row.main_image_url ?? galleryImages[0] ?? "",
+    image: row.main_image_url ?? imgEn[0] ?? resolvedGalleryImages[0] ?? "",
     imageTone: (row.image_tone as UrbanixProduct["imageTone"] | null) ?? "fan-green",
     isActive: row.is_active,
     isFeatured: row.is_featured,
     localizedDescription,
+    localizedHighlights: highlightsMulti ?? undefined,
+    localizedImages,
     localizedName,
     localizedShortDescription,
-    mainImageUrl: row.main_image_url ?? "",
+    localizedSpecifications: specsMulti ?? undefined,
+    mainImageUrl: row.main_image_url ?? imgEn[0] ?? "",
     name: rowX.name_en?.trim() || row.name,
     normalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
     originalPrice: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
     price: defaultVariant ? defaultVariant.originalPrice : Number(row.price),
-    productImages: galleryImages.map((imageUrl, index) => ({
+    productImages: resolvedGalleryImages.map((imageUrl, index) => ({
       imageUrl,
       isPrimary: index === 0,
       sortOrder: index,
@@ -664,7 +817,7 @@ function mapProduct({
     sku: row.sku,
     slug: row.slug,
     sold: row.sold ?? 0,
-    specifications: asStringArray(row.specifications),
+    specifications: specsMulti?.en ?? asStringArray(row.specifications),
     status: row.is_active ? "active" : "inactive",
     // Stock comes from first variant if available, otherwise product-level
     stockQuantity: defaultVariant ? defaultVariant.stockQuantity : row.stock_quantity,
@@ -676,7 +829,7 @@ function mapProduct({
     variantGroups: variantOptions.length > 0 ? groupProductVariants(variantOptions) : undefined,
     variantOptions: variantOptions.length > 0 ? variantOptions : undefined,
     // New flat variant entries (new format)
-    variants: newVariants,
+    variants: effectiveVariants,
     // Legacy simple variant groups (old format)
     productVariants: legacyVariants ?? undefined,
   };
@@ -717,14 +870,38 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
       .filter((item) => item && typeof item.label === "string" && typeof item.href === "string");
   }
 
+  const settingsRow = row as Database["public"]["Tables"]["store_settings"]["Row"] & {
+    east_malaysia_free_shipping_min_amount?: number | null;
+    east_malaysia_free_shipping_threshold?: number | null;
+    east_malaysia_shipping_fee?: number | null;
+    west_malaysia_free_shipping_min_amount?: number | null;
+    west_malaysia_free_shipping_threshold?: number | null;
+    west_malaysia_shipping_fee?: number | null;
+  };
+  const westMalaysiaShippingFee = Number(settingsRow.west_malaysia_shipping_fee ?? row.shipping_fee ?? 7);
+  const eastMalaysiaShippingFee = Number(settingsRow.east_malaysia_shipping_fee ?? 15);
+  const westMalaysiaFreeShippingMinimumAmount = Number(
+    settingsRow.west_malaysia_free_shipping_threshold ??
+      settingsRow.west_malaysia_free_shipping_min_amount ??
+      row.free_shipping_min_amount ??
+      80
+  );
+  const eastMalaysiaFreeShippingMinimumAmount = Number(
+    settingsRow.east_malaysia_free_shipping_threshold ??
+      settingsRow.east_malaysia_free_shipping_min_amount ??
+      150
+  );
+
   return {
     contactEmail: row.contact_email ?? "",
     contactPhone: row.contact_phone ?? "",
     currency: row.currency,
     favicon: row.favicon_url ?? defaultUrbanixStoreData.settings.favicon,
     faviconUrl: row.favicon_url ?? defaultUrbanixStoreData.settings.faviconUrl,
-    freeShippingMinimumAmount: 40,
-    freeShippingMinAmount: 40,
+    eastMalaysiaFreeShippingMinimumAmount,
+    eastMalaysiaShippingFee,
+    freeShippingMinimumAmount: westMalaysiaFreeShippingMinimumAmount,
+    freeShippingMinAmount: westMalaysiaFreeShippingMinimumAmount,
     freeShippingText: defaultUrbanixStoreData.settings.freeShippingText,
     logo: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logo,
     logoUrl: isUsableAssetUrl(row.logo_url) ? row.logo_url ?? "" : defaultUrbanixStoreData.settings.logoUrl,
@@ -741,7 +918,7 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
       shopee: typeof (socialLinks as Record<string, unknown>).shopee_logo === "string" ? (socialLinks as Record<string, unknown>).shopee_logo as string : "",
       lazada: typeof (socialLinks as Record<string, unknown>).lazada_logo === "string" ? (socialLinks as Record<string, unknown>).lazada_logo as string : "",
     },
-    shippingFee: Number(row.shipping_fee),
+    shippingFee: westMalaysiaShippingFee,
     socialLinks: {
       facebook: typeof (socialLinks as Record<string, unknown>).facebook === "string" ? (socialLinks as Record<string, unknown>).facebook as string : "",
       instagram: typeof (socialLinks as Record<string, unknown>).instagram === "string" ? (socialLinks as Record<string, unknown>).instagram as string : "",
@@ -752,6 +929,8 @@ function mapStoreSettings(row?: Database["public"]["Tables"]["store_settings"]["
     storeName: row.store_name,
     storeTagline: row.store_tagline,
     whatsappNumber: row.whatsapp_number || defaultUrbanixStoreData.settings.whatsappNumber,
+    westMalaysiaFreeShippingMinimumAmount,
+    westMalaysiaShippingFee,
   };
 }
 
@@ -761,6 +940,42 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
   }
 
   const r = row as Record<string, unknown>;
+  const promoStripMeta = (() => {
+    if (typeof row.promo_strip_text !== "string" || !row.promo_strip_text.trim().startsWith("{")) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(row.promo_strip_text) as {
+        heroButtonText?: LocalizedTextValue;
+        heroSubtitle?: LocalizedTextValue;
+        heroTitle?: LocalizedTextValue;
+        promoStripText?: LocalizedTextValue;
+      };
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const plainPromoText = promoStripMeta ? "" : (typeof row.promo_strip_text === "string" ? row.promo_strip_text : "");
+  const promoTextEn = (typeof r.promo_strip_text_en === "string" && r.promo_strip_text_en) ? r.promo_strip_text_en : promoStripMeta?.promoStripText?.en || plainPromoText || defaultUrbanixStoreData.homepage.promotionStripText;
+  const promoTextZh = (typeof r.promo_strip_text_zh === "string" && r.promo_strip_text_zh) ? r.promo_strip_text_zh : promoStripMeta?.promoStripText?.zh || "";
+  const promoTextMs = (typeof r.promo_strip_text_ms === "string" && r.promo_strip_text_ms) ? r.promo_strip_text_ms : promoStripMeta?.promoStripText?.ms || "";
+  const localizedPromoStripText: LocalizedTextValue = { en: promoTextEn, zh: promoTextZh, ms: promoTextMs };
+  const heroTitleEn = (typeof r.hero_title_en === "string" && r.hero_title_en) ? r.hero_title_en : promoStripMeta?.heroTitle?.en || row.hero_title || defaultUrbanixStoreData.homepage.heroTitle;
+  const heroTitleZh = (typeof r.hero_title_zh === "string" && r.hero_title_zh) ? r.hero_title_zh : promoStripMeta?.heroTitle?.zh || "";
+  const heroTitleMs = (typeof r.hero_title_ms === "string" && r.hero_title_ms) ? r.hero_title_ms : promoStripMeta?.heroTitle?.ms || "";
+  const localizedHeroTitle: LocalizedTextValue = { en: heroTitleEn, zh: heroTitleZh, ms: heroTitleMs };
+  const heroSubtitleDefault = row.hero_subtitle || defaultUrbanixStoreData.homepage.heroSubtitle;
+  const heroSubtitleEn = (typeof r.hero_subtitle_en === "string" && r.hero_subtitle_en) ? r.hero_subtitle_en : promoStripMeta?.heroSubtitle?.en || heroSubtitleDefault;
+  const heroSubtitleZh = (typeof r.hero_subtitle_zh === "string" && r.hero_subtitle_zh) ? r.hero_subtitle_zh : promoStripMeta?.heroSubtitle?.zh || "";
+  const heroSubtitleMs = (typeof r.hero_subtitle_ms === "string" && r.hero_subtitle_ms) ? r.hero_subtitle_ms : promoStripMeta?.heroSubtitle?.ms || "";
+  const localizedHeroSubtitle: LocalizedTextValue = { en: heroSubtitleEn, zh: heroSubtitleZh, ms: heroSubtitleMs };
+  const heroButtonTextDefault = row.hero_button_text || defaultUrbanixStoreData.homepage.heroButtonText;
+  const heroButtonTextEn = (typeof r.hero_button_text_en === "string" && r.hero_button_text_en) ? r.hero_button_text_en : promoStripMeta?.heroButtonText?.en || heroButtonTextDefault;
+  const heroButtonTextZh = (typeof r.hero_button_text_zh === "string" && r.hero_button_text_zh) ? r.hero_button_text_zh : promoStripMeta?.heroButtonText?.zh || "";
+  const heroButtonTextMs = (typeof r.hero_button_text_ms === "string" && r.hero_button_text_ms) ? r.hero_button_text_ms : promoStripMeta?.heroButtonText?.ms || "";
+  const localizedHeroButtonText: LocalizedTextValue = { en: heroButtonTextEn, zh: heroButtonTextZh, ms: heroButtonTextMs };
 
   return {
     announcementBgColor: typeof r.announcement_bg_color === "string" ? r.announcement_bg_color : defaultUrbanixStoreData.homepage.announcementBgColor,
@@ -769,35 +984,77 @@ function mapHomepage(row?: Database["public"]["Tables"]["banners"]["Row"] | null
     announcementTextColor: typeof r.announcement_text_color === "string" ? r.announcement_text_color : defaultUrbanixStoreData.homepage.announcementTextColor,
     featuredCategoryCards: asStringArray(row.featured_category_cards),
     heroButtonLink: row.hero_button_link ?? "/products",
-    heroButtonText: row.hero_button_text ?? "Shop Now",
+    heroButtonText: heroButtonTextEn,
     heroImage: row.hero_image_url ?? defaultUrbanixStoreData.homepage.heroImage,
     heroImageUrl: row.hero_image_url ?? "",
-    heroSubtitle: row.hero_subtitle ?? "",
-    heroTitle: row.hero_title,
+    heroSubtitle: heroSubtitleEn,
+    heroTitle: heroTitleEn,
     isActive: row.is_active,
-    promotionStripText: typeof row.promo_strip_text === "string" && row.promo_strip_text
-      ? row.promo_strip_text
-      : defaultUrbanixStoreData.homepage.promotionStripText,
-    promoStripText: typeof row.promo_strip_text === "string" && row.promo_strip_text
-      ? row.promo_strip_text
-      : defaultUrbanixStoreData.homepage.promoStripText,
+    localizedHeroButtonText,
+    localizedHeroSubtitle,
+    localizedHeroTitle,
+    localizedPromoStripText,
+    promotionStripText: promoTextEn,
+    promoStripText: promoTextEn,
     trustBadgeText: withoutReturnBadges(asStringArray(row.trust_badge_text)),
   };
 }
 
 function mapPromotionBanner(row: Database["public"]["Tables"]["promotion_banners"]["Row"]): PromotionBanner {
   const targetUrl = row.target_url ?? "/products";
+  const desktopImages = parseLocalizedImageUrls(row.desktop_image_url);
+  const mobileImages = parseLocalizedImageUrls(row.mobile_image_url);
+  const r = row as typeof row & {
+    title_en?: string | null;
+    title_zh?: string | null;
+    title_ms?: string | null;
+    subtitle_en?: string | null;
+    subtitle_zh?: string | null;
+    subtitle_ms?: string | null;
+    cta_text_en?: string | null;
+    cta_text_zh?: string | null;
+    cta_text_ms?: string | null;
+    button_enabled?: boolean | null;
+    button_position?: PromotionBanner["buttonPosition"] | null;
+  };
+  const localizedTitle: LocalizedTextValue = {
+    en: r.title_en?.trim() || row.title,
+    zh: r.title_zh?.trim() || r.title_en?.trim() || row.title,
+    ms: r.title_ms?.trim() || r.title_en?.trim() || row.title,
+  };
+  const buttonTextEn = r.cta_text_en?.trim() || row.cta_text || "";
+  const localizedCtaText: LocalizedTextValue = {
+    en: buttonTextEn,
+    zh: r.cta_text_zh?.trim() || buttonTextEn,
+    ms: r.cta_text_ms?.trim() || buttonTextEn,
+  };
+  const localizedSubtitle: LocalizedTextValue = {
+    en: row.subtitle ?? "",
+    zh: r.subtitle_zh?.trim() || row.subtitle || "",
+    ms: r.subtitle_ms?.trim() || row.subtitle || "",
+  };
 
   return {
-    buttonEnabled: Boolean(row.cta_text && targetUrl),
+    buttonEnabled: r.button_enabled ?? Boolean((localizedCtaText.en || localizedCtaText.zh || localizedCtaText.ms) && targetUrl),
+    buttonPosition: r.button_position ?? "bottom-left",
     buttonUrl: targetUrl,
     createdAt: row.created_at,
-    ctaText: row.cta_text ?? "Shop Now",
-    desktopImageUrl: row.desktop_image_url ?? "",
+    buttonText: {
+      bm: localizedCtaText.ms,
+      en: localizedCtaText.en,
+      zh: localizedCtaText.zh,
+    },
+    ctaText: row.cta_text ?? localizedCtaText.en,
+    desktopImageUrl: desktopImages.en,
     id: row.id,
     imageClickUrl: targetUrl,
     isActive: row.is_active,
-    mobileImageUrl: row.mobile_image_url ?? "",
+    localizedCtaText,
+    localizedDesktopImageUrls: desktopImages,
+    localizedMobileImageUrls: mobileImages,
+    localizedSubtitle,
+    localizedTitle,
+    mobileImageUrl: mobileImages.en,
     sortOrder: row.sort_order,
     subtitle: row.subtitle ?? "",
     targetUrl,
@@ -1056,7 +1313,7 @@ function isAssetUrl(value?: string | null): boolean {
   return Boolean(value && (/^(https?:)?\/\//.test(value) || value.startsWith("/")));
 }
 
-function mapOrder(row: { id: string; order_number: string; customer_name: string; customer_phone: string; customer_email?: string | null; shipping_address?: unknown; delivery_note?: string | null; subtotal: number; shipping_fee: number; discount_amount: number; total_amount: number; payment_method: string; payment_status: string; order_status: string; created_at: string; updated_at?: string; order_items?: Array<{ id: string; product_name: string; product_sku: string; quantity: number; unit_price: number; total_price: number }> }): UrbanixOrder {
+function mapOrder(row: { id: string; order_number: string; customer_name: string; customer_phone: string; customer_email?: string | null; shipping_address?: unknown; delivery_note?: string | null; subtotal: number; shipping_fee: number; shipping_region?: string | null; free_shipping_threshold?: number | null; is_free_shipping_applied?: boolean | null; discount_amount: number; total_amount: number; payment_method: string; payment_status: string; order_status: string; created_at: string; updated_at?: string; order_items?: Array<{ id: string; product_name: string; product_sku: string; quantity: number; unit_price: number; total_price: number }> }): UrbanixOrder {
   const address = (row.shipping_address ?? {}) as Partial<CheckoutCustomer>;
   const customer: CheckoutCustomer = {
     addressLine1: address.addressLine1 ?? "",
@@ -1098,11 +1355,17 @@ function mapOrder(row: { id: string; order_number: string; customer_name: string
     paymentStatus: row.payment_status as UrbanixOrder["paymentStatus"],
     shippingAddress: customer,
     shippingFee: Number(row.shipping_fee),
+    shippingRegion: row.shipping_region === "east" ? "east" : row.shipping_region === "west" ? "west" : undefined,
+    freeShippingThreshold: row.free_shipping_threshold == null ? undefined : Number(row.free_shipping_threshold),
+    isFreeShippingApplied: Boolean(row.is_free_shipping_applied),
     subtotal: Number(row.subtotal),
     totalAmount: Number(row.total_amount),
     totals: {
       discount: Number(row.discount_amount),
+      freeShippingThreshold: row.free_shipping_threshold == null ? undefined : Number(row.free_shipping_threshold),
+      isFreeShippingApplied: Boolean(row.is_free_shipping_applied),
       shipping: Number(row.shipping_fee),
+      shippingRegion: row.shipping_region === "east" ? "east" : row.shipping_region === "west" ? "west" : undefined,
       subtotal: Number(row.subtotal),
       total: Number(row.total_amount),
     },
@@ -1292,9 +1555,24 @@ export async function updateCategories(categories: ProductCategory[]) {
   const result = await supabase.from("categories").upsert(
     categories.map((c, i) => ({
       description: c.description,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      description_en: (c as any).description_en ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      description_zh: (c as any).description_zh ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      description_ms: (c as any).description_ms ?? null,
       image_url: c.imageUrl ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      image_url_en: (c as any).image_url_en ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      image_url_zh: (c as any).image_url_zh ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      image_url_ms: (c as any).image_url_ms ?? null,
       is_active: c.active ?? c.isActive ?? true,
       name: c.name,
+      name_en: c.localizedName?.en ?? c.name,
+      name_zh: c.localizedName?.zh ?? null,
+      name_ms: c.localizedName?.ms ?? null,
       slug: c.slug ?? c.id,
       sort_order: c.sortOrder ?? i + 1,
       tone: c.tone,
@@ -1392,13 +1670,14 @@ export async function updateStoreSettings(settings: StoreSettings) {
 
   if (!supabase) {
     const data = readUrbanixStoreData();
-    data.settings = {
-      ...settings,
-      faviconUrl: settings.faviconUrl ?? settings.favicon,
-      freeShippingMinAmount: settings.freeShippingMinAmount ?? settings.freeShippingMinimumAmount,
-      isStoreActive: settings.isStoreActive ?? settings.storeActive,
-      logoUrl: settings.logoUrl ?? settings.logo,
-    };
+      data.settings = {
+        ...settings,
+        faviconUrl: settings.faviconUrl ?? settings.favicon,
+        freeShippingMinAmount: settings.freeShippingMinAmount ?? settings.freeShippingMinimumAmount,
+        shippingFee: settings.westMalaysiaShippingFee ?? settings.shippingFee,
+        isStoreActive: settings.isStoreActive ?? settings.storeActive,
+        logoUrl: settings.logoUrl ?? settings.logo,
+      };
     writeUrbanixStoreData(data);
     return;
   }
@@ -1409,12 +1688,15 @@ export async function updateStoreSettings(settings: StoreSettings) {
       contact_phone: settings.contactPhone,
       currency: settings.currency ?? "MYR",
       favicon_url: settings.favicon || settings.faviconUrl || null,
-      free_shipping_min_amount: settings.freeShippingMinimumAmount,
+      east_malaysia_free_shipping_min_amount: settings.eastMalaysiaFreeShippingMinimumAmount ?? 150,
+      east_malaysia_free_shipping_threshold: settings.eastMalaysiaFreeShippingMinimumAmount ?? 150,
+      east_malaysia_shipping_fee: settings.eastMalaysiaShippingFee ?? 15,
+      free_shipping_min_amount: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
       id: true,
       is_store_active: settings.storeActive,
       logo_url: settings.logo || settings.logoUrl || null,
       maintenance_message: settings.maintenanceMessage ?? null,
-      shipping_fee: settings.shippingFee,
+      shipping_fee: settings.westMalaysiaShippingFee ?? settings.shippingFee,
       social_links: {
         ...settings.socialLinks,
         shopee: settings.platformLinks?.shopee ?? "",
@@ -1428,6 +1710,9 @@ export async function updateStoreSettings(settings: StoreSettings) {
       store_name: settings.storeName,
       store_tagline: settings.storeTagline,
       whatsapp_number: settings.whatsappNumber,
+      west_malaysia_free_shipping_min_amount: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
+      west_malaysia_free_shipping_threshold: settings.westMalaysiaFreeShippingMinimumAmount ?? settings.freeShippingMinimumAmount,
+      west_malaysia_shipping_fee: settings.westMalaysiaShippingFee ?? settings.shippingFee,
     },
     { onConflict: "id" }
   );
@@ -1488,15 +1773,26 @@ export async function upsertPromotionBanners(banners: PromotionBanner[], deleted
 
   const result = await supabase.from("promotion_banners").upsert(
     banners.map((banner, index) => ({
-      cta_text: banner.ctaText,
+      cta_text: banner.localizedCtaText?.en ?? banner.buttonText?.en ?? banner.ctaText,
+      cta_text_en: banner.localizedCtaText?.en ?? banner.buttonText?.en ?? banner.ctaText,
+      cta_text_ms: banner.localizedCtaText?.ms ?? banner.buttonText?.bm ?? null,
+      cta_text_zh: banner.localizedCtaText?.zh ?? banner.buttonText?.zh ?? null,
+      button_enabled: banner.buttonEnabled,
+      button_position: banner.buttonPosition ?? "bottom-left",
       desktop_image_url: banner.desktopImageUrl || null,
       id: banner.id || undefined,
       is_active: banner.isActive,
       mobile_image_url: banner.mobileImageUrl || null,
       sort_order: banner.sortOrder || index + 1,
       subtitle: banner.subtitle,
+      subtitle_en: banner.localizedSubtitle?.en ?? banner.subtitle,
+      subtitle_ms: banner.localizedSubtitle?.ms ?? null,
+      subtitle_zh: banner.localizedSubtitle?.zh ?? null,
       target_url: banner.targetUrl || "/products",
       title: banner.title,
+      title_en: banner.localizedTitle?.en ?? banner.title,
+      title_ms: banner.localizedTitle?.ms ?? null,
+      title_zh: banner.localizedTitle?.zh ?? null,
     })),
     { onConflict: "id" }
   );
@@ -1549,6 +1845,9 @@ export async function upsertOrder(order: UrbanixOrder) {
     payment_status: order.paymentStatus,
     shipping_address: order.customer as unknown as Json,
     shipping_fee: order.totals.shipping,
+    shipping_region: order.totals.shippingRegion ?? order.shippingRegion ?? null,
+    free_shipping_threshold: order.totals.freeShippingThreshold ?? order.freeShippingThreshold ?? null,
+    is_free_shipping_applied: order.totals.isFreeShippingApplied ?? order.isFreeShippingApplied ?? false,
     subtotal: order.totals.subtotal,
     total_amount: order.totals.total,
   });
@@ -1583,6 +1882,9 @@ function normalizeOrder(order: UrbanixOrder): UrbanixOrder {
     discountAmount: order.discountAmount ?? order.totals.discount,
     shippingAddress: order.shippingAddress ?? order.customer,
     shippingFee: order.shippingFee ?? order.totals.shipping,
+    shippingRegion: order.shippingRegion ?? order.totals.shippingRegion,
+    freeShippingThreshold: order.freeShippingThreshold ?? order.totals.freeShippingThreshold,
+    isFreeShippingApplied: order.isFreeShippingApplied ?? order.totals.isFreeShippingApplied,
     subtotal: order.subtotal ?? order.totals.subtotal,
     totalAmount: order.totalAmount ?? order.totals.total,
     updatedAt: new Date().toISOString(),

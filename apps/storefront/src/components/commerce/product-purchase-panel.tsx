@@ -14,6 +14,8 @@ import { useCart } from "@/components/cart/cart-provider";
 import { PriceDisplay } from "@/components/commerce/price-display";
 import { QuantitySelector } from "@/components/commerce/quantity-selector";
 import { StockBadge } from "@/components/commerce/stock-badge";
+import { useLanguage } from "@/components/i18n/language-provider";
+import { getProductImageForLanguage } from "@/lib/product-media";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 export function ProductPurchasePanel({
@@ -26,6 +28,7 @@ export function ProductPurchasePanel({
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
   const router = useRouter();
+  const { language } = useLanguage();
 
   const shopeeUrl = product.shopeeUrl || settings.platformLinks?.shopee || "";
   const lazadaUrl = product.lazadaUrl || settings.platformLinks?.lazada || "";
@@ -33,10 +36,12 @@ export function ProductPurchasePanel({
   // ── New flat variant list (per-variant pricing) ────────────────────────────
   const variants: ProductVariantEntry[] = product.variants ?? [];
   const hasNewVariants = variants.length > 0;
-  const isSingleVariant = hasNewVariants && variants.length === 1;
 
   // ── Legacy simple variant groups (old format, no per-variant pricing) ──────
-  const legacyVariantGroups = product.productVariants ?? [];
+  const legacyVariantGroups = useMemo(
+    () => product.productVariants ?? [],
+    [product.productVariants]
+  );
   const hasLegacyVariants = !hasNewVariants && legacyVariantGroups.length > 0;
 
   // ── Selected variant state ─────────────────────────────────────────────────
@@ -123,6 +128,22 @@ export function ProductPurchasePanel({
     displayOriginalPrice && displayOriginalPrice > displayPrice
       ? displayOriginalPrice - displayPrice
       : 0;
+  const fallbackVariantImage = getProductImageForLanguage(product, language) || product.image || product.mainImageUrl || "";
+  const variantGroupLabel =
+    selectedVariant?.localizedGroupName?.[language] ||
+    selectedVariant?.localizedGroupName?.en ||
+    selectedVariant?.groupName ||
+    "Option";
+
+  function previewVariantImage(variant: ProductVariantEntry) {
+    window.dispatchEvent(
+      new CustomEvent(`urbanix-product-variant-image:${product.id}`, {
+        detail: variant.imageUrl
+          ? { images: [variant.imageUrl], mode: "variant" }
+          : { images: [], mode: "product" },
+      })
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -142,48 +163,65 @@ export function ProductPurchasePanel({
         ) : null}
       </div>
 
-      {/* ── Variant selector — new flat format ── */}
-      {hasNewVariants && !isSingleVariant ? (
-        <div className="rounded-3xl border border-primary/15 bg-card p-4 shadow-sm dark:border-[rgba(59,158,255,0.18)]">
-          <p className="mb-3 text-sm font-extrabold text-foreground">Select Option</p>
-          <div className="flex flex-wrap gap-2">
+      {/* Variant selector - new flat format */}
+      {hasNewVariants ? (
+        <div className="rounded-3xl border border-primary/15 bg-card/92 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)] dark:border-[rgba(59,158,255,0.18)] dark:bg-[rgba(11,21,40,0.82)] dark:shadow-[0_16px_44px_rgba(0,0,0,0.28)]">
+          <p className="mb-3 text-sm font-extrabold text-foreground">Select {variantGroupLabel}</p>
+          <div className="flex flex-wrap gap-2.5">
             {variants.map((v) => {
               const isSelected = selectedVariant?.name === v.name;
               const vPricing = getVariantEffectivePrice(v);
               const outOfStock = v.stockQuantity <= 0;
+              const label = v.localizedName?.[language] || v.localizedName?.en || v.name;
+              const optionImage = v.imageUrl || fallbackVariantImage;
               return (
                 <button
                   aria-pressed={isSelected}
-                  className={`relative rounded-2xl border px-4 py-2 text-sm font-bold transition ${
+                  className={`group relative flex min-w-[8.5rem] items-center gap-2.5 rounded-2xl border p-2 pr-3 text-left text-sm font-bold transition duration-300 ${
                     outOfStock
                       ? "cursor-not-allowed border-border/40 bg-muted/40 text-muted-foreground opacity-60"
                       : isSelected
-                        ? "border-primary bg-primary text-white shadow-[0_10px_24px_rgba(13,99,206,0.18)]"
-                        : "border-border bg-card text-foreground hover:border-primary/45 hover:bg-secondary"
+                        ? "border-primary bg-primary/10 text-primary shadow-[0_12px_28px_rgba(13,99,206,0.18)] ring-2 ring-primary/15 dark:bg-[rgba(59,158,255,0.14)] dark:text-[#8bdcff] dark:shadow-[0_12px_32px_rgba(59,158,255,0.16)]"
+                        : "border-border bg-card/88 text-foreground hover:-translate-y-0.5 hover:border-primary/45 hover:bg-secondary/70 dark:bg-[rgba(15,30,56,0.72)] dark:hover:bg-[rgba(28,52,90,0.9)]"
                   }`}
+                  data-variant-option
                   disabled={outOfStock}
-                  key={v.name}
+                  key={`${v.sku}-${v.name}`}
                   onClick={() => {
                     setSelectedVariant(v);
                     setValidationMessage("");
+                    previewVariantImage(v);
                   }}
                   type="button"
-                  title={outOfStock ? "Out of stock" : `${v.name} — ${formatCurrency(vPricing.price)}`}
+                  title={outOfStock ? "Out of stock" : `${label} - ${formatCurrency(vPricing.price)}`}
                 >
-                  {v.name}
-                  {outOfStock && (
-                    <span className="ml-1.5 text-xs font-normal opacity-70">sold out</span>
-                  )}
+                  <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/70 bg-muted/40 shadow-sm dark:border-white/10 dark:bg-[rgba(5,11,24,0.62)]">
+                    {optionImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        alt={label}
+                        className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
+                        src={optionImage}
+                      />
+                    ) : (
+                      <span className="text-xs font-black uppercase">{label.slice(0, 2)}</span>
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{label}</span>
+                    {outOfStock ? (
+                      <span className="block text-xs font-semibold opacity-70">sold out</span>
+                    ) : null}
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Selected variant details */}
           {selectedVariant && (
             <div className="mt-3 rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
               <span className="font-semibold text-foreground">SKU: {selectedVariant.sku}</span>
-              {" · "}
+              {" | "}
               <StockStatus qty={selectedVariant.stockQuantity} />
             </div>
           )}
@@ -195,16 +233,6 @@ export function ProductPurchasePanel({
           ) : null}
         </div>
       ) : null}
-
-      {/* ── Single variant — show SKU + stock only (no selector) ── */}
-      {hasNewVariants && isSingleVariant && selectedVariant ? (
-        <div className="rounded-xl border border-border/60 bg-secondary/30 px-4 py-3 text-xs text-muted-foreground">
-          <span className="font-semibold text-foreground">SKU: {selectedVariant.sku}</span>
-          {" · "}
-          <StockStatus qty={selectedVariant.stockQuantity} />
-        </div>
-      ) : null}
-
       {/* ── Legacy variant selector (old-format products) ── */}
       {hasLegacyVariants ? (
         <div className="rounded-3xl border border-primary/15 bg-card p-4 shadow-sm dark:border-[rgba(59,158,255,0.18)]">
