@@ -62,8 +62,8 @@
       "home-picks",
       "lifestyle"
     ],
-    "promotionStripText": "Free Shipping for orders over RM50",
-    "promoStripText": "Free Shipping for orders over RM50",
+    "promotionStripText": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
+    "promoStripText": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
     "trustBadgeText": [
       "Free Shipping",
       "30-Day Returns",
@@ -115,7 +115,7 @@
       "rating": 4.8,
       "relatedCategory": "portable-fans",
       "returnNote": "Returns accepted within 30 days for unused items in original packaging.",
-      "shippingInfo": "Free shipping applies for eligible orders.",
+      "shippingInfo": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
       "shortDescription": "Powerful airflow in the palm of your hand.",
       "sku": "URX-FAN-PRO-GRN",
       "slug": "turbo-hand-fan-pro",
@@ -150,7 +150,7 @@
         "One-hand adjustment",
         "Matte black finish"
       ],
-      "shippingInfo": "Free shipping applies for orders over RM50.",
+      "shippingInfo": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
       "returnNote": "Returns accepted within 30 days for unused items in original packaging.",
       "price": 15.9,
       "originalPrice": 18.9,
@@ -199,7 +199,7 @@
         "Easy placement",
         "Long-lasting aroma"
       ],
-      "shippingInfo": "Free shipping applies for orders over RM50.",
+      "shippingInfo": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
       "returnNote": "Returns accepted within 30 days for unused items in original packaging.",
       "price": 11.9,
       "originalPrice": 13.9,
@@ -248,7 +248,7 @@
         "Desk-friendly design",
         "Works with common cables"
       ],
-      "shippingInfo": "Free shipping applies for orders over RM50.",
+      "shippingInfo": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
       "returnNote": "Returns accepted within 30 days for unused items in original packaging.",
       "price": 8.9,
       "originalPrice": 10.1,
@@ -297,7 +297,7 @@
         "Lightweight shell",
         "Quiet airflow"
       ],
-      "shippingInfo": "Free shipping applies for orders over RM50.",
+      "shippingInfo": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
       "returnNote": "Returns accepted within 30 days for unused items in original packaging.",
       "price": 15.9,
       "rating": 4.7,
@@ -343,7 +343,7 @@
         "Desk-ready design",
         "Rechargeable battery"
       ],
-      "shippingInfo": "Free shipping applies for orders over RM50.",
+      "shippingInfo": "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
       "returnNote": "Returns accepted within 30 days for unused items in original packaging.",
       "price": 19.9,
       "rating": 4.6,

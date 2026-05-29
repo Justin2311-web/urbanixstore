@@ -433,7 +433,7 @@ function mapGoogleProduct({
     rating: 4.8,
     relatedCategory: categoryId,
     returnNote: "",
-    shippingInfo: "Free shipping applies for orders above RM40. Delivery details are confirmed during order chat.",
+    shippingInfo: "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
     shopeeUrl: cell(row, "shopee_url"),
     shortDescription: cell(row, "description_en"),
     sku: cell(row, "sku"),
@@ -541,9 +541,9 @@ async function readGoogleSheetStoreData(): Promise<UrbanixStoreData | null> {
       title: cell(row, "title_en"),
     }));
   const freeShippingText = localized(
-    settingsMap.get("free_shipping_text_en") || "Free shipping for orders above RM40",
-    settingsMap.get("free_shipping_text_zh") || "订单满 RM40 即可免邮",
-    settingsMap.get("free_shipping_text_ms") || "Penghantaran percuma untuk pesanan melebihi RM40"
+    settingsMap.get("free_shipping_text_en") || "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
+    settingsMap.get("free_shipping_text_zh") || "免运费：西马满 RM80，东马满 RM150。",
+    settingsMap.get("free_shipping_text_ms") || "Penghantaran percuma: Semenanjung Malaysia melebihi RM80, Malaysia Timur melebihi RM150."
   );
   const settings: StoreSettings = {
     ...defaultUrbanixStoreData.settings,
@@ -811,7 +811,7 @@ function mapProduct({
     rating: Number(row.rating ?? 0),
     relatedCategory: category?.id,
     returnNote: row.return_note ?? "",
-    shippingInfo: row.shipping_info ?? "Free shipping applies for orders above RM40.",
+    shippingInfo: row.shipping_info ?? "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
     shortDescription: rowX.short_description_en?.trim() || baseShortDesc,
     // Product-level SKU stays as the base SKU; variant SKUs are on each entry
     sku: row.sku,

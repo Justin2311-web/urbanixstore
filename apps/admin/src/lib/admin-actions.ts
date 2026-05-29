@@ -220,7 +220,7 @@ export async function saveProduct(formData: FormData) {
     rating: numberValue(formData, "rating") || existingProduct?.rating || 4.7,
     relatedCategory: categoryId,
     returnNote: existingProduct?.returnNote ?? "",
-    shippingInfo: text(formData, "shippingInfo") || "Free shipping applies for eligible orders.",
+    shippingInfo: text(formData, "shippingInfo") || "Free shipping: West Malaysia above RM80, East Malaysia above RM150.",
     shortDescription: text(formData, "shortDescription"),
     sku: text(formData, "sku"),
     slug,

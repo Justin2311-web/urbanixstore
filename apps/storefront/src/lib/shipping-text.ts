@@ -21,8 +21,8 @@ export function freeShippingCopy(settings: StoreSettings, fallback?: string | nu
   }
 
   return {
-    en: `Free shipping: West Malaysia above RM${westThreshold}, East Malaysia above RM${eastThreshold}`,
-    zh: `免邮：西马满 RM${westThreshold}，东马满 RM${eastThreshold}`,
-    ms: `Penghantaran percuma: Semenanjung Malaysia melebihi RM${westThreshold}, Sabah / Sarawak / Labuan melebihi RM${eastThreshold}`,
+    en: `Free shipping: West Malaysia above RM${westThreshold}, East Malaysia above RM${eastThreshold}.`,
+    zh: `免运费：西马满 RM${westThreshold}，东马满 RM${eastThreshold}。`,
+    ms: `Penghantaran percuma: Semenanjung Malaysia melebihi RM${westThreshold}, Malaysia Timur melebihi RM${eastThreshold}.`,
   };
 }

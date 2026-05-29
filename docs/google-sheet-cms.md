@@ -140,10 +140,11 @@ contact_phone
 Recommended free shipping values:
 
 ```text
-free_shipping_threshold = 40
-free_shipping_text_en = Free shipping for orders above RM40
-free_shipping_text_zh = 订单满 RM40 即可免邮
-free_shipping_text_ms = Penghantaran percuma untuk pesanan melebihi RM40
+west_malaysia_free_shipping_threshold = 80
+east_malaysia_free_shipping_threshold = 150
+free_shipping_text_en = Free shipping: West Malaysia above RM80, East Malaysia above RM150.
+free_shipping_text_zh = 免运费：西马满 RM80，东马满 RM150。
+free_shipping_text_ms = Penghantaran percuma: Semenanjung Malaysia melebihi RM80, Malaysia Timur melebihi RM150.
 ```
 
 ## Footer

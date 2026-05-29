@@ -62,7 +62,7 @@ export default async function CmsPage({
                 <Input
                   defaultValue={homepage.localizedPromoStripText?.en ?? homepage.promotionStripText}
                   name="promotionStripText"
-                  placeholder="Free shipping for orders above RM40"
+                  placeholder="Free shipping: West Malaysia above RM80, East Malaysia above RM150."
                 />
               </Field>
               <Field label="Announcement text — 中文">
@@ -76,7 +76,7 @@ export default async function CmsPage({
                 <Input
                   defaultValue={homepage.localizedPromoStripText?.ms ?? ""}
                   name="promo_strip_text_ms"
-                  placeholder="Penghantaran percuma untuk pesanan melebihi RM40"
+                  placeholder="Penghantaran percuma: Semenanjung Malaysia melebihi RM80, Malaysia Timur melebihi RM150."
                 />
               </Field>
               <Field label="Announcement link (optional)">
