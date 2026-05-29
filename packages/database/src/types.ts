@@ -297,6 +297,7 @@ export type Database = {
           payment_method_type: string | null;
           payment_status: "pending" | "unpaid" | "paid" | "failed" | "refunded";
           receipt_url: string | null;
+          receipt_path: string | null;
           shipping_address: Json;
           shipping_fee: number;
           shipping_region: "west" | "east" | null;
@@ -322,6 +323,7 @@ export type Database = {
           payment_method_type?: string | null;
           payment_status?: "pending" | "unpaid" | "paid" | "failed" | "refunded";
           receipt_url?: string | null;
+          receipt_path?: string | null;
           shipping_address?: Json;
           shipping_fee?: number;
           shipping_region?: "west" | "east" | null;
