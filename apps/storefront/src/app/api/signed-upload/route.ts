@@ -81,13 +81,13 @@ export async function POST(request: Request) {
       return fail("Could not create signed upload URL.", 500);
     }
 
-    const { data: urlData } = sb.storage.from(receiptBucket).getPublicUrl(filePath);
-
+    // Note: publicUrl is intentionally not returned. The client stores the
+    // path; admin reads it via a short-lived signed URL. This keeps the
+    // bucket safe to flip to private without breaking checkout.
     return NextResponse.json({
       bucket: receiptBucket,
       fileName: fileName?.slice(0, 160) ?? null,
       filePath,
-      publicUrl: urlData.publicUrl,
       signedUrl: data.signedUrl,
     });
   } catch (error) {

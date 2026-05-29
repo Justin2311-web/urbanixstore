@@ -178,7 +178,7 @@ export function CheckoutView({
       throw new Error(errData.error ?? "Receipt upload failed. Please try again.");
     }
 
-    const { signedUrl, publicUrl } = await res.json() as { signedUrl: string; publicUrl: string };
+    const { signedUrl, filePath } = await res.json() as { signedUrl: string; filePath: string };
 
     const uploadRes = await fetch(signedUrl, {
       method: "PUT",
@@ -190,7 +190,9 @@ export function CheckoutView({
       throw new Error(`Receipt upload failed: ${uploadRes.statusText}`);
     }
 
-    return publicUrl;
+    // Return the storage path. Admin generates short-lived signed URLs
+    // from this on demand; we never expose a permanent public URL.
+    return filePath;
   }
 
   // ── Form submit ──────────────────────────────────────────────────────────────
@@ -217,11 +219,12 @@ export function CheckoutView({
       const orderNumber = createOrderNumber();
 
       // 1. Upload receipt before creating the order
-      let finalReceiptUrl: string | null = null;
+      let finalReceiptPath: string | null = null;
       setReceiptUploading(true);
       try {
-        finalReceiptUrl = await uploadReceiptToSupabase(receiptFile, orderNumber);
-        setReceiptUrl(finalReceiptUrl);
+        finalReceiptPath = await uploadReceiptToSupabase(receiptFile, orderNumber);
+        // Local marker that the receipt was uploaded; no public URL is stored.
+        setReceiptUrl(finalReceiptPath);
       } catch (uploadErr) {
         setReceiptError(
           uploadErr instanceof Error ? uploadErr.message : "Receipt upload failed."
@@ -253,7 +256,7 @@ export function CheckoutView({
         totalAmount: totals.total,
         paymentMethod: "manual" as const,
         paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
-        receiptUrl: finalReceiptUrl ?? undefined,
+        receiptPath: finalReceiptPath ?? undefined,
         items: lines.map((line) => ({
           productId: line.product.id,
           productName: line.product.name,
@@ -316,7 +319,7 @@ export function CheckoutView({
         paymentMethod: "manual",
         paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
         paymentStatus: "pending",
-        receiptUrl: finalReceiptUrl,
+        receiptUrl: null,
         freeShippingThreshold: confirmedTotals.freeShippingThreshold,
         isFreeShippingApplied: confirmedTotals.isFreeShippingApplied,
         shippingRegion: confirmedTotals.shippingRegion,

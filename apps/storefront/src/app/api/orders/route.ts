@@ -32,6 +32,10 @@ type CreateOrderPayload = {
   };
   paymentMethod: "manual" | "whatsapp";
   paymentMethodType?: string | null;
+  // Preferred: storage path inside the uploads bucket, e.g.
+  // "receipts/<order-number>/<uuid>.jpg". Storefront posts this for new
+  // orders. `receiptUrl` is kept for backward compatibility only.
+  receiptPath?: string;
   receiptUrl?: string;
   items: Array<{
     productId?: string;
@@ -122,6 +126,25 @@ function validateReceiptUrl(receiptUrl: string | undefined, orderNumber: string)
   return receiptUrl;
 }
 
+function validateReceiptPath(receiptPath: string | undefined, orderNumber: string) {
+  if (!receiptPath) return null;
+
+  const orderSegment = safeOrderSegment(orderNumber);
+  const expectedPrefix = `receipts/${orderSegment}/`;
+
+  if (
+    !receiptPath.startsWith(expectedPrefix) ||
+    receiptPath.length > 256 ||
+    receiptPath.includes("..") ||
+    !/^[a-zA-Z0-9/_.-]+$/.test(receiptPath) ||
+    !/\.(?:jpe?g|png|webp|pdf)$/i.test(receiptPath)
+  ) {
+    throw new Error("Receipt path does not match allowed storage path.");
+  }
+
+  return receiptPath;
+}
+
 function resolveVariant(product: UrbanixProduct, selectedVariants?: Record<string, string> | null) {
   if (!product.variants?.length) {
     return {
@@ -190,6 +213,7 @@ export async function POST(request: Request) {
       orderNumber,
       paymentMethod,
       paymentMethodType,
+      receiptPath,
       receiptUrl,
       shippingAddress,
     } = body;
@@ -207,16 +231,25 @@ export async function POST(request: Request) {
     if (!validState) return fail("Select a valid Malaysia state.");
     if (!items?.length) return fail("Order must have at least one item.");
 
-    if (!receiptUrl?.trim()) {
+    if (!receiptPath?.trim() && !receiptUrl?.trim()) {
       return fail("Please upload your payment receipt before placing the order.");
     }
 
+    let validatedReceiptPath: string | null = null;
     let validatedReceiptUrl: string | null = null;
     try {
-      validatedReceiptUrl = validateReceiptUrl(receiptUrl, orderNumber);
+      validatedReceiptPath = validateReceiptPath(receiptPath, orderNumber);
+      // receiptUrl is accepted only as a legacy fallback for older clients.
+      if (!validatedReceiptPath) {
+        validatedReceiptUrl = validateReceiptUrl(receiptUrl, orderNumber);
+      }
     } catch (error) {
-      console.warn("[Storefront] Rejected receipt URL:", error);
-      return fail("Invalid receipt URL.");
+      console.warn("[Storefront] Rejected receipt reference:", error);
+      return fail("Invalid receipt reference.");
+    }
+
+    if (!validatedReceiptPath && !validatedReceiptUrl) {
+      return fail("Please upload your payment receipt before placing the order.");
     }
 
     const data = await readUrbanixStoreDataAsync();
@@ -317,6 +350,7 @@ export async function POST(request: Request) {
         payment_method_type: paymentMethodType || null,
         order_status: "pending",
         payment_status: "pending",
+        receipt_path: validatedReceiptPath,
         receipt_url: validatedReceiptUrl,
       })
       .select("id, order_number")
