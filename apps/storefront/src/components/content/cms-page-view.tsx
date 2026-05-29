@@ -22,25 +22,30 @@ export function CmsPageView({ page, settings }: CmsPageViewProps) {
 
   return (
     <main className="pb-20 md:pb-0">
-      <section className="border-b border-primary/10 bg-linear-to-br from-[#eaf3ff] via-white to-[#fff4e7]">
+      <section className="border-b border-primary/10 bg-linear-to-br from-[#eaf3ff] via-white to-[#fff4e7] dark:border-white/10 dark:from-[#0a1530] dark:via-[#06101f] dark:to-[#0a1426]">
         <div className="urbanix-container py-8 sm:py-12">
-          <Link className="mb-5 inline-flex items-center gap-2 text-xs font-bold uppercase text-primary" href="/">
+          <Link className="mb-5 inline-flex items-center gap-2 text-xs font-bold uppercase text-primary dark:text-[#7cc0ff]" href="/">
             <ArrowLeft className="size-4" />
             <LocalizedText fallback="Back to Store" k="common.backToStore" />
           </Link>
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-accent">Urbanix Store</p>
-          <h1 className="mt-2 max-w-3xl text-3xl font-extrabold text-primary sm:text-5xl">{title}</h1>
+          <h1 className="mt-2 max-w-3xl text-3xl font-extrabold text-primary sm:text-5xl dark:text-slate-50">{title}</h1>
         </div>
       </section>
 
       <section className="urbanix-container py-8 sm:py-12">
-        <article className="max-w-3xl text-base leading-8 text-slate-700 sm:text-lg">
+        <article className="max-w-3xl text-base leading-8 text-slate-700 sm:text-lg dark:text-slate-200">
           {blocks.map((block, index) => {
             if (block.type === "list") {
               return (
                 <ul className="my-5 grid gap-2 pl-5" key={`list-${index}`}>
                   {block.items.map((item) => (
-                    <li className="list-disc marker:text-accent" key={item}>{item}</li>
+                    <li
+                      className="list-disc marker:text-accent text-slate-700 dark:text-slate-200 dark:marker:text-[#ffd166]"
+                      key={item}
+                    >
+                      {item}
+                    </li>
                   ))}
                 </ul>
               );
@@ -50,7 +55,9 @@ export function CmsPageView({ page, settings }: CmsPageViewProps) {
               <p
                 className={cn(
                   "mb-5",
-                  index === 0 && block.text.length < 40 ? "text-xl font-extrabold text-primary" : ""
+                  index === 0 && block.text.length < 40
+                    ? "text-xl font-extrabold text-primary dark:text-slate-50"
+                    : "dark:text-slate-200"
                 )}
                 key={`p-${index}`}
               >
