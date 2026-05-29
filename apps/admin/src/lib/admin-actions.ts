@@ -104,6 +104,13 @@ function fileValues(formData: FormData, key: string) {
     .filter((value): value is File => value instanceof File && value.size > 0);
 }
 
+function hasBannerUpload(formData: FormData, key: string) {
+  return bannerLangs.some((lang) =>
+    fileValues(formData, `${key}-desktopFile-${lang}`).length > 0 ||
+    fileValues(formData, `${key}-mobileFile-${lang}`).length > 0
+  );
+}
+
 async function getProductImageUrls(formData: FormData, slug: string, existingImages: string[]) {
   const files = fileValues(formData, "productImageFiles");
   const tokens = jsonStringArray(formData, "productImageOrder");
@@ -385,87 +392,95 @@ export async function savePromotionBanners(formData: FormData) {
   const deletedIds: string[] = [];
   const banners: PromotionBanner[] = [];
 
-  for (const [index, key] of keys.entries()) {
-    const id = text(formData, `${key}-id`);
-    const localizedTitle = {
-      en: text(formData, `${key}-title-en`),
-      ms: text(formData, `${key}-title-ms`),
-      zh: text(formData, `${key}-title-zh`),
-    };
-    const localizedSubtitle = {
-      en: text(formData, `${key}-subtitle-en`),
-      ms: text(formData, `${key}-subtitle-ms`),
-      zh: text(formData, `${key}-subtitle-zh`),
-    };
-    const localizedCtaText = {
-      en: text(formData, `${key}-buttonText-en`),
-      ms: text(formData, `${key}-buttonText-ms`),
-      zh: text(formData, `${key}-buttonText-zh`),
-    };
-    const title = localizedTitle.en || localizedTitle.zh || localizedTitle.ms;
+  try {
+    for (const [index, key] of keys.entries()) {
+      const id = text(formData, `${key}-id`);
+      const localizedTitle = {
+        en: text(formData, `${key}-title-en`),
+        ms: text(formData, `${key}-title-ms`),
+        zh: text(formData, `${key}-title-zh`),
+      };
+      const localizedSubtitle = {
+        en: text(formData, `${key}-subtitle-en`),
+        ms: text(formData, `${key}-subtitle-ms`),
+        zh: text(formData, `${key}-subtitle-zh`),
+      };
+      const localizedCtaText = {
+        en: text(formData, `${key}-buttonText-en`),
+        ms: text(formData, `${key}-buttonText-ms`),
+        zh: text(formData, `${key}-buttonText-zh`),
+      };
+      const title = localizedTitle.en || localizedTitle.zh || localizedTitle.ms;
+      const subtitle = localizedSubtitle.en || localizedSubtitle.zh || localizedSubtitle.ms;
+      const targetUrl = text(formData, `${key}-targetUrl`);
+      const existingDesktopImage = bannerLangs.some((lang) => text(formData, `${key}-desktopImageUrl-${lang}`));
+      const existingMobileImage = bannerLangs.some((lang) => text(formData, `${key}-mobileImageUrl-${lang}`));
+      const hasAnyImage = existingDesktopImage || existingMobileImage || hasBannerUpload(formData, key);
+      const hasAnyCtaText = Boolean(localizedCtaText.en || localizedCtaText.zh || localizedCtaText.ms);
 
-    if (!title && !id) {
-      continue;
-    }
-
-    if (formData.get(`${key}-delete`) === "on") {
-      if (id) {
-        deletedIds.push(id);
+      if (!id && !title && !subtitle && !hasAnyCtaText && !targetUrl && !hasAnyImage) {
+        continue;
       }
 
-      continue;
+      if (formData.get(`${key}-delete`) === "on") {
+        if (id) {
+          deletedIds.push(id);
+        }
+
+        continue;
+      }
+
+      const folder = id || slugify(title) || `banner-${Date.now()}-${index + 1}`;
+      const desktopImages = { en: "", zh: "", ms: "" };
+      const mobileImages = { en: "", zh: "", ms: "" };
+
+      for (const lang of bannerLangs) {
+        const desktopFile = fileValues(formData, `${key}-desktopFile-${lang}`)[0];
+        const mobileFile = fileValues(formData, `${key}-mobileFile-${lang}`)[0];
+        desktopImages[lang] = desktopFile
+          ? await uploadUrbanixAsset(desktopFile, "banners", `${folder}/desktop-${lang}`)
+          : text(formData, `${key}-desktopImageUrl-${lang}`);
+        mobileImages[lang] = mobileFile
+          ? await uploadUrbanixAsset(mobileFile, "banners", `${folder}/mobile-${lang}`)
+          : text(formData, `${key}-mobileImageUrl-${lang}`);
+      }
+
+      const buttonEnabled = formData.get(`${key}-buttonEnabled`) === "on" && hasAnyCtaText && Boolean(targetUrl);
+
+      banners.push({
+        buttonEnabled,
+        buttonPosition: (text(formData, `${key}-buttonPosition`) || "bottom-left") as PromotionBanner["buttonPosition"],
+        buttonUrl: buttonEnabled ? targetUrl : "",
+        buttonText: {
+          bm: localizedCtaText.ms,
+          en: localizedCtaText.en,
+          zh: localizedCtaText.zh,
+        },
+        ctaText: localizedCtaText.en,
+        desktopImageUrl: encodeLocalizedImages(desktopImages),
+        id,
+        imageClickUrl: targetUrl,
+        isActive: formData.get(`${key}-isActive`) === "on",
+        localizedCtaText,
+        localizedSubtitle,
+        localizedTitle,
+        mobileImageUrl: encodeLocalizedImages(mobileImages),
+        sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
+        subtitle,
+        targetUrl,
+        title,
+      });
     }
 
-    const folder = id || slugify(title) || `banner-${index + 1}`;
-    const desktopImages = { en: "", zh: "", ms: "" };
-    const mobileImages = { en: "", zh: "", ms: "" };
-
-    for (const lang of bannerLangs) {
-      const desktopFile = fileValues(formData, `${key}-desktopFile-${lang}`)[0];
-      const mobileFile = fileValues(formData, `${key}-mobileFile-${lang}`)[0];
-      desktopImages[lang] = desktopFile
-        ? await uploadUrbanixAsset(desktopFile, "banners", `${folder}/desktop-${lang}`)
-        : text(formData, `${key}-desktopImageUrl-${lang}`);
-      mobileImages[lang] = mobileFile
-        ? await uploadUrbanixAsset(mobileFile, "banners", `${folder}/mobile-${lang}`)
-        : text(formData, `${key}-mobileImageUrl-${lang}`);
-    }
-
-    banners.push({
-      buttonEnabled: formData.get(`${key}-buttonEnabled`) === "on",
-      buttonPosition: (text(formData, `${key}-buttonPosition`) || "bottom-left") as PromotionBanner["buttonPosition"],
-      buttonUrl: text(formData, `${key}-targetUrl`) || "/products",
-      buttonText: {
-        bm: localizedCtaText.ms,
-        en: localizedCtaText.en,
-        zh: localizedCtaText.zh,
-      },
-      ctaText: localizedCtaText.en,
-      desktopImageUrl: encodeLocalizedImages(desktopImages),
-      id,
-      imageClickUrl: text(formData, `${key}-targetUrl`) || "/products",
-      isActive: formData.get(`${key}-isActive`) === "on",
-      localizedCtaText,
-      localizedSubtitle,
-      localizedTitle,
-      mobileImageUrl: encodeLocalizedImages(mobileImages),
-      sortOrder: numberValue(formData, `${key}-sortOrder`) || index + 1,
-      subtitle: localizedSubtitle.en || localizedSubtitle.zh || localizedSubtitle.ms,
-      targetUrl: text(formData, `${key}-targetUrl`) || "/products",
-      title,
-    });
-  }
-
-  try {
     await upsertPromotionBanners(banners, deletedIds);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[Admin] savePromotionBanners failed:", message);
-    redirect(`/cms?saveError=${encodeURIComponent(message)}`);
+    redirect(`/banners?saveError=${encodeURIComponent(message)}`);
   }
   await revalidateStorefront();
   revalidatePath("/", "layout");
-  redirect("/cms?saved=1");
+  redirect("/banners?saved=1");
 }
 
 export async function saveOrderStatuses(formData: FormData) {

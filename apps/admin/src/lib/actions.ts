@@ -458,27 +458,27 @@ export async function savePromotionBanner(formData: FormData) {
   const cta_text_zh = fd(formData, "cta_text_zh") || null;
   const cta_text_ms = fd(formData, "cta_text_ms") || null;
 
-  if (!title) redirect("/cms?saveError=Banner+title+is+required");
-
   // Image URLs are submitted directly (uploaded client-side via signed URL)
   const desktop_image_url = fd(formData, "desktop_image_url") || null;
   const mobile_image_url = fd(formData, "mobile_image_url") || null;
+  const button_enabled = Boolean(cta_text && target_url);
 
   const payload = {
-    title,
+    title: title || "",
     subtitle,
-    cta_text,
+    cta_text: button_enabled ? cta_text : null,
     target_url,
+    button_enabled,
     sort_order,
     is_active,
     desktop_image_url,
     mobile_image_url,
-    title_en,
+    title_en: title_en || null,
     title_zh,
     title_ms,
-    cta_text_en,
-    cta_text_zh,
-    cta_text_ms,
+    cta_text_en: button_enabled ? cta_text_en : null,
+    cta_text_zh: button_enabled ? cta_text_zh : null,
+    cta_text_ms: button_enabled ? cta_text_ms : null,
   };
 
   let error;
@@ -490,30 +490,30 @@ export async function savePromotionBanner(formData: FormData) {
 
   if (error) {
     console.error("[Admin] savePromotionBanner error:", error);
-    redirect(`/cms?saveError=${encodeURIComponent(error.message)}`);
+    redirect(`/banners?saveError=${encodeURIComponent(error.message)}`);
   }
 
   revalidateAll();
   await revalidateStorefront();
-  redirect("/cms?saved=1");
+  redirect("/banners?saved=1");
 }
 
 export async function deletePromotionBanner(formData: FormData) {
   const sb = createAdminClient();
   const id = fd(formData, "id");
 
-  if (!id) redirect("/cms?saveError=Missing+banner+ID");
+  if (!id) redirect("/banners?saveError=Missing+banner+ID");
 
   const { error } = await sb.from("promotion_banners").delete().eq("id", id);
 
   if (error) {
     console.error("[Admin] deletePromotionBanner error:", error);
-    redirect(`/cms?saveError=${encodeURIComponent(error.message)}`);
+    redirect(`/banners?saveError=${encodeURIComponent(error.message)}`);
   }
 
   revalidateAll();
   await revalidateStorefront();
-  redirect("/cms?saved=1");
+  redirect("/banners?saved=1");
 }
 
 // ─── ORDERS ───────────────────────────────────────────────────────────────────
@@ -809,6 +809,10 @@ export async function saveHomepage(formData: FormData) {
   return saveCmsBanner(formData, "/homepage");
 }
 
+export async function saveBannersHeroBanner(formData: FormData) {
+  return saveCmsBanner(formData, "/banners");
+}
+
 export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const sb = createAdminClient();
   const { data: existingBanner } = await sb.from("banners").select("*").eq("id", true).maybeSingle();
@@ -835,7 +839,9 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const submittedOrExisting = (key: string, existing = "") =>
     formData.has(key) ? fd(formData, key) : existing;
 
-  const hero_title_en = fd(formData, "hero_title_en") || fd(formData, "heroTitle") || fd(formData, "hero_title");
+  const hero_title_en = formData.has("hero_title_en")
+    ? fd(formData, "hero_title_en")
+    : fd(formData, "heroTitle") || fd(formData, "hero_title");
   const hero_title_zh = submittedOrExisting("hero_title_zh", existingText("hero_title_zh", existingPromoMeta?.heroTitle?.zh ?? ""));
   const hero_title_ms = submittedOrExisting("hero_title_ms", existingText("hero_title_ms", existingPromoMeta?.heroTitle?.ms ?? ""));
   const hero_subtitle_en = fd(formData, "hero_subtitle_en") || fd(formData, "heroSubtitle") || fd(formData, "hero_subtitle");
@@ -844,7 +850,9 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const hero_button_text_en = fd(formData, "hero_button_text_en") || fd(formData, "heroButtonText") || fd(formData, "hero_button_text");
   const hero_button_text_zh = submittedOrExisting("hero_button_text_zh", existingText("hero_button_text_zh", existingPromoMeta?.heroButtonText?.zh ?? ""));
   const hero_button_text_ms = submittedOrExisting("hero_button_text_ms", existingText("hero_button_text_ms", existingPromoMeta?.heroButtonText?.ms ?? ""));
-  const hero_title = hero_title_en || existingBanner?.hero_title || "Stay Cool. Move Smart.";
+  const hero_title = formData.has("hero_title_en")
+    ? hero_title_en
+    : hero_title_en || existingBanner?.hero_title || "Stay Cool. Move Smart.";
   const hero_subtitle = hero_subtitle_en || existingBanner?.hero_subtitle || null;
   const hero_image_url = formData.has("heroImage") || formData.has("hero_image_url")
     ? fd(formData, "heroImage") || fd(formData, "hero_image_url") || null
@@ -884,8 +892,6 @@ export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const announcement_link = fd(formData, "announcementLink") || null;
   const announcement_bg_color = fd(formData, "announcementBgColor") || "#1a1a1a";
   const announcement_text_color = fd(formData, "announcementTextColor") || "#ffffff";
-
-  if (!hero_title) redirect(`${redirectBase}?saveError=Hero+title+is+required`);
 
   const payload = {
     id: true,

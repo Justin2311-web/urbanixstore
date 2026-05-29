@@ -43,11 +43,11 @@ function localizedTextFrom(
 
 function newBanner(sortOrder: number): BannerRow {
   return {
-    buttonEnabled: true,
+    buttonEnabled: false,
     buttonPosition: "bottom-left",
     buttonUrl: "",
-    buttonText: { bm: "Beli Sekarang", en: "Shop Now", zh: "立即选购" },
-    ctaText: "Shop Now",
+    buttonText: { bm: "", en: "", zh: "" },
+    ctaText: "",
     desktopImageUrl: "",
     id: "",
     imageClickUrl: "",
@@ -58,7 +58,7 @@ function newBanner(sortOrder: number): BannerRow {
     mobileImageUrl: "",
     sortOrder,
     subtitle: "",
-    targetUrl: "/products",
+    targetUrl: "",
     title: "",
   };
 }
@@ -112,7 +112,7 @@ export function PromotionBannersForm({ banners }: { banners: PromotionBanner[] }
                 return (
                   <div className="grid gap-3 rounded-2xl border border-border p-3" key={`copy-${code}`}>
                     <Field label={`Title (${label})`}>
-                      <Input defaultValue={titles[code]} name={`${banner.key}-title-${code}`} required={code === "en"} />
+                      <Input defaultValue={titles[code]} name={`${banner.key}-title-${code}`} />
                     </Field>
                     <Field label={`Description (${label})`}>
                       <Input defaultValue={subtitles[code]} name={`${banner.key}-subtitle-${code}`} />
@@ -124,7 +124,7 @@ export function PromotionBannersForm({ banners }: { banners: PromotionBanner[] }
                 );
               })}
             </div>
-            <Field label="Target URL / product URL">
+            <Field label="Image click URL / CTA link">
               <Input defaultValue={banner.targetUrl} name={`${banner.key}-targetUrl`} />
             </Field>
             <Field label="Button position">

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
-import { saveCmsBanner } from "@/lib/actions";
+import { saveBannersHeroBanner } from "@/lib/actions";
 import { CheckField, Field, SaveButton } from "@/components/admin-form";
 import { SaveNotice } from "@/components/save-notice";
 import { PromotionBannersForm } from "@/components/promotion-banners-form";
@@ -58,7 +58,7 @@ export default async function BannersPage({
 
       <section className="mb-8">
         <h2 className="mb-3 text-xl font-bold">Hero Banner</h2>
-        <form action={saveCmsBanner}>
+        <form action={saveBannersHeroBanner}>
           <input name="announcementEnabled" type="hidden" value={String(homepage.announcementEnabled ?? true)} />
           <input name="announcementLink" type="hidden" value={homepage.announcementLink ?? ""} />
           <input name="announcementBgColor" type="hidden" value={homepage.announcementBgColor ?? "#1a1a1a"} />
@@ -81,7 +81,7 @@ export default async function BannersPage({
                     </div>
                     <div className="grid gap-3">
                       <Field label={`Hero title ${item.label}`}>
-                        <Input defaultValue={item.value} name={`hero_title_${item.code}`} required={item.code === "en"} />
+                        <Input defaultValue={item.value} name={`hero_title_${item.code}`} />
                       </Field>
                       <Field label={`Hero description ${item.label}`}>
                         <Input defaultValue={item.subtitle} name={`hero_subtitle_${item.code}`} />
