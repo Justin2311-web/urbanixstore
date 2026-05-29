@@ -1074,7 +1074,7 @@ export function ProductForm({
                   className="field-textarea"
                   rows={2}
                   defaultValue={product?.shipping_info ?? ""}
-                  placeholder="Free shipping for orders above RM40"
+                  placeholder="Free shipping: West Malaysia above RM80, East Malaysia above RM150."
                 />
               </div>
             </div>

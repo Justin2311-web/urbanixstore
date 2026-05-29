@@ -323,7 +323,7 @@ values
     'fan-green',
     4.8,
     200,
-    'Free shipping applies for orders over RM50.',
+    'Free shipping: West Malaysia above RM80, East Malaysia above RM150.',
     'Returns accepted within 30 days for unused items in original packaging.',
     '["Strong airflow", "USB-C charging", "Pocket-friendly body"]'::jsonb,
     '["3 speed modes", "USB-C charging", "Up to 12 hours battery life", "Pocket-friendly body"]'::jsonb
@@ -344,7 +344,7 @@ values
     'car',
     4.7,
     90,
-    'Free shipping applies for orders over RM50.',
+    'Free shipping: West Malaysia above RM80, East Malaysia above RM150.',
     'Returns accepted within 30 days for unused items in original packaging.',
     '["Stable clamp grip", "One-hand adjustment", "Matte black finish"]'::jsonb,
     '["Stable clamp grip", "Compact dashboard fit", "One-hand adjustment", "Matte black finish"]'::jsonb
@@ -365,7 +365,7 @@ values
     'perfume',
     4.6,
     76,
-    'Free shipping applies for orders over RM50.',
+    'Free shipping: West Malaysia above RM80, East Malaysia above RM150.',
     'Returns accepted within 30 days for unused items in original packaging.',
     '["Ocean breeze scent", "Compact bottle", "Long-lasting aroma"]'::jsonb,
     '["Ocean breeze scent", "Compact bottle", "Easy placement", "Long-lasting aroma"]'::jsonb
@@ -386,7 +386,7 @@ values
     'cable',
     4.7,
     64,
-    'Free shipping applies for orders over RM50.',
+    'Free shipping: West Malaysia above RM80, East Malaysia above RM150.',
     'Returns accepted within 30 days for unused items in original packaging.',
     '["Magnetic hold", "Compact footprint", "Works with common cables"]'::jsonb,
     '["Magnetic hold", "Compact footprint", "Desk-friendly design", "Works with common cables"]'::jsonb
@@ -470,7 +470,7 @@ values (
   'Shop Now',
   '/products',
   'fan-green',
-  'Free Shipping for orders over RM50',
+  'Free shipping: West Malaysia above RM80, East Malaysia above RM150.',
   '["portable-fans", "car-accessories", "home-picks", "lifestyle"]'::jsonb,
   '["Free Shipping", "30-Day Returns", "Secure Checkout", "Trusted Store"]'::jsonb,
   true
