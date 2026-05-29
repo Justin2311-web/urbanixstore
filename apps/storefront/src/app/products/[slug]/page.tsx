@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
@@ -10,9 +11,49 @@ import { StockBadge } from "@/components/commerce/stock-badge";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { freeShippingCopy } from "@/lib/shipping-text";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const data = await readUrbanixStoreDataAsync();
+    const product = listStorefrontProducts(data).find((item) => item.slug === slug);
+    if (!product) return {};
+
+    const siteUrl = getSiteUrl();
+    const title = product.name;
+    const description = product.shortDescription || product.description?.slice(0, 160) || product.name;
+    const image = product.image || product.galleryImages?.[0] || product.productImages?.[0]?.imageUrl || "/urbanix-logo.png";
+
+    return {
+      title,
+      description,
+      alternates: { canonical: `/products/${slug}` },
+      openGraph: {
+        type: "website",
+        title,
+        description,
+        url: `${siteUrl}/products/${slug}`,
+        images: [{ url: image, width: 1200, height: 630, alt: title }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [image],
+      },
+    };
+  } catch {
+    return {};
+  }
+}
 
 export default async function ProductDetailPage({
   params,
@@ -32,8 +73,46 @@ export default async function ProductDetailPage({
     .filter((item) => item.category === product.category && item.id !== product.id)
     .slice(0, 8);
   const deliveryInfo = freeShippingCopy(data.settings, product.shippingInfo);
+  const siteUrl = getSiteUrl();
+  const productImages = [
+    product.image,
+    ...(product.galleryImages ?? []),
+    ...(product.productImages?.map((entry) => entry.imageUrl) ?? []),
+  ].filter((value): value is string => Boolean(value));
+  const productJsonLd = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.name,
+    description: product.shortDescription || product.description,
+    sku: product.sku,
+    image: productImages.length > 0 ? productImages : ["/urbanix-logo.png"],
+    brand: { "@type": "Brand", name: data.settings.storeName || "Urbanix Store" },
+    aggregateRating:
+      product.sold && product.rating
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: product.rating,
+            reviewCount: Math.max(1, product.sold),
+          }
+        : undefined,
+    offers: {
+      "@type": "Offer",
+      url: `${siteUrl}/products/${product.slug}`,
+      priceCurrency: "MYR",
+      price: product.price.toFixed(2),
+      availability:
+        product.stockStatus === "out_of_stock"
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+    },
+  };
+
   return (
     <main className="urbanix-container py-8 pb-24 sm:py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       {/* ── Main product section: image left, info right ── */}
       <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-start lg:gap-8">
         {/* Left: gallery with auto-slide + arrows */}

@@ -126,6 +126,7 @@ export async function StorefrontFooter() {
               { href: "/track-order", label: "Track Order", localizedLabel: { en: "Track Order", ms: "Jejak Pesanan", zh: "追踪订单" } },
               { href: "/shipping", label: "Shipping", key: "footer.shipping", localizedLabel: data.footer.shipping },
               { href: "/contact-us", label: "Contact Us", key: "footer.contactUs", localizedLabel: data.footer.contact_us },
+              { href: "/faq", label: "FAQ", localizedLabel: { en: "FAQ", ms: "Soalan Lazim", zh: "常见问题" } },
             ]}
             titleValue={data.footer.help_title}
             titleKey="footer.help"
@@ -135,6 +136,9 @@ export async function StorefrontFooter() {
             links={[
               { href: "/our-story", label: "Our Story", key: "footer.ourStory", localizedLabel: data.footer.our_story },
               { href: "/privacy-policy", label: "Privacy Policy", key: "footer.privacy", localizedLabel: data.footer.privacy_policy },
+              { href: "/terms-and-conditions", label: "Terms & Conditions", localizedLabel: { en: "Terms & Conditions", ms: "Terma & Syarat", zh: "条款与条件" } },
+              { href: "/refund-policy", label: "Refund Policy", localizedLabel: { en: "Refund Policy", ms: "Polisi Bayaran Balik", zh: "退款政策" } },
+              { href: "/return-policy", label: "Return Policy", localizedLabel: { en: "Return Policy", ms: "Polisi Pemulangan", zh: "退换货政策" } },
             ]}
             titleValue={data.footer.about_title}
             titleKey="footer.about"

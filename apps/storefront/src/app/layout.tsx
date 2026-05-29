@@ -6,6 +6,7 @@ import { CartProvider } from "@/components/cart/cart-provider";
 import { LanguageProvider } from "@/components/i18n/language-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { StorefrontFooter } from "@/components/storefront-footer";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -24,20 +25,54 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const siteUrl = getSiteUrl();
+  let storeName = "Urbanix Store";
+  let description = "Smart picks for urban life.";
+  let logoUrl: string | undefined;
+  let favicon: string | undefined;
+
   try {
     const { settings } = await readUrbanixStoreDataAsync();
-
-    return {
-      description: settings.storeTagline || "Smart picks for urban life.",
-      icons: settings.favicon || "/favicon.ico",
-      title: settings.storeName || "Urbanix Store",
-    };
+    storeName = settings.storeName || storeName;
+    description = settings.storeTagline || description;
+    logoUrl = settings.logoUrl || undefined;
+    favicon = settings.favicon || undefined;
   } catch {
-    return {
-      description: "Smart picks for urban life.",
-      title: "Urbanix Store",
-    };
+    // fall through to defaults
   }
+
+  const ogImage = logoUrl || "/urbanix-logo.png";
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: storeName,
+      template: `%s | ${storeName}`,
+    },
+    description,
+    icons: favicon || "/favicon.ico",
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      siteName: storeName,
+      title: storeName,
+      description,
+      url: siteUrl,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: storeName }],
+      locale: "en_MY",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: storeName,
+      description,
+      images: [ogImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    },
+  };
 }
 
 export default function RootLayout({

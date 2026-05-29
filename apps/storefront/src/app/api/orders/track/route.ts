@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import type { Database, Json } from "@ecommerce/database";
 
 export const dynamic = "force-dynamic";
@@ -108,11 +109,42 @@ function selectedVariantsForResponse(value: Json | null) {
 
 export async function GET(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const ipLimit = await rateLimit({
+      key: `track:ip:${ip}`,
+      limit: 30,
+      windowSeconds: 60,
+    });
+    if (!ipLimit.ok) {
+      return new Response(
+        JSON.stringify({ error: "Too many lookups. Please wait a moment and try again." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(ipLimit.resetSeconds),
+          },
+        }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const orderNumber = normalizeOrderNumber(searchParams.get("order_number"));
     const phones = phoneCandidates(searchParams.get("phone"));
 
     if (!orderNumber || phones.length === 0) return fail(400);
+
+    const orderLimit = await rateLimit({
+      key: `track:order:${orderNumber}`,
+      limit: 10,
+      windowSeconds: 60,
+    });
+    if (!orderLimit.ok) {
+      return rateLimitResponse(
+        orderLimit,
+        "Too many lookups for this order. Please wait a moment and try again."
+      );
+    }
 
     const sb = createOrderLookupClient();
     const ordersTable = sb.from("orders") as unknown as OrderLookupTable;
