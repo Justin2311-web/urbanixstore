@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createStorefrontClient } from "@/lib/supabase";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
   calculateShippingFee,
   getVariantEffectivePrice,
@@ -151,7 +152,35 @@ function resolveVariant(product: UrbanixProduct, selectedVariants?: Record<strin
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const ipLimit = await rateLimit({
+      key: `orders:ip:${ip}`,
+      limit: 10,
+      windowSeconds: 60,
+    });
+    if (!ipLimit.ok) {
+      return rateLimitResponse(
+        ipLimit,
+        "Too many order attempts. Please wait a moment and try again."
+      );
+    }
+
     const body = (await request.json()) as CreateOrderPayload;
+
+    const phoneDigits = phoneForStorage(body.customerPhone ?? "");
+    if (phoneDigits) {
+      const phoneLimit = await rateLimit({
+        key: `orders:phone:${phoneDigits}`,
+        limit: 5,
+        windowSeconds: 300,
+      });
+      if (!phoneLimit.ok) {
+        return rateLimitResponse(
+          phoneLimit,
+          "Too many order attempts for this phone number. Please wait a few minutes."
+        );
+      }
+    }
     const {
       customerName,
       customerPhone,

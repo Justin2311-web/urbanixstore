@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,19 @@ function safeOrderSegment(orderNumber: string) {
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const limit = await rateLimit({
+      key: `signed-upload:ip:${ip}`,
+      limit: 20,
+      windowSeconds: 300,
+    });
+    if (!limit.ok) {
+      return rateLimitResponse(
+        limit,
+        "Too many upload requests. Please wait a moment and try again."
+      );
+    }
+
     const { fileName, fileSize, fileType, orderNumber } = (await request.json()) as {
       fileName?: string;
       fileSize?: number;
