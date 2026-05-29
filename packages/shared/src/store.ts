@@ -1771,33 +1771,58 @@ export async function upsertPromotionBanners(banners: PromotionBanner[], deleted
 
   if (banners.length === 0) return;
 
-  const result = await supabase.from("promotion_banners").upsert(
+  const rows = banners.map((banner, index) => ({
+    cta_text: banner.buttonEnabled ? banner.localizedCtaText?.en || banner.buttonText?.en || banner.ctaText || null : null,
+    cta_text_en: banner.buttonEnabled ? banner.localizedCtaText?.en || banner.buttonText?.en || banner.ctaText || null : null,
+    cta_text_ms: banner.buttonEnabled ? banner.localizedCtaText?.ms || banner.buttonText?.bm || null : null,
+    cta_text_zh: banner.buttonEnabled ? banner.localizedCtaText?.zh || banner.buttonText?.zh || null : null,
+    button_enabled: banner.buttonEnabled,
+    button_position: banner.buttonPosition ?? "bottom-left",
+    desktop_image_url: banner.desktopImageUrl || null,
+    id: banner.id || undefined,
+    is_active: banner.isActive,
+    mobile_image_url: banner.mobileImageUrl || null,
+    sort_order: banner.sortOrder || index + 1,
+    subtitle: banner.subtitle || null,
+    subtitle_en: banner.localizedSubtitle?.en || banner.subtitle || null,
+    subtitle_ms: banner.localizedSubtitle?.ms || null,
+    subtitle_zh: banner.localizedSubtitle?.zh || null,
+    target_url: banner.targetUrl || null,
+    title: banner.title || "",
+    title_en: banner.localizedTitle?.en || banner.title || null,
+    title_ms: banner.localizedTitle?.ms || null,
+    title_zh: banner.localizedTitle?.zh || null,
+  }));
+
+  const result = await supabase.from("promotion_banners").upsert(rows, { onConflict: "id" });
+
+  if (!result.error) return;
+
+  const errorMessage = [result.error.code, result.error.message, result.error.details, result.error.hint]
+    .filter(Boolean)
+    .join(" ");
+  const canRetryLegacyPayload =
+    result.error.code === "PGRST204" ||
+    /schema cache|column/i.test(errorMessage);
+
+  if (!canRetryLegacyPayload) throw result.error;
+
+  const legacyResult = await supabase.from("promotion_banners").upsert(
     banners.map((banner, index) => ({
       cta_text: banner.buttonEnabled ? banner.localizedCtaText?.en || banner.buttonText?.en || banner.ctaText || null : null,
-      cta_text_en: banner.buttonEnabled ? banner.localizedCtaText?.en || banner.buttonText?.en || banner.ctaText || null : null,
-      cta_text_ms: banner.buttonEnabled ? banner.localizedCtaText?.ms || banner.buttonText?.bm || null : null,
-      cta_text_zh: banner.buttonEnabled ? banner.localizedCtaText?.zh || banner.buttonText?.zh || null : null,
-      button_enabled: banner.buttonEnabled,
-      button_position: banner.buttonPosition ?? "bottom-left",
       desktop_image_url: banner.desktopImageUrl || null,
       id: banner.id || undefined,
       is_active: banner.isActive,
       mobile_image_url: banner.mobileImageUrl || null,
       sort_order: banner.sortOrder || index + 1,
       subtitle: banner.subtitle || null,
-      subtitle_en: banner.localizedSubtitle?.en || banner.subtitle || null,
-      subtitle_ms: banner.localizedSubtitle?.ms || null,
-      subtitle_zh: banner.localizedSubtitle?.zh || null,
       target_url: banner.targetUrl || null,
       title: banner.title || "",
-      title_en: banner.localizedTitle?.en || banner.title || null,
-      title_ms: banner.localizedTitle?.ms || null,
-      title_zh: banner.localizedTitle?.zh || null,
     })),
     { onConflict: "id" }
   );
 
-  if (result.error) throw result.error;
+  if (legacyResult.error) throw legacyResult.error;
 }
 
 export async function uploadUrbanixAsset(file: File, bucket: "product-images" | "banners" | "logos", folder: string) {

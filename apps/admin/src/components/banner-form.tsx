@@ -24,10 +24,9 @@ export function BannerForm({ banner }: { banner?: BannerData }) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="field-label">Title *</label>
+          <label className="field-label">Title</label>
           <input
             name="title"
-            required
             className="field-input"
             defaultValue={banner?.title ?? ""}
           />

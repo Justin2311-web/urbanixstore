@@ -111,6 +111,17 @@ function hasBannerUpload(formData: FormData, key: string) {
   );
 }
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const details = error as Record<string, unknown>;
+    return [details.code, details.message, details.details, details.hint]
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .join(" | ") || JSON.stringify(details);
+  }
+  return String(error);
+}
+
 async function getProductImageUrls(formData: FormData, slug: string, existingImages: string[]) {
   const files = fileValues(formData, "productImageFiles");
   const tokens = jsonStringArray(formData, "productImageOrder");
@@ -393,6 +404,19 @@ export async function savePromotionBanners(formData: FormData) {
   const banners: PromotionBanner[] = [];
 
   try {
+    console.info("[Admin] savePromotionBanners submitted:", {
+      action: "promotion-banners",
+      bannerCount: keys.length,
+      keys: keys.map((key) => ({
+        hasDesktopUpload: bannerLangs.some((lang) => fileValues(formData, `${key}-desktopFile-${lang}`).length > 0),
+        hasExistingDesktop: bannerLangs.some((lang) => Boolean(text(formData, `${key}-desktopImageUrl-${lang}`))),
+        hasExistingMobile: bannerLangs.some((lang) => Boolean(text(formData, `${key}-mobileImageUrl-${lang}`))),
+        hasMobileUpload: bannerLangs.some((lang) => fileValues(formData, `${key}-mobileFile-${lang}`).length > 0),
+        idPresent: Boolean(text(formData, `${key}-id`)),
+        key,
+      })),
+    });
+
     for (const [index, key] of keys.entries()) {
       const id = text(formData, `${key}-id`);
       const localizedTitle = {
@@ -474,7 +498,7 @@ export async function savePromotionBanners(formData: FormData) {
 
     await upsertPromotionBanners(banners, deletedIds);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = errorMessage(err);
     console.error("[Admin] savePromotionBanners failed:", message);
     redirect(`/banners?saveError=${encodeURIComponent(message)}`);
   }
