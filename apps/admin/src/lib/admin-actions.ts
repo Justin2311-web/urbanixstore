@@ -111,6 +111,27 @@ function hasBannerUpload(formData: FormData, key: string) {
   );
 }
 
+// Belt-and-braces: even with the next.config bodySizeLimit raised and the
+// client-side guard in PromotionBannersForm, fail with a friendly message
+// instead of letting Supabase Storage choke on an oversized file.
+const MAX_BANNER_FILE_BYTES = 6 * 1024 * 1024;
+const MAX_BANNER_FILE_LABEL = "6 MB";
+
+function validateBannerFiles(formData: FormData, key: string) {
+  for (const lang of bannerLangs) {
+    for (const slot of ["desktopFile", "mobileFile"] as const) {
+      const file = fileValues(formData, `${key}-${slot}-${lang}`)[0];
+      if (file && file.size > MAX_BANNER_FILE_BYTES) {
+        const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+        throw new Error(
+          `Banner image "${file.name}" is ${sizeMb} MB. Maximum is ${MAX_BANNER_FILE_LABEL}. ` +
+            `Please compress it and try again.`
+        );
+      }
+    }
+  }
+}
+
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object") {
@@ -407,15 +428,29 @@ export async function savePromotionBanners(formData: FormData) {
     console.info("[Admin] savePromotionBanners submitted:", {
       action: "promotion-banners",
       bannerCount: keys.length,
-      keys: keys.map((key) => ({
-        hasDesktopUpload: bannerLangs.some((lang) => fileValues(formData, `${key}-desktopFile-${lang}`).length > 0),
-        hasExistingDesktop: bannerLangs.some((lang) => Boolean(text(formData, `${key}-desktopImageUrl-${lang}`))),
-        hasExistingMobile: bannerLangs.some((lang) => Boolean(text(formData, `${key}-mobileImageUrl-${lang}`))),
-        hasMobileUpload: bannerLangs.some((lang) => fileValues(formData, `${key}-mobileFile-${lang}`).length > 0),
-        idPresent: Boolean(text(formData, `${key}-id`)),
-        key,
-      })),
+      keys: keys.map((key) => {
+        const desktopFiles = bannerLangs.flatMap((lang) => fileValues(formData, `${key}-desktopFile-${lang}`));
+        const mobileFiles = bannerLangs.flatMap((lang) => fileValues(formData, `${key}-mobileFile-${lang}`));
+        const summarize = (files: File[]) =>
+          files.map((file) => ({ name: file.name, size: file.size, type: file.type }));
+        return {
+          desktopFiles: summarize(desktopFiles),
+          hasDesktopUpload: desktopFiles.length > 0,
+          hasExistingDesktop: bannerLangs.some((lang) => Boolean(text(formData, `${key}-desktopImageUrl-${lang}`))),
+          hasExistingMobile: bannerLangs.some((lang) => Boolean(text(formData, `${key}-mobileImageUrl-${lang}`))),
+          hasMobileUpload: mobileFiles.length > 0,
+          idPresent: Boolean(text(formData, `${key}-id`)),
+          key,
+          mobileFiles: summarize(mobileFiles),
+        };
+      }),
     });
+
+    // Reject oversized files before we touch Supabase so the user gets a
+    // readable saveError instead of a generic storage failure.
+    for (const key of keys) {
+      validateBannerFiles(formData, key);
+    }
 
     for (const [index, key] of keys.entries()) {
       const id = text(formData, `${key}-id`);

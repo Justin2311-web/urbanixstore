@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { PromotionBanner } from "@ecommerce/shared";
 import { savePromotionBanners } from "@/lib/admin-actions";
@@ -8,6 +8,11 @@ import { CheckField, Field, SaveButton } from "@/components/admin-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Keep slightly below the admin Server Action bodySizeLimit (8 MB) so the
+// combined payload of all banner uploads still fits with form metadata.
+const MAX_BANNER_FILE_BYTES = 6 * 1024 * 1024;
+const MAX_BANNER_FILE_LABEL = "6 MB";
 
 type BannerRow = PromotionBanner & {
   key: string;
@@ -69,9 +74,30 @@ export function PromotionBannersForm({ banners }: { banners: PromotionBanner[] }
       ? banners.map((banner) => ({ ...banner, key: banner.id }))
       : [newBanner(1)]
   );
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_BANNER_FILE_BYTES) {
+      setFileError(
+        `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. ` +
+          `Banner images must be ${MAX_BANNER_FILE_LABEL} or smaller. ` +
+          `Please compress the image (try tinypng.com or squoosh.app) and re-upload.`
+      );
+      event.target.value = "";
+      return;
+    }
+    setFileError(null);
+  }
 
   return (
     <form action={savePromotionBanners} className="grid gap-4" encType="multipart/form-data">
+      {fileError ? (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+          {fileError}
+        </div>
+      ) : null}
       <input name="bannerKeys" type="hidden" value={JSON.stringify(rows.map((row) => row.key))} />
       <div className="flex justify-end">
         <Button onClick={() => setRows((current) => [...current, newBanner(current.length + 1)])} type="button" variant="secondary">
@@ -152,11 +178,21 @@ export function PromotionBannersForm({ banners }: { banners: PromotionBanner[] }
               const mobileImages = localizedImagesFrom(banner.mobileImageUrl, banner.localizedMobileImageUrls);
               return (
                 <div className="grid gap-3 rounded-2xl border border-border p-3 md:col-span-2 md:grid-cols-2" key={code}>
-                  <Field label={`${label} desktop banner image`}>
-                    <Input accept="image/*" name={`${banner.key}-desktopFile-${code}`} type="file" />
+                  <Field label={`${label} desktop banner image (max ${MAX_BANNER_FILE_LABEL})`}>
+                    <Input
+                      accept="image/*"
+                      name={`${banner.key}-desktopFile-${code}`}
+                      onChange={handleFileChange}
+                      type="file"
+                    />
                   </Field>
-                  <Field label={`${label} mobile banner image`}>
-                    <Input accept="image/*" name={`${banner.key}-mobileFile-${code}`} type="file" />
+                  <Field label={`${label} mobile banner image (max ${MAX_BANNER_FILE_LABEL})`}>
+                    <Input
+                      accept="image/*"
+                      name={`${banner.key}-mobileFile-${code}`}
+                      onChange={handleFileChange}
+                      type="file"
+                    />
                   </Field>
                   {desktopImages[code] ? (
                     <img alt={`${label} desktop banner preview`} className="aspect-[16/6] w-full rounded-2xl border object-cover" src={desktopImages[code]} />
