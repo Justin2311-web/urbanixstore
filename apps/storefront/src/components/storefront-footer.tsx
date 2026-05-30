@@ -4,8 +4,6 @@ import { listStorefrontCategories, readUrbanixStoreDataAsync } from "@ecommerce/
 import { BrandLogo } from "@/components/brand-logo";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
-import { Input } from "@/components/ui/input";
-import { buttonVariants } from "@/components/ui/button";
 import { getWhatsAppNumber } from "@/lib/order-links";
 
 // ── Branded SVG icon components ──────────────────────────────────────────────
@@ -168,15 +166,6 @@ export async function StorefrontFooter() {
               WhatsApp: {settings.whatsappNumber}
             </a>
           )}
-          <div className="mt-2 flex gap-2">
-            <Input
-              className="border-[rgba(59,158,255,0.2)] bg-[rgba(59,158,255,0.06)] text-[#c8d8ef] placeholder:text-[#4a6a8a] focus:border-[rgba(59,158,255,0.4)]"
-              placeholder="Enter your email"
-            />
-            <Link className={buttonVariants({ variant: "secondary" })} href="/">
-              <LocalizedText fallback="Subscribe" k="common.subscribe" />
-            </Link>
-          </div>
         </div>
       </div>
 

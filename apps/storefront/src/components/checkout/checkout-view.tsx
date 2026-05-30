@@ -2,9 +2,10 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Upload, X } from "lucide-react";
+import { MessageCircle, ShieldCheck, Upload, X } from "lucide-react";
 import type { CheckoutCustomer, PaymentSettings, QrPaymentMethod, StoreSettings, UrbanixOrder, UrbanixProduct } from "@ecommerce/shared";
-import { calculateOrderTotals, malaysiaStates } from "@ecommerce/shared";
+import { calculateOrderTotals, formatCurrency, malaysiaStates } from "@ecommerce/shared";
+import { getWhatsAppNumber } from "@/lib/order-links";
 import { buildCartLines } from "@/lib/cart-utils";
 import { useCart } from "@/components/cart/cart-provider";
 import { EmptyState } from "@/components/commerce/empty-state";
@@ -46,6 +47,7 @@ export function CheckoutView({
   settings: StoreSettings;
   qrMethods?: QrPaymentMethod[];
 }) {
+  const supportWhatsAppNumber = settings.whatsappNumber ? getWhatsAppNumber(settings) : null;
   const router = useRouter();
   const { t } = useLanguage();
   const { clearCart, items } = useCart();
@@ -202,11 +204,11 @@ export function CheckoutView({
 
     if (!validate()) return;
     if (!selectedMethod) {
-      setSubmitError("No payment methods available. Please contact the store.");
+      setSubmitError(t("checkout.noPaymentMethods", "No payment methods available. Please contact the store."));
       return;
     }
     if (!receiptFile) {
-      const message = "Please upload your payment receipt before placing the order.";
+      const message = t("checkout.receiptRequiredBeforeOrder", "Please upload your payment receipt before placing the order.");
       setReceiptError(message);
       setSubmitError(message);
       return;
@@ -362,9 +364,9 @@ export function CheckoutView({
   return (
     <main className="urbanix-container urbanix-section pb-24">
       <div className="mb-6">
-        <h1 className="text-3xl font-extrabold">Checkout</h1>
+        <h1 className="text-3xl font-extrabold">{t("checkout.title", "Checkout")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Fill in your details to place the order.
+          {t("checkout.subtitle", "Fill in your details to place the order.")}
         </p>
       </div>
 
@@ -373,14 +375,14 @@ export function CheckoutView({
           {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
+              <CardTitle>{t("checkout.contactInformation", "Contact Information")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               <FieldError error={errors.fullName}>
                 <Input
                   aria-invalid={Boolean(errors.fullName)}
                   onChange={(event) => updateField("fullName", event.target.value)}
-                  placeholder="Full name"
+                  placeholder={t("checkout.fullNamePlaceholder", "Full name")}
                   value={customer.fullName}
                 />
               </FieldError>
@@ -388,7 +390,7 @@ export function CheckoutView({
                 <Input
                   aria-invalid={Boolean(errors.phone)}
                   onChange={(event) => updateField("phone", event.target.value)}
-                  placeholder="Phone number"
+                  placeholder={t("checkout.phonePlaceholder", "Phone number")}
                   value={customer.phone}
                 />
               </FieldError>
@@ -396,7 +398,7 @@ export function CheckoutView({
                 <Input
                   aria-invalid={Boolean(errors.email)}
                   onChange={(event) => updateField("email", event.target.value)}
-                  placeholder="Email address (optional)"
+                  placeholder={t("checkout.emailPlaceholder", "Email address (optional)")}
                   type="email"
                   value={customer.email}
                 />
@@ -407,28 +409,28 @@ export function CheckoutView({
           {/* Shipping Address */}
           <Card>
             <CardHeader>
-              <CardTitle>Shipping Address</CardTitle>
+              <CardTitle>{t("checkout.shippingAddress", "Shipping Address")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <FieldError className="sm:col-span-2" error={errors.addressLine1}>
                 <Input
                   aria-invalid={Boolean(errors.addressLine1)}
                   onChange={(event) => updateField("addressLine1", event.target.value)}
-                  placeholder="Address line 1"
+                  placeholder={t("checkout.addressLine1Placeholder", "Address line 1")}
                   value={customer.addressLine1}
                 />
               </FieldError>
               <Input
                 className="sm:col-span-2"
                 onChange={(event) => updateField("addressLine2", event.target.value)}
-                placeholder="Address line 2"
+                placeholder={t("checkout.addressLine2Placeholder", "Address line 2")}
                 value={customer.addressLine2}
               />
               <FieldError error={errors.city}>
                 <Input
                   aria-invalid={Boolean(errors.city)}
                   onChange={(event) => updateField("city", event.target.value)}
-                  placeholder="City"
+                  placeholder={t("checkout.cityPlaceholder", "City")}
                   value={customer.city}
                 />
               </FieldError>
@@ -449,7 +451,7 @@ export function CheckoutView({
                 <Input
                   aria-invalid={Boolean(errors.postcode)}
                   onChange={(event) => updateField("postcode", event.target.value)}
-                  placeholder="Postcode"
+                  placeholder={t("checkout.postcodePlaceholder", "Postcode")}
                   value={customer.postcode}
                 />
               </FieldError>
@@ -457,14 +459,14 @@ export function CheckoutView({
                 <Input
                   aria-invalid={Boolean(errors.country)}
                   onChange={(event) => updateField("country", event.target.value)}
-                  placeholder="Country"
+                  placeholder={t("checkout.countryPlaceholder", "Country")}
                   value={customer.country}
                 />
               </FieldError>
               <Input
                 className="sm:col-span-2"
                 onChange={(event) => updateField("deliveryNote", event.target.value)}
-                placeholder="Delivery note, e.g. leave at the front door"
+                placeholder={t("checkout.deliveryNotePlaceholder", "Delivery note, e.g. leave at the front door")}
                 value={customer.deliveryNote}
               />
             </CardContent>
@@ -481,7 +483,7 @@ export function CheckoutView({
           {/* Payment Method */}
           <Card>
             <CardHeader>
-              <CardTitle>Payment Method</CardTitle>
+              <CardTitle>{t("checkout.paymentMethod", "Payment Method")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
 
@@ -511,7 +513,25 @@ export function CheckoutView({
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No payment methods available. Please contact the store.</p>
+                <p className="text-sm text-muted-foreground">{t("checkout.noPaymentMethods", "No payment methods available. Please contact the store.")}</p>
+              )}
+
+              {/* Pay amount — shown large above QR so customers transfer the exact total */}
+              {selectedMethod && (
+                <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-4 text-center">
+                  <p className="text-xs font-bold uppercase tracking-wide text-primary/80">
+                    {t("checkout.payAmount", "Amount to pay")}
+                  </p>
+                  {customer.state ? (
+                    <p className="mt-1 text-3xl font-extrabold text-primary">
+                      {formatCurrency(totals.total)}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                      {t("checkout.selectStateForAmount", "Select your state to see the final amount.")}
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* Selected method QR display */}
@@ -532,16 +552,29 @@ export function CheckoutView({
                     </div>
                   ) : (
                     <div className="flex h-40 items-center justify-center rounded-xl border-2 border-dashed border-border bg-white text-xs text-muted-foreground">
-                      QR code not set up yet. Please contact the store.
+                      {t("checkout.qrNotSetup", "QR code not set up yet. Please contact the store.")}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Payment steps — clarify the flow for first-time QR payment customers */}
+              {selectedMethod && (
+                <div className="rounded-2xl border border-border bg-white p-4 text-xs">
+                  <p className="mb-2 text-sm font-bold text-primary">{t("payment.steps.title", "How to pay")}</p>
+                  <ol className="flex flex-col gap-1.5 text-muted-foreground">
+                    <li>{t("payment.steps.1", "Step 1: Scan the QR code")}</li>
+                    <li>{t("payment.steps.2", "Step 2: Pay the exact amount shown above")}</li>
+                    <li>{t("payment.steps.3", "Step 3: Upload your payment receipt")}</li>
+                    <li>{t("payment.steps.4", "Step 4: Tap Place Order")}</li>
+                  </ol>
                 </div>
               )}
 
               {/* Receipt Upload */}
               <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                 <p className="mb-3 text-sm font-bold">
-                  Upload Payment Receipt <span className="font-normal text-muted-foreground">(required)</span>
+                  {t("checkout.uploadReceipt", "Upload Payment Receipt")} <span className="font-normal text-muted-foreground">({t("checkout.required", "required")})</span>
                 </p>
 
                 {receiptFile ? (
@@ -563,7 +596,7 @@ export function CheckoutView({
                     )}
                     {receiptUrl ? (
                       <p className="flex items-center gap-1 text-xs font-semibold text-green-700">
-                        ✓ Receipt uploaded successfully
+                        ✓ {t("checkout.receiptUploaded", "Receipt uploaded successfully")}
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
@@ -575,14 +608,14 @@ export function CheckoutView({
                       onClick={clearReceipt}
                       className="flex items-center gap-1 text-xs font-semibold text-destructive hover:underline"
                     >
-                      <X className="size-3" /> Remove
+                      <X className="size-3" /> {t("checkout.remove", "Remove")}
                     </button>
                   </div>
                 ) : (
                   <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border bg-white p-4 text-center hover:border-primary/50 hover:bg-primary/5 transition-colors">
                     <Upload className="size-6 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-primary">Choose file</span>
-                    <span className="text-xs text-muted-foreground">JPG, PNG, WEBP, PDF · Max {MAX_RECEIPT_MB} MB</span>
+                    <span className="text-xs font-semibold text-primary">{t("checkout.chooseFile", "Choose file")}</span>
+                    <span className="text-xs text-muted-foreground">{t("checkout.fileHint", `JPG, PNG, WEBP, PDF · Max ${MAX_RECEIPT_MB} MB`)}</span>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -605,6 +638,23 @@ export function CheckoutView({
                 </div>
               )}
 
+              {/* WhatsApp fallback — surfaced whenever customer hits an upload or submit
+                  problem so they have a human path forward. Only renders when an
+                  admin-configured WhatsApp number exists. */}
+              {supportWhatsAppNumber && (receiptError || submitError) ? (
+                <a
+                  href={`https://wa.me/${supportWhatsAppNumber}?text=${encodeURIComponent(t("support.whatsappMessage", "Hi Urbanix Store, I need help with payment / receipt upload for my order."))}`}
+                  rel="noreferrer"
+                  target="_blank"
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  <MessageCircle className="size-4" />
+                  <span>
+                    {t("support.needHelp", "Need help with payment or upload?")} {t("support.contactWhatsApp", "Contact us on WhatsApp")}
+                  </span>
+                </a>
+              ) : null}
+
               <Button
                 className="w-full"
                 size="lg"
@@ -614,14 +664,14 @@ export function CheckoutView({
               >
                 {submitting
                   ? receiptUploading
-                    ? "Uploading receipt…"
-                    : "Placing order…"
-                  : "Place Order"}
+                    ? t("checkout.uploadingReceipt", "Uploading receipt…")
+                    : t("checkout.placingOrder", "Placing order…")
+                  : t("checkout.placeOrder", "Place Order")}
               </Button>
 
               <div className="flex items-center justify-center gap-2 text-xs font-bold text-primary">
                 <ShieldCheck className="size-4" />
-                100% Safe & Secure
+                {t("checkout.safeSecure", "100% Safe & Secure")}
               </div>
             </CardContent>
           </Card>

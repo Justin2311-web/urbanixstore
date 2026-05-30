@@ -6,10 +6,12 @@ import { Check, MapPin } from "lucide-react";
 import type { UrbanixOrder } from "@ecommerce/shared";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { getLatestOrder } from "@/lib/order-storage";
 
 export function OrderSuccessView() {
+  const { t } = useLanguage();
   const [order, setOrder] = useState<UrbanixOrder | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -33,8 +35,8 @@ export function OrderSuccessView() {
       <main className="urbanix-container urbanix-section pb-24">
         <EmptyState
           actionHref="/products"
-          actionLabel="Continue Shopping"
-          title="No recent order found"
+          actionLabel={t("success.continueShopping", "Continue Shopping")}
+          title={t("success.noOrder", "No recent order found")}
         />
       </main>
     );
@@ -48,22 +50,22 @@ export function OrderSuccessView() {
           <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-white text-success">
             <Check className="size-10" />
           </div>
-          <h1 className="text-3xl font-extrabold text-white">Order Placed!</h1>
-          <p className="mt-2 text-sm text-white/80">Thank you. Your order has been received.</p>
+          <h1 className="text-3xl font-extrabold text-white">{t("success.orderPlaced", "Order Placed!")}</h1>
+          <p className="mt-2 text-sm text-white/80">{t("success.thankYou", "Thank you. Your order has been received.")}</p>
         </div>
 
         <div className="flex flex-col gap-4 p-5">
           {/* Order Number */}
           <div className="rounded-2xl bg-cream p-4 text-center">
-            <div className="text-xs font-bold text-muted-foreground">Order Number</div>
+            <div className="text-xs font-bold text-muted-foreground">{t("success.orderNumber", "Order Number")}</div>
             <div className="mt-1 text-xl font-extrabold text-primary">{order.orderNumber}</div>
           </div>
 
           {/* Payment notice */}
           <div className="rounded-2xl border border-warning/30 bg-amber-50 p-4 text-center">
-            <div className="font-extrabold text-primary">Payment Pending Verification</div>
+            <div className="font-extrabold text-primary">{t("success.paymentPending", "Payment Pending Verification")}</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              We will verify your bank transfer and update your order status shortly.
+              {t("success.paymentPendingNote", "We will verify your bank transfer and update your order status shortly.")}
             </p>
           </div>
 
@@ -79,14 +81,14 @@ export function OrderSuccessView() {
             href={`/track-order?order_number=${encodeURIComponent(order.orderNumber)}&phone=${encodeURIComponent(order.customer.phone)}`}
           >
             <MapPin className="size-4" />
-            Track My Order
+            {t("success.trackMyOrder", "Track My Order")}
           </Link>
 
           <Link
             className={buttonVariants({ className: "w-full", variant: "outline" })}
             href="/products"
           >
-            Continue Shopping
+            {t("success.continueShopping", "Continue Shopping")}
           </Link>
         </div>
       </section>

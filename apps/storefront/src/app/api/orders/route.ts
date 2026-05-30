@@ -312,13 +312,11 @@ export async function POST(request: Request) {
       });
     }
 
-    const serverDiscountAmount = serverSubtotal >= 60 ? roundMoney(serverSubtotal * 0.1) : 0;
+    // No automatic discount yet. A promotion engine (codes / campaigns) is pending.
+    // Keep this at 0 so the server total matches calculateOrderTotals on the client.
+    const serverDiscountAmount = 0;
     const shipping = calculateShippingFee({
-      settings: {
-        ...data.settings,
-        eastMalaysiaFreeShippingMinimumAmount: 150,
-        westMalaysiaFreeShippingMinimumAmount: 80,
-      },
+      settings: data.settings,
       state: validState,
       subtotal: serverSubtotal,
     });
