@@ -97,10 +97,17 @@ export async function saveCategory(formData: FormData) {
   const { data: existingCategory } = id
     ? await sb
         .from("categories")
-        .select("name_en,name_zh,name_ms,description_en,description_zh,description_ms,image_url_en,image_url_zh,image_url_ms")
+        .select("name_en,name_zh,name_ms,description_en,description_zh,description_ms,image_url,image_url_en,image_url_zh,image_url_ms")
         .eq("id", id)
         .maybeSingle()
     : { data: null };
+
+  // Preserve the legacy single-language `image_url` column. The new form
+  // submits per-language fields only, so without this the legacy column
+  // would be overwritten to NULL on every save and break older clients
+  // still reading the un-localized URL.
+  const preservedImageUrl =
+    image_url ?? existingCategory?.image_url ?? image_url_en ?? null;
 
   const payload = {
     name,
@@ -112,7 +119,7 @@ export async function saveCategory(formData: FormData) {
     sort_order,
     is_active,
     tone,
-    image_url,
+    image_url: preservedImageUrl,
     image_url_en: image_url_en ?? existingCategory?.image_url_en ?? null,
     image_url_zh: image_url_zh ?? existingCategory?.image_url_zh ?? null,
     image_url_ms: image_url_ms ?? existingCategory?.image_url_ms ?? null,

@@ -3,9 +3,15 @@ export const dynamic = "force-dynamic";
 import type { Database } from "@ecommerce/database";
 import { createAdminClient } from "@/lib/supabase";
 import { Flash } from "@/components/flash";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { saveCategory, deleteCategory } from "@/lib/actions";
 
 type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
+
+const CATEGORY_IMAGE_BUCKET = "banners";
+const CATEGORY_IMAGE_HELP =
+  "Optional. If left empty, the storefront falls back to the English image, then the legacy image. " +
+  "Recommended: a square or 4:3 image, around 800 × 600 px.";
 
 const TONES = ["tech-blue", "neon-cyan", "premium-gold", "mint", "teal", "peach", "coral-red", "urban-purple", "fresh-teal", "steel-grey"] as const;
 
@@ -77,9 +83,35 @@ export default async function CategoriesPage({
             <label className="field-label">Description (BM)</label>
             <input name="description_ms" className="field-input" placeholder="Penerangan pilihan" />
           </div>
-          <div className="sm:col-span-2">
-            <label className="field-label">Image URL</label>
-            <input name="image_url" className="field-input" placeholder="https://…" />
+          <div className="sm:col-span-full">
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">Category images</h3>
+            <p className="mb-3 text-xs text-gray-500">{CATEGORY_IMAGE_HELP}</p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="field-label">Category Image (EN)</label>
+                <ImageUploadField
+                  bucket={CATEGORY_IMAGE_BUCKET}
+                  storagePath="categories/new/en"
+                  name="image_url_en"
+                />
+              </div>
+              <div>
+                <label className="field-label">Category Image (中文)</label>
+                <ImageUploadField
+                  bucket={CATEGORY_IMAGE_BUCKET}
+                  storagePath="categories/new/zh"
+                  name="image_url_zh"
+                />
+              </div>
+              <div>
+                <label className="field-label">Category Image (BM)</label>
+                <ImageUploadField
+                  bucket={CATEGORY_IMAGE_BUCKET}
+                  storagePath="categories/new/ms"
+                  name="image_url_ms"
+                />
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -152,9 +184,46 @@ export default async function CategoriesPage({
                         <label className="field-label">Description (BM)</label>
                         <input name="description_ms" className="field-input" defaultValue={(cat as CategoryRow & { description_ms?: string | null }).description_ms ?? ""} />
                       </div>
-                      <div className="sm:col-span-2">
-                        <label className="field-label">Image URL</label>
-                        <input name="image_url" className="field-input" defaultValue={cat.image_url ?? ""} />
+                      <div className="sm:col-span-full">
+                        <h3 className="mb-2 text-sm font-semibold text-gray-700">Category images</h3>
+                        <p className="mb-3 text-xs text-gray-500">{CATEGORY_IMAGE_HELP}</p>
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          <div>
+                            <label className="field-label">Category Image (EN)</label>
+                            <ImageUploadField
+                              bucket={CATEGORY_IMAGE_BUCKET}
+                              storagePath={`categories/${cat.id}/en`}
+                              name="image_url_en"
+                              initialUrl={
+                                (cat as CategoryRow & { image_url_en?: string | null }).image_url_en ??
+                                cat.image_url ??
+                                ""
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="field-label">Category Image (中文)</label>
+                            <ImageUploadField
+                              bucket={CATEGORY_IMAGE_BUCKET}
+                              storagePath={`categories/${cat.id}/zh`}
+                              name="image_url_zh"
+                              initialUrl={
+                                (cat as CategoryRow & { image_url_zh?: string | null }).image_url_zh ?? ""
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="field-label">Category Image (BM)</label>
+                            <ImageUploadField
+                              bucket={CATEGORY_IMAGE_BUCKET}
+                              storagePath={`categories/${cat.id}/ms`}
+                              name="image_url_ms"
+                              initialUrl={
+                                (cat as CategoryRow & { image_url_ms?: string | null }).image_url_ms ?? ""
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
                       <div className="flex items-center gap-3 sm:col-span-full">
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -171,10 +240,41 @@ export default async function CategoriesPage({
                     /* Display row */
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
-                        {cat.image_url && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={cat.image_url} alt="" className="h-10 w-10 rounded-lg object-cover border border-gray-200" />
-                        )}
+                        {(() => {
+                          const localized = cat as CategoryRow & {
+                            image_url_en?: string | null;
+                            image_url_zh?: string | null;
+                            image_url_ms?: string | null;
+                          };
+                          const fallback = cat.image_url ?? "";
+                          const previews = [
+                            { label: "EN", url: localized.image_url_en || fallback },
+                            { label: "中文", url: localized.image_url_zh || localized.image_url_en || fallback },
+                            { label: "BM", url: localized.image_url_ms || localized.image_url_en || fallback },
+                          ];
+                          return (
+                            <div className="flex items-center gap-2">
+                              {previews.map((preview) =>
+                                preview.url ? (
+                                  <div className="flex flex-col items-center gap-0.5" key={preview.label}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={preview.url}
+                                      alt={`${cat.name} ${preview.label}`}
+                                      className="h-10 w-10 rounded-lg object-cover border border-gray-200"
+                                    />
+                                    <span className="text-[10px] font-semibold text-gray-500">{preview.label}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-0.5" key={preview.label}>
+                                    <div className="h-10 w-10 rounded-lg border border-dashed border-gray-200 bg-gray-50" />
+                                    <span className="text-[10px] font-semibold text-gray-300">{preview.label}</span>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          );
+                        })()}
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-gray-900">{cat.name}</span>
