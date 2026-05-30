@@ -1752,6 +1752,19 @@ export async function updatePaymentSettings(payments: PaymentSettings) {
   if (result.error) throw result.error;
 }
 
+// PostgREST bulk-INSERT collects the union of all keys in the array and
+// emits literal NULL (not DEFAULT) for keys missing on individual rows.
+// Mixing existing banners (with id) and new banners (without id) in the
+// same .upsert() therefore inserts NULL into promotion_banners.id and
+// violates the NOT NULL primary-key constraint — even though the column
+// has a `default gen_random_uuid()`. Generating a uuid client-side for
+// new rows keeps the batch homogeneous so PostgREST always includes a
+// non-null id in every VALUES tuple. See PostgREST#1080.
+function resolveBannerId(bannerId: string | undefined | null): string {
+  if (bannerId && bannerId.trim()) return bannerId;
+  return crypto.randomUUID();
+}
+
 export async function upsertPromotionBanners(banners: PromotionBanner[], deletedIds: string[] = []) {
   const supabase = createSupabaseStoreClient({ admin: true });
 
@@ -1779,7 +1792,7 @@ export async function upsertPromotionBanners(banners: PromotionBanner[], deleted
     button_enabled: banner.buttonEnabled,
     button_position: banner.buttonPosition ?? "bottom-left",
     desktop_image_url: banner.desktopImageUrl || null,
-    id: banner.id || undefined,
+    id: resolveBannerId(banner.id),
     is_active: banner.isActive,
     mobile_image_url: banner.mobileImageUrl || null,
     sort_order: banner.sortOrder || index + 1,
@@ -1811,7 +1824,7 @@ export async function upsertPromotionBanners(banners: PromotionBanner[], deleted
     banners.map((banner, index) => ({
       cta_text: banner.buttonEnabled ? banner.localizedCtaText?.en || banner.buttonText?.en || banner.ctaText || null : null,
       desktop_image_url: banner.desktopImageUrl || null,
-      id: banner.id || undefined,
+      id: resolveBannerId(banner.id),
       is_active: banner.isActive,
       mobile_image_url: banner.mobileImageUrl || null,
       sort_order: banner.sortOrder || index + 1,
