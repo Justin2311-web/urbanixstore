@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { Loader2, Package, Search, Truck } from "lucide-react";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -83,6 +84,7 @@ export function TrackOrderView({
   initialOrderNumber?: string;
   initialPhone?: string;
 }) {
+  const { t } = useLanguage();
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
   const [phone, setPhone] = useState(initialPhone);
   const [loading, setLoading] = useState(false);
@@ -99,7 +101,7 @@ export function TrackOrderView({
 
   async function doSearch(orderNum: string, ph: string) {
     if (!orderNum.trim() || !ph.trim()) {
-      setError("Please enter your order number and phone number.");
+      setError(t("track.bothFieldsHint", "Please enter your order number and phone number."));
       return;
     }
 
@@ -116,12 +118,12 @@ export function TrackOrderView({
       const data = await res.json() as { order?: TrackedOrder; error?: string };
 
       if (!res.ok || !data.order) {
-        setError(data.error ?? "Order not found. Please check your order number and phone number.");
+        setError(data.error ?? t("track.notFound", "Order not found. Please check your order number and phone number."));
       } else {
         setOrders([data.order]);
       }
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(t("track.networkError", "Network error. Please check your connection and try again."));
     } finally {
       setLoading(false);
     }
@@ -138,9 +140,9 @@ export function TrackOrderView({
       <section className="border-b border-primary/10 bg-gradient-to-br from-[#eaf3ff] via-white to-[#fff4e7]">
         <div className="urbanix-container py-8 sm:py-12">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-accent">Urbanix Store</p>
-          <h1 className="mt-2 text-3xl font-extrabold text-primary sm:text-4xl">Track Your Order</h1>
+          <h1 className="mt-2 text-3xl font-extrabold text-primary sm:text-4xl">{t("track.title", "Track Your Order")}</h1>
           <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-            Enter your order number and phone number to check your order status and shipment details.
+            {t("track.subtitle", "Enter your order number and phone number to check your order status and shipment details.")}
           </p>
         </div>
       </section>
@@ -152,14 +154,14 @@ export function TrackOrderView({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Search className="size-5" />
-                Find Your Order
+                {t("track.findYourOrder", "Find Your Order")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-bold text-muted-foreground">
-                    Order Number
+                    {t("track.orderNumberLabel", "Order Number")}
                   </label>
                   <Input
                     placeholder="e.g. URX-20260513-12345"
@@ -170,7 +172,7 @@ export function TrackOrderView({
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-bold text-muted-foreground">
-                    Phone Number
+                    {t("track.phoneLabel", "Phone Number")}
                   </label>
                   <Input
                     placeholder="e.g. 0123456789"
@@ -180,18 +182,18 @@ export function TrackOrderView({
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Both fields are required. The order number can be found in your order confirmation.
+                  {t("track.bothRequired", "Both fields are required. The order number can be found in your order confirmation.")}
                 </p>
                 <Button type="submit" variant="secondary" disabled={loading} className="w-full mt-1">
                   {loading ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Searching…
+                      {t("track.searching", "Searching…")}
                     </>
                   ) : (
                     <>
                       <Search className="size-4" />
-                      Track Order
+                      {t("track.trackOrder", "Track Order")}
                     </>
                   )}
                 </Button>

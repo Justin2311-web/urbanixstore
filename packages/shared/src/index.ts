@@ -975,7 +975,9 @@ export function calculateOrderTotals(
   state?: string | null
 ): OrderTotals {
   const subtotal = lines.reduce((total, line) => total + line.lineTotal, 0);
-  const discount = subtotal >= 60 ? Number((subtotal * 0.1).toFixed(2)) : 0;
+  // No automatic discount. Promotion engine (codes / campaigns) is pending —
+  // keep this 0 so the cart/checkout matches what /api/orders calculates.
+  const discount = 0;
   const shipping = calculateShippingFee({ settings, state, subtotal });
 
   return {

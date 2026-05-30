@@ -13,6 +13,7 @@ import { CartItemCard } from "@/components/commerce/cart-item-card";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
 import { LocalizedValue } from "@/components/i18n/localized-value";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { freeShippingCopy } from "@/lib/shipping-text";
 
@@ -23,6 +24,7 @@ export function CartView({
   products: UrbanixProduct[];
   settings: StoreSettings;
 }) {
+  const { t } = useLanguage();
   const { count, items } = useCart();
   const lines = buildCartLines(items, products);
   const totals = calculateOrderTotals(lines, settings);
@@ -33,8 +35,8 @@ export function CartView({
       <main className="urbanix-container urbanix-section pb-24">
         <EmptyState
           actionHref="/products"
-          actionLabel="Back to Shop"
-          title="Your cart is empty"
+          actionLabel={t("cart.backToShop", "Back to Shop")}
+          title={t("cart.empty", "Your cart is empty")}
         />
       </main>
     );
@@ -43,9 +45,9 @@ export function CartView({
   return (
     <main className="urbanix-container urbanix-section pb-24">
       <div className="mb-6">
-        <h1 className="text-3xl font-extrabold">Your Cart ({count})</h1>
+        <h1 className="text-3xl font-extrabold">{t("cart.title", "Your Cart")} ({count})</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Review your items and proceed to checkout.
+          {t("cart.subtitle", "Review your items and proceed to checkout.")}
         </p>
       </div>
 
@@ -69,17 +71,17 @@ export function CartView({
             })}
             href="/checkout"
           >
-            Proceed to Checkout
+            {t("cart.proceedToCheckout", "Proceed to Checkout")}
           </Link>
           <Link
             className={buttonVariants({ className: "w-full", variant: "outline" })}
             href="/products"
           >
-            Continue Shopping
+            {t("cart.continueShopping", "Continue Shopping")}
           </Link>
           <div className="flex items-center justify-center gap-2 text-sm font-semibold text-primary">
             <ShieldCheck className="size-4" />
-            100% Safe & Secure
+            {t("checkout.safeSecure", "100% Safe & Secure")}
           </div>
         </aside>
       </div>

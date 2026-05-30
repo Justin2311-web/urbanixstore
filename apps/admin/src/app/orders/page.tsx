@@ -60,7 +60,23 @@ export default async function OrdersPage({
     query = query.eq("order_status", params.status);
   }
   if (params.q) {
-    query = query.or(`order_number.ilike.%${params.q}%,customer_name.ilike.%${params.q}%,customer_phone.ilike.%${params.q}%`);
+    // PostgREST .or() parses commas, parens, and dots as syntax. User input must be
+    // sanitised before interpolation, otherwise a query like `foo,id.eq.<uuid>` can
+    // forge additional filters. We strip those structural characters, cap length,
+    // and wrap each ilike pattern in double quotes so % stays literal-friendly.
+    const raw = String(params.q).slice(0, 80);
+    const safeQ = raw.replace(/[,()."*\\:]/g, " ").trim();
+    if (safeQ.length > 0) {
+      const term = `*${safeQ}*`;
+      query = query.or(
+        [
+          `order_number.ilike."${term}"`,
+          `customer_name.ilike."${term}"`,
+          `customer_phone.ilike."${term}"`,
+          `customer_email.ilike."${term}"`,
+        ].join(","),
+      );
+    }
   }
 
   const { data: ordersRaw } = await query;
