@@ -3,6 +3,7 @@ import { Geist_Mono, Poppins } from "next/font/google";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { AppHeader } from "@/components/app-header";
 import { CartProvider } from "@/components/cart/cart-provider";
+import { FloatingWhatsAppButton } from "@/components/floating-whatsapp-button";
 import { LanguageProvider } from "@/components/i18n/language-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { StorefrontFooter } from "@/components/storefront-footer";
@@ -75,11 +76,22 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read settings once at the layout level so the floating WhatsApp button
+  // can render with the admin-configured number on every route, without each
+  // page having to thread it through.
+  let whatsappNumber: string | null = null;
+  try {
+    const { settings } = await readUrbanixStoreDataAsync();
+    whatsappNumber = settings.whatsappNumber ?? null;
+  } catch {
+    // settings unavailable — floating button stays hidden, no crash.
+  }
+
   return (
     <html
       lang="en"
@@ -101,6 +113,7 @@ export default function RootLayout({
               <AppHeader />
               {children}
               <StorefrontFooter />
+              <FloatingWhatsAppButton whatsappNumber={whatsappNumber} />
             </CartProvider>
           </LanguageProvider>
         </ThemeProvider>

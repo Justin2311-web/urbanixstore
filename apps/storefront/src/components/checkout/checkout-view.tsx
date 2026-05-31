@@ -9,6 +9,7 @@ import { getWhatsAppNumber } from "@/lib/order-links";
 import { buildCartLines } from "@/lib/cart-utils";
 import { useCart } from "@/components/cart/cart-provider";
 import { EmptyState } from "@/components/commerce/empty-state";
+import { FreeShippingProgress } from "@/components/commerce/free-shipping-progress";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { Button } from "@/components/ui/button";
@@ -474,6 +475,10 @@ export function CheckoutView({
         </section>
 
         <aside className="flex flex-col gap-4">
+          {/* State-aware: as soon as the customer picks a state, the bar
+              recomputes against the correct West/East threshold and stays
+              in sync with the OrderSummaryCard below (same shipping fn). */}
+          <FreeShippingProgress settings={settings} subtotal={totals.subtotal} state={customer.state} />
           <OrderSummaryCard lines={lines} showItems totals={totals} />
 
           <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
