@@ -10,6 +10,7 @@ import {
   type StoreSettings,
   type UrbanixProduct,
 } from "@ecommerce/shared";
+import { ADD_TO_CART_EVENT } from "@/components/cart/add-to-cart-toast";
 import { useCart } from "@/components/cart/cart-provider";
 import { PriceDisplay } from "@/components/commerce/price-display";
 import { QuantitySelector } from "@/components/commerce/quantity-selector";
@@ -28,7 +29,7 @@ export function ProductPurchasePanel({
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
   const router = useRouter();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   const shopeeUrl = product.shopeeUrl || settings.platformLinks?.shopee || "";
   const lazadaUrl = product.lazadaUrl || settings.platformLinks?.lazada || "";
@@ -116,11 +117,17 @@ export function ProductPurchasePanel({
   function handleAddToCart() {
     if (isOutOfStock || !validate()) return;
     addItem(product.id, quantity, buildCartVariants());
+    // Fired only on successful adds — unselected variants short-circuit
+    // above in validate(), so the toast never appears for a failed add.
+    window.dispatchEvent(new CustomEvent(ADD_TO_CART_EVENT));
   }
 
   function handleBuyNow() {
     if (isOutOfStock || !validate()) return;
     addItem(product.id, quantity, buildCartVariants());
+    // Buy-now also adds to cart; navigating to checkout will unmount
+    // the toast anyway, but dispatching keeps behaviour consistent.
+    window.dispatchEvent(new CustomEvent(ADD_TO_CART_EVENT));
     router.push("/checkout");
   }
 
@@ -319,6 +326,42 @@ export function ProductPurchasePanel({
           icon="lazada"
           label={lazadaUrl ? "Buy on Lazada" : "Lazada Coming Soon"}
         />
+      </div>
+
+      {/* ── Mobile-only sticky CTA ────────────────────────────────────────
+          Mounted inside the panel so it shares the exact same state and
+          handlers — variant validation, out-of-stock guarding, quantity,
+          and toast dispatch are all inherited from handleAddToCart /
+          handleBuyNow. md:hidden keeps it off desktop entirely. The
+          right padding clears the FloatingWhatsAppButton FAB on mobile
+          (which sits at bottom-[calc(5rem+safe)] right-4, ~3.5rem wide).
+       */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 pr-20 shadow-[0_-12px_32px_rgba(15,23,42,0.10)] backdrop-blur dark:bg-[rgba(11,21,40,0.92)] md:hidden"
+        data-component="product-sticky-cta"
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            disabled={isOutOfStock}
+            onClick={handleAddToCart}
+            size="lg"
+            type="button"
+            variant="secondary"
+          >
+            <ShoppingCart />
+            {isOutOfStock
+              ? t("product.stickyOutOfStock", "Out of Stock")
+              : t("product.stickyAddToCart", "Add to Cart")}
+          </Button>
+          <Button
+            disabled={isOutOfStock}
+            onClick={handleBuyNow}
+            size="lg"
+            type="button"
+          >
+            {t("product.stickyBuyNow", "Buy Now")}
+          </Button>
+        </div>
       </div>
     </div>
   );

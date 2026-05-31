@@ -1,6 +1,7 @@
 "use client";
 
 import { ShoppingCart } from "lucide-react";
+import { ADD_TO_CART_EVENT } from "@/components/cart/add-to-cart-toast";
 import { useCart } from "@/components/cart/cart-provider";
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +27,12 @@ export function AddToCartButton({
       aria-label={`Add ${productName} to cart`}
       className={className}
       disabled={disabled}
-      onClick={() => addItem(productId, quantity)}
+      onClick={() => {
+        addItem(productId, quantity);
+        // No variant validation here (list-page quick add), so any click
+        // that reaches us is a successful add — safe to toast.
+        window.dispatchEvent(new CustomEvent(ADD_TO_CART_EVENT));
+      }}
       size={children ? "default" : "icon-xs"}
       type="button"
       variant="outline"

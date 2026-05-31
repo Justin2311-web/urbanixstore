@@ -169,6 +169,12 @@ const en = {
   "freeShipping.selectState": "Select your state to check free shipping",
   "freeShipping.add": "Add RM XX more to unlock free shipping",
   "freeShipping.unlocked": "You unlocked free shipping",
+  "cart.toast.added": "Added to cart",
+  "cart.toast.continue": "Continue Shopping",
+  "cart.toast.view": "View Cart",
+  "product.stickyAddToCart": "Add to Cart",
+  "product.stickyBuyNow": "Buy Now",
+  "product.stickyOutOfStock": "Out of Stock",
 };
 
 const zh: typeof en = {
@@ -334,6 +340,12 @@ const zh: typeof en = {
   "freeShipping.selectState": "请选择州属以查看免邮信息",
   "freeShipping.add": "再买 RM XX 即可免邮",
   "freeShipping.unlocked": "你已享有免邮",
+  "cart.toast.added": "已加入购物车",
+  "cart.toast.continue": "继续购物",
+  "cart.toast.view": "查看购物车",
+  "product.stickyAddToCart": "加入购物车",
+  "product.stickyBuyNow": "立即购买",
+  "product.stickyOutOfStock": "缺货",
 };
 
 const ms: typeof en = {
@@ -499,6 +511,12 @@ const ms: typeof en = {
   "freeShipping.selectState": "Pilih negeri anda untuk semak penghantaran percuma",
   "freeShipping.add": "Tambah RM XX lagi untuk penghantaran percuma",
   "freeShipping.unlocked": "Anda telah menikmati penghantaran percuma",
+  "cart.toast.added": "Ditambah ke troli",
+  "cart.toast.continue": "Teruskan beli-belah",
+  "cart.toast.view": "Lihat troli",
+  "product.stickyAddToCart": "Tambah ke Troli",
+  "product.stickyBuyNow": "Beli Sekarang",
+  "product.stickyOutOfStock": "Habis Stok",
 };
 
 export const translations: Record<LanguageCode, Record<string, string>> = { en, zh, ms };
