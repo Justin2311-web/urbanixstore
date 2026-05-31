@@ -239,6 +239,11 @@ const en = {
   "orderProcess.helpPrompt": "Need help? WhatsApp us.",
   "orderProcess.trackCta": "Track My Order",
   "orderProcess.supportMessage": "Hi Urbanix Store, I just placed an order and need help.",
+  "home.customerReviewsTitle": "Customer Reviews",
+  "home.customerReviewsSubtitle": "Hand-picked feedback from Urbanix buyers.",
+  "reviews.verifiedBuyer": "Verified Buyer",
+  "reviews.ratingLabel": "Rated XX out of 5",
+  "reviews.viewMore": "Share your experience",
 };
 
 const zh: typeof en = {
@@ -474,6 +479,11 @@ const zh: typeof en = {
   "orderProcess.helpPrompt": "需要帮助？联系 WhatsApp",
   "orderProcess.trackCta": "追踪订单",
   "orderProcess.supportMessage": "你好 Urbanix Store，我刚下单需要协助。",
+  "home.customerReviewsTitle": "顾客评价",
+  "home.customerReviewsSubtitle": "Urbanix 顾客的真实回馈精选。",
+  "reviews.verifiedBuyer": "已验证买家",
+  "reviews.ratingLabel": "评分 XX 分（满分 5）",
+  "reviews.viewMore": "分享你的体验",
 };
 
 const ms: typeof en = {
@@ -709,6 +719,11 @@ const ms: typeof en = {
   "orderProcess.helpPrompt": "Perlukan bantuan? WhatsApp kami.",
   "orderProcess.trackCta": "Jejaki Pesanan",
   "orderProcess.supportMessage": "Hai Urbanix Store, saya baru buat pesanan dan perlukan bantuan.",
+  "home.customerReviewsTitle": "Ulasan Pelanggan",
+  "home.customerReviewsSubtitle": "Maklum balas pilihan daripada pembeli Urbanix.",
+  "reviews.verifiedBuyer": "Pembeli Disahkan",
+  "reviews.ratingLabel": "Penilaian XX daripada 5",
+  "reviews.viewMore": "Kongsi pengalaman anda",
 };
 
 export const translations: Record<LanguageCode, Record<string, string>> = { en, zh, ms };

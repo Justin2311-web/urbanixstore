@@ -6,6 +6,7 @@ import { CategoryCard } from "@/components/commerce/category-card";
 import { LocalizedProductVisual } from "@/components/commerce/localized-product-visual";
 import { ProductCard } from "@/components/commerce/product-card";
 import { PromotionBannerCarousel } from "@/components/commerce/promotion-banner-carousel";
+import { ReviewWall } from "@/components/commerce/review-wall";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { buttonVariants } from "@/components/ui/button";
@@ -152,6 +153,10 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      {/* Phase 3B Review Wall — hand-curated social proof between
+          Featured Picks and the promo strip. Static data, no DB. */}
+      <ReviewWall />
 
       <section className="urbanix-container urbanix-section pt-0">
         <div className="urbanix-hero-shell grid gap-5 p-5 text-foreground sm:p-6 md:grid-cols-[auto_1fr_auto] md:items-center">
