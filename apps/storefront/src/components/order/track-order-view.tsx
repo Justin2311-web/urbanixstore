@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Loader2, Package, Search, Truck } from "lucide-react";
+import { Check, ClipboardList, Loader2, Package, Search, Truck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,12 +31,14 @@ type TrackedOrder = {
   items: OrderItem[];
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  processing: "Processing",
-  shipped: "Shipped",
-  completed: "Completed",
-  cancelled: "Cancelled",
+type Translate = (key: string, fallback: string) => string;
+
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  pending: "track.status.pending",
+  processing: "track.status.processing",
+  shipped: "track.status.shipped",
+  completed: "track.status.completed",
+  cancelled: "track.status.cancelled",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -47,12 +49,20 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
-const PAYMENT_LABELS: Record<string, string> = {
-  pending: "Pending Verification",
-  unpaid: "Unpaid",
-  paid: "Payment Confirmed",
-  failed: "Payment Failed",
-  refunded: "Refunded",
+const STATUS_HELP_KEYS: Record<string, string> = {
+  pending: "track.statusHelp.pending",
+  processing: "track.statusHelp.processing",
+  shipped: "track.statusHelp.shipped",
+  completed: "track.statusHelp.completed",
+  cancelled: "track.statusHelp.cancelled",
+};
+
+const PAYMENT_LABEL_KEYS: Record<string, string> = {
+  pending: "track.payment.pending",
+  unpaid: "track.payment.unpaid",
+  paid: "track.payment.paid",
+  failed: "track.payment.failed",
+  refunded: "track.payment.refunded",
 };
 
 const PAYMENT_COLORS: Record<string, string> = {
@@ -61,6 +71,30 @@ const PAYMENT_COLORS: Record<string, string> = {
   paid: "bg-green-100 text-green-800",
   failed: "bg-red-100 text-red-800",
   refunded: "bg-purple-100 text-purple-800",
+};
+
+const STATUS_FALLBACKS: Record<string, string> = {
+  pending: "Pending",
+  processing: "Processing",
+  shipped: "Shipped",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+const STATUS_HELP_FALLBACKS: Record<string, string> = {
+  pending: "We received your order and are checking your payment receipt.",
+  processing: "Your payment is verified and your order is being prepared.",
+  shipped: "Your order has been shipped. Check the shipping details below.",
+  completed: "Your order has been completed. Thank you for shopping with us.",
+  cancelled: "This order was cancelled. Contact us if you need help.",
+};
+
+const PAYMENT_FALLBACKS: Record<string, string> = {
+  pending: "Pending Verification",
+  unpaid: "Unpaid",
+  paid: "Payment Confirmed",
+  failed: "Payment Failed",
+  refunded: "Refunded",
 };
 
 function formatRM(amount: number) {
@@ -188,7 +222,7 @@ export function TrackOrderView({
                   {loading ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      {t("track.searching", "Searching…")}
+                      {t("track.searching", "Searching...")}
                     </>
                   ) : (
                     <>
@@ -209,7 +243,7 @@ export function TrackOrderView({
 
           {/* Results */}
           {orders && orders.map((order) => (
-            <OrderCard key={order.orderNumber} order={order} />
+            <OrderCard key={order.orderNumber} order={order} t={t} />
           ))}
         </div>
       </section>
@@ -217,41 +251,61 @@ export function TrackOrderView({
   );
 }
 
-function OrderCard({ order }: { order: TrackedOrder }) {
+function getStatusLabel(t: Translate, status: string) {
+  return t(STATUS_LABEL_KEYS[status] ?? "track.status.unknown", STATUS_FALLBACKS[status] ?? status);
+}
+
+function getStatusHelp(t: Translate, status: string) {
+  return t(STATUS_HELP_KEYS[status] ?? "track.statusHelp.unknown", STATUS_HELP_FALLBACKS[status] ?? "We will update this order when the status changes.");
+}
+
+function getPaymentLabel(t: Translate, status: string) {
+  return t(PAYMENT_LABEL_KEYS[status] ?? "track.payment.unknown", PAYMENT_FALLBACKS[status] ?? status);
+}
+
+function OrderCard({ order, t }: { order: TrackedOrder; t: Translate }) {
   return (
     <div className="mb-6 overflow-hidden rounded-3xl border border-primary/10 bg-card shadow-sm">
       {/* Header */}
       <div className="bg-primary px-6 py-4 text-white">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-bold text-white/70">Order Number</p>
+            <p className="text-xs font-bold text-white/70">{t("track.orderNumber", "Order Number")}</p>
             <p className="font-extrabold text-lg">{order.orderNumber}</p>
           </div>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_COLORS[order.orderStatus] ?? "bg-gray-100 text-gray-700"}`}>
-            {STATUS_LABELS[order.orderStatus] ?? order.orderStatus}
+          <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${STATUS_COLORS[order.orderStatus] ?? "bg-gray-100 text-gray-700"}`}>
+            {getStatusLabel(t, order.orderStatus)}
           </span>
         </div>
       </div>
 
       <div className="flex flex-col gap-4 p-5">
+        <div className="rounded-2xl border border-primary/10 bg-secondary/30 p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-primary">
+            <ClipboardList className="size-4" />
+            {t("track.statusTitle", "Current Status")}
+          </div>
+          <p className="text-sm text-muted-foreground">{getStatusHelp(t, order.orderStatus)}</p>
+        </div>
+
         {/* Date */}
         <div className="grid grid-cols-1 gap-3 text-sm">
-          <InfoRow label="Order Date" value={formatDate(order.createdAt)} />
+          <InfoRow label={t("track.orderDate", "Order Date")} value={formatDate(order.createdAt)} />
         </div>
 
         {/* Payment status */}
-        <div className="flex items-center justify-between rounded-2xl border border-border bg-secondary/30 px-4 py-3">
-          <span className="text-sm font-semibold">Payment Status</span>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${PAYMENT_COLORS[order.paymentStatus] ?? "bg-gray-100 text-gray-700"}`}>
-            {PAYMENT_LABELS[order.paymentStatus] ?? order.paymentStatus}
+        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-secondary/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-sm font-semibold">{t("track.paymentStatus", "Payment Status")}</span>
+          <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${PAYMENT_COLORS[order.paymentStatus] ?? "bg-gray-100 text-gray-700"}`}>
+            {getPaymentLabel(t, order.paymentStatus)}
           </span>
         </div>
 
         {/* Receipt indicator */}
         {order.hasReceipt && (
           <div className="flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            <span className="text-base">✓</span>
-            <span className="font-semibold">Payment receipt uploaded</span>
+            <Check className="size-4" />
+            <span className="font-semibold">{t("track.receiptUploaded", "Payment receipt uploaded")}</span>
           </div>
         )}
 
@@ -260,19 +314,19 @@ function OrderCard({ order }: { order: TrackedOrder }) {
           <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
             <div className="mb-2 flex items-center gap-2 font-bold text-indigo-900">
               <Truck className="size-4" />
-              Shipping Information
+              {t("track.shippingInformation", "Shipping Information")}
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
               {order.courier && (
-                <InfoRow label="Courier" value={order.courier} />
+                <InfoRow label={t("track.courier", "Courier")} value={order.courier} />
               )}
               {order.trackingNumber && (
-                <InfoRow label="Tracking No." value={order.trackingNumber} />
+                <InfoRow label={t("track.trackingNumber", "Tracking No.")} value={order.trackingNumber} />
               )}
             </div>
             {order.trackingNumber && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Use the tracking number above to check shipping status on your courier&apos;s website.
+                {t("track.courierHint", "Use the tracking number above to check shipping status on your courier's website.")}
               </p>
             )}
           </div>
@@ -282,22 +336,22 @@ function OrderCard({ order }: { order: TrackedOrder }) {
         <div>
           <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">
             <Package className="size-4" />
-            Order Items
+            {t("track.orderItems", "Order Items")}
           </h3>
           <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
             {order.items.map((item, i) => (
               <div key={i} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold truncate">{item.productName}</p>
+                  <p className="truncate font-semibold">{item.productName}</p>
                   <p className="text-xs font-mono text-muted-foreground">{item.productSku}</p>
                   {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 ? (
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                      {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(" / ")}
                     </p>
                   ) : null}
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-xs text-muted-foreground">×{item.quantity}</p>
+                  <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                   <p className="font-bold text-primary">{formatRM(item.totalPrice)}</p>
                 </div>
               </div>
@@ -308,15 +362,15 @@ function OrderCard({ order }: { order: TrackedOrder }) {
         {/* Totals */}
         <div className="rounded-2xl bg-secondary/40 p-4 text-sm">
           <div className="flex justify-between py-1">
-            <span className="text-muted-foreground">Subtotal</span>
+            <span className="text-muted-foreground">{t("track.subtotal", "Subtotal")}</span>
             <span className="font-semibold">{formatRM(order.subtotal)}</span>
           </div>
           <div className="flex justify-between py-1">
-            <span className="text-muted-foreground">Shipping</span>
+            <span className="text-muted-foreground">{t("track.shipping", "Shipping")}</span>
             <span className="font-semibold">{formatRM(order.shippingFee)}</span>
           </div>
           <div className="flex justify-between border-t border-border py-1 pt-2">
-            <span className="font-extrabold">Total</span>
+            <span className="font-extrabold">{t("track.total", "Total")}</span>
             <span className="font-extrabold text-primary">{formatRM(order.totalAmount)}</span>
           </div>
         </div>
