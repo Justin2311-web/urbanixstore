@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Poppins } from "next/font/google";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { AppHeader } from "@/components/app-header";
+import { AddToCartToast } from "@/components/cart/add-to-cart-toast";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { FloatingWhatsAppButton } from "@/components/floating-whatsapp-button";
 import { LanguageProvider } from "@/components/i18n/language-provider";
@@ -114,6 +115,7 @@ export default async function RootLayout({
               {children}
               <StorefrontFooter />
               <FloatingWhatsAppButton whatsappNumber={whatsappNumber} />
+              <AddToCartToast />
             </CartProvider>
           </LanguageProvider>
         </ThemeProvider>
