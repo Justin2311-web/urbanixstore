@@ -13,6 +13,7 @@ import { CartItemCard } from "@/components/commerce/cart-item-card";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { FreeShippingProgress } from "@/components/commerce/free-shipping-progress";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
+import { ShippingFeeBreakdown } from "@/components/commerce/shipping-fee-breakdown";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { buttonVariants } from "@/components/ui/button";
@@ -63,6 +64,9 @@ export function CartView({
           <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
             <LocalizedValue fallback={shippingText.en} value={shippingText} />
           </div>
+          {/* PR-C: settings-driven shipping fee table. Read-only display,
+              does not influence totals. */}
+          <ShippingFeeBreakdown settings={settings} />
           {/* Cart has no state yet — progress bar prompts customer to pick one
               at checkout, which is when the free-shipping threshold becomes
               region-aware (West vs East). */}

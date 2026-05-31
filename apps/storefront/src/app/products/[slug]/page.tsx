@@ -7,6 +7,7 @@ import { ProductGrid } from "@/components/commerce/product-grid";
 import { ProductHighlights } from "@/components/commerce/product-highlights";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { ProductSpecifications } from "@/components/commerce/product-specifications";
+import { ProductTrustBadges } from "@/components/commerce/product-trust-badges";
 import { StockBadge } from "@/components/commerce/stock-badge";
 import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
@@ -155,6 +156,10 @@ export default async function ProductDetailPage({
 
           {/* Highlight cards */}
           <ProductHighlights product={product} />
+
+          {/* Site-wide trust badges (PR-C). Always visible, distinct from
+              the admin-defined ProductHighlights above. */}
+          <ProductTrustBadges settings={data.settings} />
         </section>
       </div>
 

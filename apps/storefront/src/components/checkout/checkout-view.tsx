@@ -10,7 +10,9 @@ import { buildCartLines } from "@/lib/cart-utils";
 import { useCart } from "@/components/cart/cart-provider";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { FreeShippingProgress } from "@/components/commerce/free-shipping-progress";
+import { OrderProcessInfo } from "@/components/checkout/order-process-info";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
+import { ShippingFeeBreakdown } from "@/components/commerce/shipping-fee-breakdown";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -484,6 +486,9 @@ export function CheckoutView({
           <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
             <LocalizedValue fallback={shippingText.en} value={shippingText} />
           </div>
+          {/* PR-C: settings-driven shipping fee table (West/East flat fee
+              + free-shipping threshold). Read-only display only. */}
+          <ShippingFeeBreakdown settings={settings} />
 
           {/* Payment Method */}
           <Card>
@@ -680,6 +685,10 @@ export function CheckoutView({
               </div>
             </CardContent>
           </Card>
+
+          {/* PR-C: post-submit reassurance (manual verification + tracking
+              + WhatsApp fallback). Display-only, does not affect submit. */}
+          <OrderProcessInfo settings={settings} />
         </aside>
       </form>
     </main>
