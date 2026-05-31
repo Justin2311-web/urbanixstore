@@ -174,18 +174,52 @@ export default async function Home() {
         <SectionHeader action="/our-story" subtitle="Built for everyday Malaysia: practical, premium, and trend-aware." title="Why Urbanix" titleKey="home.whyShop" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {[
-            { icon: BadgeCheck, title: "Premium Quality", text: "Curated picks with better everyday feel." },
-            { icon: Zap, title: "Smart Lifestyle", text: "Tech-inspired accessories for urban routines." },
-            { icon: Truck, title: "Fast Delivery", text: "Quick order flow and clear shipping info." },
-            { icon: Sparkles, title: "Trendy Products", text: "Useful gear that still looks good." },
-            { icon: Headphones, title: "Customer Support", text: "WhatsApp-first help when you need it." },
-          ].map(({ icon: Icon, text, title }) => (
+            {
+              icon: BadgeCheck,
+              title: "Premium Quality",
+              titleKey: "home.trust.premiumQuality.title",
+              text: "Curated picks with better everyday feel.",
+              textKey: "home.trust.premiumQuality.text",
+            },
+            {
+              icon: Zap,
+              title: "Smart Lifestyle",
+              titleKey: "home.trust.smartLifestyle.title",
+              text: "Tech-inspired accessories for urban routines.",
+              textKey: "home.trust.smartLifestyle.text",
+            },
+            {
+              icon: Truck,
+              title: "Fast Delivery",
+              titleKey: "home.trust.fastDelivery.title",
+              text: "Quick order flow and clear shipping info.",
+              textKey: "home.trust.fastDelivery.text",
+            },
+            {
+              icon: Sparkles,
+              title: "Trendy Products",
+              titleKey: "home.trust.trendyProducts.title",
+              text: "Useful gear that still looks good.",
+              textKey: "home.trust.trendyProducts.text",
+            },
+            {
+              icon: Headphones,
+              title: "Customer Support",
+              titleKey: "home.trust.customerSupport.title",
+              text: "WhatsApp-first help when you need it.",
+              textKey: "home.trust.customerSupport.text",
+            },
+          ].map(({ icon: Icon, text, textKey, title, titleKey }) => (
             <article className="urbanix-glass p-4" key={title}>
               <div className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-[rgba(59,158,255,0.12)] dark:text-[#8bdcff]">
                 <Icon className="size-5" />
               </div>
-              <h3 className="text-sm font-extrabold">{title}</h3>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">{text}</p>
+              <h3 className="text-sm font-extrabold">
+                <LocalizedText fallback={title} k={titleKey} />
+              </h3>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                <LocalizedText fallback={text} k={textKey} />
+              </p>
             </article>
           ))}
         </div>
