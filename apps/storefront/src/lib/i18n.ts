@@ -166,6 +166,9 @@ const en = {
   "shipping.selectState": "Select your state to calculate shipping fee",
   "shipping.freeApplied": "Free shipping applied",
   "shipping.freeDiscount": "Free shipping discount",
+  "freeShipping.selectState": "Select your state to check free shipping",
+  "freeShipping.add": "Add RM XX more to unlock free shipping",
+  "freeShipping.unlocked": "You unlocked free shipping",
 };
 
 const zh: typeof en = {
@@ -328,6 +331,9 @@ const zh: typeof en = {
   "shipping.selectState": "请选择州属以计算邮费",
   "shipping.freeApplied": "已享有免邮优惠",
   "shipping.freeDiscount": "免邮优惠",
+  "freeShipping.selectState": "请选择州属以查看免邮信息",
+  "freeShipping.add": "再买 RM XX 即可免邮",
+  "freeShipping.unlocked": "你已享有免邮",
 };
 
 const ms: typeof en = {
@@ -490,6 +496,9 @@ const ms: typeof en = {
   "shipping.selectState": "Sila pilih negeri untuk kira caj penghantaran",
   "shipping.freeApplied": "Penghantaran percuma telah digunakan",
   "shipping.freeDiscount": "Diskaun penghantaran percuma",
+  "freeShipping.selectState": "Pilih negeri anda untuk semak penghantaran percuma",
+  "freeShipping.add": "Tambah RM XX lagi untuk penghantaran percuma",
+  "freeShipping.unlocked": "Anda telah menikmati penghantaran percuma",
 };
 
 export const translations: Record<LanguageCode, Record<string, string>> = { en, zh, ms };
