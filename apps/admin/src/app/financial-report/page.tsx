@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Flash } from "@/components/flash";
+import { FinancialReportFilterForm } from "./financial-report-filter-form";
 
 const EXPENSE_CATEGORIES = [
   "Product Cost",
@@ -133,12 +134,11 @@ function startOfWeek(date: Date) {
   return next;
 }
 
-function resolveDateRange(params: SearchParams) {
-  const now = new Date();
-  const preset = params.preset ?? "this-month";
-  const year = Number(params.year || now.getFullYear());
-  const month = Number(params.month || now.getMonth() + 1);
+function isDateParam(value?: string) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
 
+function resolvePresetDateRange(preset: string, now: Date, year: number, month: number) {
   if (preset === "today") return { from: isoDate(now), to: isoDate(now), preset };
   if (preset === "this-week") {
     const start = startOfWeek(now);
@@ -152,6 +152,29 @@ function resolveDateRange(params: SearchParams) {
   if (preset === "this-year") {
     return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-12-31`, preset };
   }
+
+  return {
+    from: isoDate(new Date(year, month - 1, 1)),
+    to: isoDate(new Date(year, month, 0)),
+    preset: "this-month",
+  };
+}
+
+function resolveDateRange(params: SearchParams) {
+  const now = new Date();
+  const preset = params.preset ?? "this-month";
+  const year = Number(params.year || now.getFullYear());
+  const month = Number(params.month || now.getMonth() + 1);
+  const presetRange = resolvePresetDateRange(preset, now, year, month);
+
+  if (isDateParam(params.from) && isDateParam(params.to)) {
+    return {
+      from: params.from!,
+      to: params.to!,
+      preset: presetRange.from === params.from && presetRange.to === params.to ? presetRange.preset : "custom",
+    };
+  }
+
   if (preset === "custom") {
     return {
       from: params.from || isoDate(new Date(year, month - 1, 1)),
@@ -160,11 +183,7 @@ function resolveDateRange(params: SearchParams) {
     };
   }
 
-  return {
-    from: isoDate(new Date(year, month - 1, 1)),
-    to: isoDate(new Date(year, month, 0)),
-    preset: "this-month",
-  };
+  return presetRange;
 }
 
 function sum(values: Array<{ amount: number }>) {
@@ -593,31 +612,17 @@ export default async function FinancialReportPage({
         </div>
       ) : null}
 
-      <form className="card mb-6 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-7">
-        <select className="field-select" name="preset" defaultValue={range.preset}>
-          <option value="today">Today</option>
-          <option value="this-week">This Week</option>
-          <option value="this-month">This Month</option>
-          <option value="last-month">Last Month</option>
-          <option value="this-year">This Year</option>
-          <option value="custom">Custom Range</option>
-        </select>
-        <input className="field-input" name="from" type="date" defaultValue={range.from} />
-        <input className="field-input" name="to" type="date" defaultValue={range.to} />
-        <select className="field-select" name="category" defaultValue={params.category ?? "all"}>
-          <option value="all">All categories</option>
-          {EXPENSE_CATEGORIES.map((item) => <option key={item}>{item}</option>)}
-        </select>
-        <select className="field-select" name="source" defaultValue={params.source ?? "all"}>
-          <option value="all">All sources</option>
-          {REVENUE_SOURCES.map((item) => <option key={item}>{item}</option>)}
-        </select>
-        <select className="field-select" name="paymentMethod" defaultValue={params.paymentMethod ?? "all"}>
-          <option value="all">All payment methods</option>
-          {PAYMENT_METHODS.map((item) => <option key={item}>{item}</option>)}
-        </select>
-        <button className="btn-primary justify-center" type="submit">Filter</button>
-      </form>
+      <FinancialReportFilterForm
+        categories={EXPENSE_CATEGORIES}
+        category={params.category ?? "all"}
+        from={range.from}
+        paymentMethod={params.paymentMethod ?? "all"}
+        paymentMethods={PAYMENT_METHODS}
+        preset={range.preset}
+        source={params.source ?? "all"}
+        sources={REVENUE_SOURCES}
+        to={range.to}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map(([label, value, color]) => (
