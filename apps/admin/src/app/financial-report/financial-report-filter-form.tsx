@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -66,12 +66,6 @@ export function FinancialReportFilterForm({
   const [selectedPreset, setSelectedPreset] = useState(preset);
   const [fromDate, setFromDate] = useState(from);
   const [toDate, setToDate] = useState(to);
-
-  useEffect(() => {
-    setSelectedPreset(preset);
-    setFromDate(from);
-    setToDate(to);
-  }, [from, preset, to]);
 
   function handlePresetChange(nextPreset: string) {
     setSelectedPreset(nextPreset);

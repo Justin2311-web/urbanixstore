@@ -616,6 +616,7 @@ export default async function FinancialReportPage({
         categories={EXPENSE_CATEGORIES}
         category={params.category ?? "all"}
         from={range.from}
+        key={`${range.preset}:${range.from}:${range.to}:${params.category ?? "all"}:${params.source ?? "all"}:${params.paymentMethod ?? "all"}`}
         paymentMethod={params.paymentMethod ?? "all"}
         paymentMethods={PAYMENT_METHODS}
         preset={range.preset}

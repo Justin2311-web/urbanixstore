@@ -167,7 +167,7 @@ export function ProductForm({
     product?.images_ms?.map(i => i.image_url) ?? []
   );
   // keptImages mirrors keptImagesEn for backward-compat with syncProductImages (product_images table)
-  const [keptImages, setKeptImages] = useState(
+  const [, setKeptImages] = useState(
     product?.images_en?.map(i => i.image_url) ?? product?.images.map((i) => i.image_url) ?? []
   );
   const [uploadingImages, setUploadingImages] = useState(false);

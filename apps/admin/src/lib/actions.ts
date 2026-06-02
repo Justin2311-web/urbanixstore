@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 // Supabase v2.105.x has TypeScript inference regressions (.update/.insert/.upsert
 // payloads inferred as `never`). Disabling strict-TS for this server-actions file
