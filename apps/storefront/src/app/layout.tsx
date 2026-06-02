@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist_Mono, Poppins } from "next/font/google";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
+import { AnalyticsScripts } from "@/components/analytics/analytics-scripts";
+import { RouteEvents } from "@/components/analytics/route-events";
 import { AppHeader } from "@/components/app-header";
 import { AddToCartToast } from "@/components/cart/add-to-cart-toast";
 import { CartProvider } from "@/components/cart/cart-provider";
@@ -106,8 +109,16 @@ export default async function RootLayout({
             __html: `try{var t=localStorage.getItem('urbanix-theme');if(t==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
+        {/* Phase 3C PR 1: GA4 base script. No-op when NEXT_PUBLIC_GA4_ID
+            is unset — no script tag, no network request, no errors. */}
+        <AnalyticsScripts />
       </head>
       <body className="min-h-full bg-background text-foreground">
+        {/* Suspense wrap: useSearchParams inside RouteEvents requires it.
+            Renders nothing, so an empty fallback is fine. */}
+        <Suspense fallback={null}>
+          <RouteEvents />
+        </Suspense>
         <ThemeProvider>
           <LanguageProvider>
             <CartProvider>
