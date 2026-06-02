@@ -39,12 +39,6 @@ export async function createSignedUploadUrl(
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-function dateOrNull(v: string): string | null {
-  if (!v) return null;
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d.toISOString();
-}
-
 function revalidateAll() {
   revalidatePath("/", "layout");
 }

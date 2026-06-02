@@ -1,9 +1,7 @@
 import Link from "next/link";
 import {
-  BarChart3,
   Boxes,
   CreditCard,
-  Home,
   LayoutDashboard,
   ListTree,
   LogOut,

@@ -20,8 +20,6 @@ type OrderRow = {
 };
 
 const ORDER_STATUSES = ["pending", "processing", "shipped", "completed", "cancelled"] as const;
-const PAYMENT_STATUSES = ["pending", "unpaid", "paid", "failed", "refunded"] as const;
-
 const statusColors: Record<string, string> = {
   pending: "badge-pending",
   processing: "badge-shipped",
