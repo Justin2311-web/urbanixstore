@@ -4,7 +4,7 @@ import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const receiptBucket = "uploads";
+const receiptBucket = "receipts";
 const maxReceiptBytes = 5 * 1024 * 1024;
 const allowedReceiptTypes = new Map([
   ["image/jpeg", "jpg"],
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     const orderSegment = safeOrderSegment(orderNumber);
     if (!orderSegment) return fail("Invalid order number.");
 
-    const filePath = `receipts/${orderSegment}/${crypto.randomUUID()}.${extension}`;
+    const filePath = `orders/${orderSegment}/${crypto.randomUUID()}.${extension}`;
     const sb = createAdminStorageClient();
     const { data, error } = await sb.storage.from(receiptBucket).createSignedUploadUrl(filePath);
 
@@ -81,9 +81,8 @@ export async function POST(request: Request) {
       return fail("Could not create signed upload URL.", 500);
     }
 
-    // Note: publicUrl is intentionally not returned. The client stores the
-    // path; admin reads it via a short-lived signed URL. This keeps the
-    // bucket safe to flip to private without breaking checkout.
+    // Do not return a public URL. The admin app reads receipts through a
+    // server-side route that mints short-lived signed read URLs.
     return NextResponse.json({
       bucket: receiptBucket,
       fileName: fileName?.slice(0, 160) ?? null,

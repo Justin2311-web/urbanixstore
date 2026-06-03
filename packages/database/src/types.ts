@@ -296,8 +296,11 @@ export type Database = {
           payment_method: "manual" | "whatsapp";
           payment_method_type: string | null;
           payment_status: "pending" | "unpaid" | "paid" | "failed" | "refunded";
-          receipt_url: string | null;
+          receipt_bucket: string | null;
           receipt_path: string | null;
+          receipt_public_url_legacy: string | null;
+          receipt_uploaded_at: string | null;
+          receipt_url: string | null;
           shipping_address: Json;
           shipping_fee: number;
           shipping_region: "west" | "east" | null;
@@ -322,8 +325,11 @@ export type Database = {
           payment_method?: "manual" | "whatsapp";
           payment_method_type?: string | null;
           payment_status?: "pending" | "unpaid" | "paid" | "failed" | "refunded";
-          receipt_url?: string | null;
+          receipt_bucket?: string | null;
           receipt_path?: string | null;
+          receipt_public_url_legacy?: string | null;
+          receipt_uploaded_at?: string | null;
+          receipt_url?: string | null;
           shipping_address?: Json;
           shipping_fee?: number;
           shipping_region?: "west" | "east" | null;

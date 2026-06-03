@@ -402,6 +402,8 @@ export type UrbanixOrder = {
   paymentMethodType?: string | null;
   paymentStatus: "pending" | "unpaid" | "paid" | "failed" | "refunded";
   orderStatus: "pending" | "processing" | "shipped" | "completed" | "cancelled";
+  receiptBucket?: string | null;
+  receiptPath?: string | null;
   receiptUrl?: string | null;
   createdAt: string;
   updatedAt?: string;

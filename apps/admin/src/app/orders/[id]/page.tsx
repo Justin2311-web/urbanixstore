@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase";
 import { Flash } from "@/components/flash";
+import { PaymentReceiptViewer } from "@/components/payment-receipt-viewer";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { updateOrderStatus } from "@/lib/actions";
 import { getShippingRegionLabel } from "@ecommerce/shared";
@@ -38,30 +39,11 @@ export default async function OrderDetailPage({
 
   const address = (order.shipping_address ?? {}) as Record<string, string>;
 
-  // Receipt: prefer the storage path (works with a private bucket via
-  // short-lived signed URL). Fall back to the legacy public receipt_url
-  // for orders created before Phase 6.
-  let receiptViewUrl: string | null = null;
-  let receiptIsLegacy = false;
-  let receiptIsPdf = false;
-  let receiptError: string | null = null;
-
-  if (order.receipt_path) {
-    const { data: signed, error: signErr } = await sb.storage
-      .from("uploads")
-      .createSignedUrl(order.receipt_path, 60 * 10);
-    if (signErr || !signed?.signedUrl) {
-      console.error("[Admin] receipt signed URL failed:", signErr);
-      receiptError = "Could not generate a signed link for this receipt. The file may have been moved.";
-    } else {
-      receiptViewUrl = signed.signedUrl;
-      receiptIsPdf = /\.pdf($|\?)/i.test(order.receipt_path);
-    }
-  } else if (order.receipt_url) {
-    receiptViewUrl = order.receipt_url;
-    receiptIsLegacy = true;
-    receiptIsPdf = /\.pdf($|\?)/i.test(order.receipt_url);
-  }
+  const hasReceipt = Boolean(order.receipt_path || order.receipt_public_url_legacy || order.receipt_url);
+  const receiptViewUrl: string | null = null;
+  const receiptError: string | null = null;
+  const receiptIsLegacy = false;
+  const receiptIsPdf = false;
 
   return (
     <div>
@@ -180,7 +162,11 @@ export default async function OrderDetailPage({
           </div>
 
           {/* Payment receipt */}
-          {(receiptViewUrl || receiptError) && (
+          <div className="card p-5">
+            <h2 className="mb-3 font-semibold text-gray-800">Payment Receipt</h2>
+            <PaymentReceiptViewer hasReceipt={hasReceipt} orderId={order.id} />
+          </div>
+          {false && (receiptViewUrl || receiptError) && (
             <div className="card p-5">
               <h2 className="mb-3 font-semibold text-gray-800">Payment Receipt</h2>
               {receiptIsLegacy && (
@@ -324,12 +310,18 @@ export default async function OrderDetailPage({
                   </span>
                 </dd>
               </div>
-              {receiptViewUrl && (
+              {hasReceipt && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Receipt</dt>
+                  <dd className="text-xs font-semibold text-[#0e5c56]">Uploaded</dd>
+                </div>
+              )}
+              {false && receiptViewUrl && (
                 <div className="flex justify-between">
                   <dt className="text-gray-500">Receipt</dt>
                   <dd>
                     <a
-                      href={receiptViewUrl}
+                      href="#"
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs font-semibold text-[#0e5c56] hover:underline"
