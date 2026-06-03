@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createStorefrontClient } from "@/lib/supabase";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
@@ -67,6 +68,10 @@ type ProductLookupTable = {
   select(columns: string): {
     in(column: string, values: string[]): Promise<{ data: ProductLookupRow[] | null; error: QueryError }>;
   };
+};
+
+type StorageListObject = {
+  name: string;
 };
 
 function fail(message = genericOrderError, status = 400) {
@@ -149,6 +154,42 @@ function validateReceiptPath(receiptBucket: string | undefined, receiptPath: str
   }
 
   return { bucket: receiptBucket, path: normalizedPath };
+}
+
+function createAdminStorageClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase URL or service role key for receipt verification.");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+async function verifyReceiptObjectExists(receipt: { bucket: string; path: string }) {
+  const lastSlash = receipt.path.lastIndexOf("/");
+  const directory = lastSlash >= 0 ? receipt.path.slice(0, lastSlash) : "";
+  const fileName = lastSlash >= 0 ? receipt.path.slice(lastSlash + 1) : receipt.path;
+
+  if (!fileName) return false;
+
+  const sb = createAdminStorageClient();
+  const { data, error } = await sb.storage
+    .from(receipt.bucket)
+    .list(directory, {
+      limit: 1,
+      search: fileName,
+    });
+
+  if (error) {
+    console.error("[Storefront] Receipt object verification failed:", error);
+    throw new Error("Receipt object verification failed.");
+  }
+
+  return (data as StorageListObject[] | null)?.some((object) => object.name === fileName) ?? false;
 }
 
 function resolveVariant(product: UrbanixProduct, selectedVariants?: Record<string, string> | null) {
@@ -257,6 +298,18 @@ export async function POST(request: Request) {
 
     if (!validatedReceipt && !validatedReceiptUrl) {
       return fail("Please upload your payment receipt before placing the order.");
+    }
+
+    if (validatedReceipt) {
+      try {
+        const receiptExists = await verifyReceiptObjectExists(validatedReceipt);
+        if (!receiptExists) {
+          return fail("Please upload your payment receipt before placing the order.");
+        }
+      } catch (error) {
+        console.error("[Storefront] Receipt verification error:", error);
+        return fail(genericOrderError, 500);
+      }
     }
 
     const data = await readUrbanixStoreDataAsync();

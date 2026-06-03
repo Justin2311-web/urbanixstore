@@ -40,10 +40,6 @@ export default async function OrderDetailPage({
   const address = (order.shipping_address ?? {}) as Record<string, string>;
 
   const hasReceipt = Boolean(order.receipt_path || order.receipt_public_url_legacy || order.receipt_url);
-  const receiptViewUrl: string | null = null;
-  const receiptError: string | null = null;
-  const receiptIsLegacy = false;
-  const receiptIsPdf = false;
 
   return (
     <div>
@@ -166,53 +162,6 @@ export default async function OrderDetailPage({
             <h2 className="mb-3 font-semibold text-gray-800">Payment Receipt</h2>
             <PaymentReceiptViewer hasReceipt={hasReceipt} orderId={order.id} />
           </div>
-          {false && (receiptViewUrl || receiptError) && (
-            <div className="card p-5">
-              <h2 className="mb-3 font-semibold text-gray-800">Payment Receipt</h2>
-              {receiptIsLegacy && (
-                <p className="mb-3 rounded bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-                  Legacy receipt link (stored before private-bucket migration).
-                </p>
-              )}
-              {receiptError ? (
-                <p className="text-sm text-red-700">{receiptError}</p>
-              ) : receiptIsPdf ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">📄</span>
-                  <a
-                    href={receiptViewUrl!}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-semibold text-[#0e5c56] hover:underline"
-                  >
-                    View PDF Receipt
-                  </a>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={receiptViewUrl!}
-                    alt="Payment receipt"
-                    className="max-h-72 w-auto rounded-lg border border-gray-200 object-contain"
-                  />
-                  <a
-                    href={receiptViewUrl!}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block text-xs font-semibold text-[#0e5c56] hover:underline"
-                  >
-                    Open full image ↗
-                  </a>
-                </div>
-              )}
-              {!receiptIsLegacy && receiptViewUrl && !receiptError && (
-                <p className="mt-2 text-[10px] text-gray-500">
-                  Signed link expires in 10 minutes. Refresh the page for a new link.
-                </p>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Status panel */}
@@ -314,21 +263,6 @@ export default async function OrderDetailPage({
                 <div className="flex justify-between">
                   <dt className="text-gray-500">Receipt</dt>
                   <dd className="text-xs font-semibold text-[#0e5c56]">Uploaded</dd>
-                </div>
-              )}
-              {false && receiptViewUrl && (
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Receipt</dt>
-                  <dd>
-                    <a
-                      href="#"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-semibold text-[#0e5c56] hover:underline"
-                    >
-                      View ↗
-                    </a>
-                  </dd>
                 </div>
               )}
               {order.courier && (

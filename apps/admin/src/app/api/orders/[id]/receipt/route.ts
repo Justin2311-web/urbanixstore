@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 const privateReceiptBucket = "receipts";
+const legacyReceiptBucket = "uploads";
 const signedUrlExpiresIn = 10 * 60;
 
 type ReceiptRow = {
@@ -29,30 +30,68 @@ function fileNameFromPath(pathOrUrl: string) {
   }
 }
 
-async function isAuthorizedAdmin() {
+type AdminAuthResult = "authorized" | "unauthenticated" | "forbidden";
+
+async function isAuthorizedAdmin(): Promise<AdminAuthResult> {
   const cookieStore = await cookies();
   const bypassValue = await getBypassValue();
 
   if (bypassValue && cookieStore.get(BYPASS_COOKIE)?.value === bypassValue) {
-    return true;
+    return "authorized";
   }
 
   try {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    return Boolean(user);
+    if (!user) return "unauthenticated";
+
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const userEmail = user.email?.trim().toLowerCase();
+    if (!adminEmail) {
+      console.error("[Admin] Missing ADMIN_EMAIL for receipt auth check.");
+      return "forbidden";
+    }
+
+    return userEmail === adminEmail ? "authorized" : "forbidden";
   } catch (error) {
     console.error("[Admin] Receipt auth check failed:", error);
-    return false;
+    return "unauthenticated";
   }
+}
+
+function isSafeStoragePath(path: string) {
+  return (
+    path.length > 0 &&
+    path.length <= 256 &&
+    !path.includes("..") &&
+    /^[a-zA-Z0-9/_.-]+$/.test(path) &&
+    /\.(?:jpe?g|png|webp|pdf)$/i.test(path)
+  );
+}
+
+function isPrivateReceiptPath(path: string) {
+  return isSafeStoragePath(path) && path.startsWith("orders/");
+}
+
+function isLegacyReceiptPath(path: string) {
+  return isSafeStoragePath(path) && path.startsWith("receipts/");
+}
+
+function legacyPublicUrl(sb: ReturnType<typeof createAdminClient>, path: string) {
+  const { data } = sb.storage.from(legacyReceiptBucket).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await isAuthorizedAdmin())) {
+  const auth = await isAuthorizedAdmin();
+  if (auth === "unauthenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (auth === "forbidden") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -79,8 +118,19 @@ export async function GET(
     }
 
     if (receipt.receipt_path) {
-      const bucket = receipt.receipt_bucket || privateReceiptBucket;
-      if (bucket !== privateReceiptBucket) {
+      const bucket = receipt.receipt_bucket?.trim() || null;
+
+      if (bucket === legacyReceiptBucket || (!bucket && isLegacyReceiptPath(receipt.receipt_path))) {
+        const legacyUrl = legacyPublicUrl(sb, receipt.receipt_path);
+        return NextResponse.json({
+          fileName: fileNameFromPath(receipt.receipt_path),
+          legacy: true,
+          legacyUrl,
+          receiptType: receiptTypeFromPath(receipt.receipt_path),
+        });
+      }
+
+      if ((bucket && bucket !== privateReceiptBucket) || !isPrivateReceiptPath(receipt.receipt_path)) {
         console.error("[Admin] Unexpected receipt bucket:", bucket);
         return NextResponse.json({ error: "Invalid receipt storage" }, { status: 500 });
       }
