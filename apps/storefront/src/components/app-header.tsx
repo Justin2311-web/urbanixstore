@@ -112,9 +112,10 @@ export async function AppHeader() {
   );
 }
 
-/** Renders 4 copies of text in a flex row; CSS animates the row left by -50% for seamless loop */
+/** Renders 2 copies of text in a flex row; CSS animates the row left by -50% for seamless loop.
+ * Two copies is the minimum required for a seamless marquee loop. */
 function AnnouncementMarquee({ text, value }: { text: string; value?: { en: string; zh?: string; ms?: string } }) {
-  const copies = [text, text, text, text];
+  const copies = [text, text];
   return (
     <div className="marquee-track" aria-label={text}>
       {copies.map((copy, i) => (

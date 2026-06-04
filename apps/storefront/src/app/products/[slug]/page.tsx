@@ -139,16 +139,24 @@ export default async function ProductDetailPage({
             </p>
           </div>
 
-          {/* Rating + sold */}
+          {/* Rating + sold — only shown when real review/sales data exists */}
           <div className="flex flex-wrap items-center gap-3 text-xs">
-            <div className="flex items-center gap-1.5 rounded-full bg-secondary/50 px-3 py-1.5 font-bold text-muted-foreground">
-              <Star className="size-3.5 fill-warning text-warning" />
-              <span className="text-foreground">{product.rating}</span>
-              <span className="opacity-60">({product.sold} reviews)</span>
-            </div>
-            <span className="rounded-full bg-cream/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary">
-              {product.sold}+ sold
-            </span>
+            {product.sold > 0 && product.rating > 0 ? (
+              <>
+                <div className="flex items-center gap-1.5 rounded-full bg-secondary/50 px-3 py-1.5 font-bold text-muted-foreground">
+                  <Star className="size-3.5 fill-warning text-warning" />
+                  <span className="text-foreground">{product.rating}</span>
+                  <span className="opacity-60">({product.sold} reviews)</span>
+                </div>
+                <span className="rounded-full bg-cream/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary">
+                  {product.sold}+ sold
+                </span>
+              </>
+            ) : (
+              <span className="italic text-muted-foreground">
+                <LocalizedText fallback="No reviews yet" k="reviews.noReviewsYet" />
+              </span>
+            )}
           </div>
 
           {/* Price display + variant selector + add-to-cart (client component) */}

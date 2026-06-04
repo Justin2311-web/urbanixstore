@@ -244,6 +244,7 @@ const en = {
   "reviews.verifiedBuyer": "Verified Buyer",
   "reviews.ratingLabel": "Rated XX out of 5",
   "reviews.viewMore": "Share your experience",
+  "reviews.noReviewsYet": "No reviews yet",
 };
 
 const zh: typeof en = {
@@ -484,6 +485,7 @@ const zh: typeof en = {
   "reviews.verifiedBuyer": "已验证买家",
   "reviews.ratingLabel": "评分 XX 分（满分 5）",
   "reviews.viewMore": "分享你的体验",
+  "reviews.noReviewsYet": "暂无评价",
 };
 
 const ms: typeof en = {
@@ -724,6 +726,7 @@ const ms: typeof en = {
   "reviews.verifiedBuyer": "Pembeli Disahkan",
   "reviews.ratingLabel": "Penilaian XX daripada 5",
   "reviews.viewMore": "Kongsi pengalaman anda",
+  "reviews.noReviewsYet": "Belum ada ulasan",
 };
 
 export const translations: Record<LanguageCode, Record<string, string>> = { en, zh, ms };
