@@ -6,6 +6,22 @@ import { LocalizedText } from "@/components/i18n/localized-text";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { getWhatsAppNumber } from "@/lib/order-links";
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Returns true if `href` hostname contains `expectedHost` (case-insensitive).
+ * Falls back to substring match on raw href when URL parsing fails (e.g. relative
+ * or malformed strings). Prevents rendering a social icon when the configured URL
+ * points to the wrong platform (e.g. TikTok field accidentally set to a Facebook URL). */
+function hrefMatchesPlatform(href: string, expectedHost: string): boolean {
+  if (!href || !expectedHost) return false;
+  try {
+    const url = new URL(href, "https://example.com");
+    return url.hostname.toLowerCase().includes(expectedHost.toLowerCase());
+  } catch {
+    return href.toLowerCase().includes(expectedHost.toLowerCase());
+  }
+}
+
 // ── Branded SVG icon components ──────────────────────────────────────────────
 
 function FacebookIcon({ className }: { className?: string }) {
@@ -80,13 +96,13 @@ export async function StorefrontFooter() {
               </a>
             ) : null}
             {[
-              { href: settings.socialLinks?.facebook ?? "", logoUrl: settings.platformLogoUrls?.facebook ?? "", FallbackIcon: FacebookIcon, label: "Facebook" },
-              { href: settings.socialLinks?.instagram ?? "", logoUrl: settings.platformLogoUrls?.instagram ?? "", FallbackIcon: InstagramIcon, label: "Instagram" },
-              { href: settings.socialLinks?.tiktok ?? "", logoUrl: settings.platformLogoUrls?.tiktok ?? "", FallbackIcon: TikTokIcon, label: "TikTok" },
-              { href: settings.platformLinks?.shopee ?? "", logoUrl: settings.platformLogoUrls?.shopee ?? "", FallbackIcon: ShopeeIcon, label: "Shopee" },
-              { href: settings.platformLinks?.lazada ?? "", logoUrl: settings.platformLogoUrls?.lazada ?? "", FallbackIcon: LazadaIcon, label: "Lazada" },
-            ].map(({ href, logoUrl, FallbackIcon, label }) =>
-              href ? (
+              { href: settings.socialLinks?.facebook ?? "", logoUrl: settings.platformLogoUrls?.facebook ?? "", FallbackIcon: FacebookIcon, label: "Facebook", expectHost: "facebook" },
+              { href: settings.socialLinks?.instagram ?? "", logoUrl: settings.platformLogoUrls?.instagram ?? "", FallbackIcon: InstagramIcon, label: "Instagram", expectHost: "instagram" },
+              { href: settings.socialLinks?.tiktok ?? "", logoUrl: settings.platformLogoUrls?.tiktok ?? "", FallbackIcon: TikTokIcon, label: "TikTok", expectHost: "tiktok" },
+              { href: settings.platformLinks?.shopee ?? "", logoUrl: settings.platformLogoUrls?.shopee ?? "", FallbackIcon: ShopeeIcon, label: "Shopee", expectHost: "shopee" },
+              { href: settings.platformLinks?.lazada ?? "", logoUrl: settings.platformLogoUrls?.lazada ?? "", FallbackIcon: LazadaIcon, label: "Lazada", expectHost: "lazada" },
+            ].map(({ href, logoUrl, FallbackIcon, label, expectHost }) =>
+              href && hrefMatchesPlatform(href, expectHost) ? (
                 <a
                   aria-label={label}
                   className="flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff] overflow-hidden"

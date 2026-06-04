@@ -1,4 +1,6 @@
-﻿import Link from "next/link";
+﻿"use client";
+
+import Link from "next/link";
 import { Star } from "lucide-react";
 import type { UrbanixProduct } from "@ecommerce/shared";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
@@ -6,6 +8,7 @@ import { LocalizedProductVisual } from "@/components/commerce/localized-product-
 import { PriceDisplay } from "@/components/commerce/price-display";
 import { PromotionBadge } from "@/components/commerce/promotion-badge";
 import { StockBadge } from "@/components/commerce/stock-badge";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 
 type ProductCardProps = {
@@ -15,6 +18,10 @@ type ProductCardProps = {
 
 export function ProductCard({ compact = false, product }: ProductCardProps) {
   const hasOptions = (product.variantGroups?.length ?? 0) > 0;
+  const { t } = useLanguage();
+  // Only show rating/sold widget when there is actual social proof.
+  // Prevents nonsense like "4.7(0)" when a default rating exists but nothing has sold yet.
+  const hasReviewData = product.sold > 0 && product.rating > 0;
 
   return (
     <article className="group relative overflow-hidden rounded-3xl border border-white/75 bg-card/92 p-2 shadow-[0_14px_38px_rgba(17,37,68,0.09)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/28 hover:shadow-[0_24px_60px_rgba(17,37,68,0.16)] dark:border-[rgba(59,158,255,0.14)] dark:bg-[rgba(11,21,40,0.86)] dark:shadow-[0_12px_34px_rgba(0,0,0,0.28)] dark:hover:border-[rgba(59,158,255,0.34)] dark:hover:shadow-[0_24px_60px_rgba(59,158,255,0.14)]">
@@ -57,11 +64,17 @@ export function ProductCard({ compact = false, product }: ProductCardProps) {
         </Link>
         <PriceDisplay originalPrice={product.originalPrice} price={product.price} />
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-muted/55 px-2 py-1.5 dark:bg-[rgba(15,30,56,0.82)]">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Star className="size-3 fill-warning text-warning" />
-            <span className="font-semibold text-primary dark:text-[#ffd166]">{product.rating}</span>
-            {!compact ? <span>({product.sold})</span> : null}
-          </div>
+          {hasReviewData ? (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Star className="size-3 fill-warning text-warning" />
+              <span className="font-semibold text-primary dark:text-[#ffd166]">{product.rating}</span>
+              {!compact ? <span>({product.sold})</span> : null}
+            </div>
+          ) : (
+            <span className="text-xs italic text-muted-foreground">
+              {t("reviews.noReviewsYet", "No reviews yet")}
+            </span>
+          )}
           <AddToCartButton
             disabled={product.stockStatus === "out_of_stock"}
             productId={product.id}

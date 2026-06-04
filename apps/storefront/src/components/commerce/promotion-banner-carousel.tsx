@@ -126,13 +126,13 @@ export function PromotionBannerCarousel({
             {hasImage ? (
               <>
                 <img
-                  alt=""
+                  alt={titleText || subtitleText || ""}
                   className="hidden size-full object-cover transition duration-700 md:block"
                   data-banner-desktop-image
                   src={desktopImageUrl || mobileImageUrl}
                 />
                 <img
-                  alt=""
+                  alt={titleText || subtitleText || ""}
                   className="size-full object-cover transition duration-700 md:hidden"
                   data-banner-mobile-image
                   src={mobileImageUrl || desktopImageUrl}
