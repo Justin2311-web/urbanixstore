@@ -27,6 +27,11 @@ const MAX_RECEIPT_BYTES = MAX_RECEIPT_MB * 1024 * 1024;
 const ACCEPTED_RECEIPT_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const ACCEPTED_RECEIPT_EXTS = ".jpg,.jpeg,.png,.webp,.pdf";
 
+type UploadedReceipt = {
+  bucket: string;
+  path: string;
+};
+
 const initialCustomer: CheckoutCustomer = {
   addressLine1: "",
   addressLine2: "",
@@ -71,7 +76,7 @@ export function CheckoutView({
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
-  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [uploadedReceipt, setUploadedReceipt] = useState<UploadedReceipt | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const lines = buildCartLines(items, products);
@@ -147,7 +152,7 @@ export function CheckoutView({
 
     setReceiptError(null);
     setReceiptFile(file);
-    setReceiptUrl(null);
+    setUploadedReceipt(null);
 
     if (file.type !== "application/pdf") {
       const reader = new FileReader();
@@ -161,12 +166,12 @@ export function CheckoutView({
   function clearReceipt() {
     setReceiptFile(null);
     setReceiptPreview(null);
-    setReceiptUrl(null);
+    setUploadedReceipt(null);
     setReceiptError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  async function uploadReceiptToSupabase(file: File, orderNumber: string): Promise<string> {
+  async function uploadReceiptToSupabase(file: File, orderNumber: string): Promise<UploadedReceipt> {
     const res = await fetch("/api/signed-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -183,7 +188,11 @@ export function CheckoutView({
       throw new Error(errData.error ?? "Receipt upload failed. Please try again.");
     }
 
-    const { signedUrl, filePath } = await res.json() as { signedUrl: string; filePath: string };
+    const { bucket, filePath, signedUrl } = await res.json() as {
+      bucket: string;
+      filePath: string;
+      signedUrl: string;
+    };
 
     const uploadRes = await fetch(signedUrl, {
       method: "PUT",
@@ -195,9 +204,7 @@ export function CheckoutView({
       throw new Error(`Receipt upload failed: ${uploadRes.statusText}`);
     }
 
-    // Return the storage path. Admin generates short-lived signed URLs
-    // from this on demand; we never expose a permanent public URL.
-    return filePath;
+    return { bucket, path: filePath };
   }
 
   // ── Form submit ──────────────────────────────────────────────────────────────
@@ -224,12 +231,11 @@ export function CheckoutView({
       const orderNumber = createOrderNumber();
 
       // 1. Upload receipt before creating the order
-      let finalReceiptPath: string | null = null;
+      let finalReceipt: UploadedReceipt | null = null;
       setReceiptUploading(true);
       try {
-        finalReceiptPath = await uploadReceiptToSupabase(receiptFile, orderNumber);
-        // Local marker that the receipt was uploaded; no public URL is stored.
-        setReceiptUrl(finalReceiptPath);
+        finalReceipt = await uploadReceiptToSupabase(receiptFile, orderNumber);
+        setUploadedReceipt(finalReceipt);
       } catch (uploadErr) {
         setReceiptError(
           uploadErr instanceof Error ? uploadErr.message : "Receipt upload failed."
@@ -261,7 +267,8 @@ export function CheckoutView({
         totalAmount: totals.total,
         paymentMethod: "manual" as const,
         paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
-        receiptPath: finalReceiptPath ?? undefined,
+        receiptBucket: finalReceipt?.bucket,
+        receiptPath: finalReceipt?.path,
         items: lines.map((line) => ({
           productId: line.product.id,
           productName: line.product.name,
@@ -324,6 +331,8 @@ export function CheckoutView({
         paymentMethod: "manual",
         paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
         paymentStatus: "pending",
+        receiptBucket: finalReceipt?.bucket ?? null,
+        receiptPath: finalReceipt?.path ?? null,
         receiptUrl: null,
         freeShippingThreshold: confirmedTotals.freeShippingThreshold,
         isFreeShippingApplied: confirmedTotals.isFreeShippingApplied,
@@ -604,7 +613,7 @@ export function CheckoutView({
                         </span>
                       </div>
                     )}
-                    {receiptUrl ? (
+                    {uploadedReceipt ? (
                       <p className="flex items-center gap-1 text-xs font-semibold text-green-700">
                         ✓ {t("checkout.receiptUploaded", "Receipt uploaded successfully")}
                       </p>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createStorefrontClient } from "@/lib/supabase";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
@@ -14,7 +15,8 @@ import type { Database } from "@ecommerce/database";
 export const dynamic = "force-dynamic";
 
 const genericOrderError = "Unable to place order. Please check your details and try again.";
-const receiptBucket = "uploads";
+const legacyReceiptBucket = "uploads";
+const privateReceiptBucket = "receipts";
 
 type CreateOrderPayload = {
   orderNumber: string;
@@ -32,10 +34,10 @@ type CreateOrderPayload = {
   };
   paymentMethod: "manual" | "whatsapp";
   paymentMethodType?: string | null;
-  // Preferred: storage path inside the uploads bucket, e.g.
-  // "receipts/<order-number>/<uuid>.jpg". Storefront posts this for new
-  // orders. `receiptUrl` is kept for backward compatibility only.
+  // Preferred: private storage metadata returned by /api/signed-upload.
+  receiptBucket?: string;
   receiptPath?: string;
+  // Kept only for older clients/orders that still point at public uploads.
   receiptUrl?: string;
   items: Array<{
     productId?: string;
@@ -66,6 +68,10 @@ type ProductLookupTable = {
   select(columns: string): {
     in(column: string, values: string[]): Promise<{ data: ProductLookupRow[] | null; error: QueryError }>;
   };
+};
+
+type StorageListObject = {
+  name: string;
 };
 
 function fail(message = genericOrderError, status = 400) {
@@ -113,7 +119,7 @@ function validateReceiptUrl(receiptUrl: string | undefined, orderNumber: string)
   const parsedReceipt = new URL(receiptUrl);
   const parsedSupabase = new URL(supabaseUrl);
   const orderSegment = safeOrderSegment(orderNumber);
-  const expectedPrefix = `/storage/v1/object/public/${receiptBucket}/receipts/${orderSegment}/`;
+  const expectedPrefix = `/storage/v1/object/public/${legacyReceiptBucket}/receipts/${orderSegment}/`;
 
   if (
     parsedReceipt.origin !== parsedSupabase.origin ||
@@ -126,23 +132,64 @@ function validateReceiptUrl(receiptUrl: string | undefined, orderNumber: string)
   return receiptUrl;
 }
 
-function validateReceiptPath(receiptPath: string | undefined, orderNumber: string) {
-  if (!receiptPath) return null;
+function validateReceiptPath(receiptBucket: string | undefined, receiptPath: string | undefined, orderNumber: string) {
+  if (!receiptBucket || !receiptPath) return null;
+
+  if (receiptBucket !== privateReceiptBucket) {
+    throw new Error("Receipt bucket does not match private receipt storage.");
+  }
 
   const orderSegment = safeOrderSegment(orderNumber);
-  const expectedPrefix = `receipts/${orderSegment}/`;
+  const normalizedPath = receiptPath.trim();
+  const expectedPrefix = `orders/${orderSegment}/`;
 
   if (
-    !receiptPath.startsWith(expectedPrefix) ||
-    receiptPath.length > 256 ||
-    receiptPath.includes("..") ||
-    !/^[a-zA-Z0-9/_.-]+$/.test(receiptPath) ||
-    !/\.(?:jpe?g|png|webp|pdf)$/i.test(receiptPath)
+    !normalizedPath.startsWith(expectedPrefix) ||
+    normalizedPath.length > 256 ||
+    normalizedPath.includes("..") ||
+    !/^[a-zA-Z0-9/_.-]+$/.test(normalizedPath) ||
+    !/\.(?:jpe?g|png|webp|pdf)$/i.test(normalizedPath)
   ) {
     throw new Error("Receipt path does not match allowed storage path.");
   }
 
-  return receiptPath;
+  return { bucket: receiptBucket, path: normalizedPath };
+}
+
+function createAdminStorageClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase URL or service role key for receipt verification.");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+async function verifyReceiptObjectExists(receipt: { bucket: string; path: string }) {
+  const lastSlash = receipt.path.lastIndexOf("/");
+  const directory = lastSlash >= 0 ? receipt.path.slice(0, lastSlash) : "";
+  const fileName = lastSlash >= 0 ? receipt.path.slice(lastSlash + 1) : receipt.path;
+
+  if (!fileName) return false;
+
+  const sb = createAdminStorageClient();
+  const { data, error } = await sb.storage
+    .from(receipt.bucket)
+    .list(directory, {
+      limit: 1,
+      search: fileName,
+    });
+
+  if (error) {
+    console.error("[Storefront] Receipt object verification failed:", error);
+    throw new Error("Receipt object verification failed.");
+  }
+
+  return (data as StorageListObject[] | null)?.some((object) => object.name === fileName) ?? false;
 }
 
 function resolveVariant(product: UrbanixProduct, selectedVariants?: Record<string, string> | null) {
@@ -213,6 +260,7 @@ export async function POST(request: Request) {
       orderNumber,
       paymentMethod,
       paymentMethodType,
+      receiptBucket,
       receiptPath,
       receiptUrl,
       shippingAddress,
@@ -235,12 +283,12 @@ export async function POST(request: Request) {
       return fail("Please upload your payment receipt before placing the order.");
     }
 
-    let validatedReceiptPath: string | null = null;
+    let validatedReceipt: { bucket: string; path: string } | null = null;
     let validatedReceiptUrl: string | null = null;
     try {
-      validatedReceiptPath = validateReceiptPath(receiptPath, orderNumber);
+      validatedReceipt = validateReceiptPath(receiptBucket, receiptPath, orderNumber);
       // receiptUrl is accepted only as a legacy fallback for older clients.
-      if (!validatedReceiptPath) {
+      if (!validatedReceipt) {
         validatedReceiptUrl = validateReceiptUrl(receiptUrl, orderNumber);
       }
     } catch (error) {
@@ -248,8 +296,20 @@ export async function POST(request: Request) {
       return fail("Invalid receipt reference.");
     }
 
-    if (!validatedReceiptPath && !validatedReceiptUrl) {
+    if (!validatedReceipt && !validatedReceiptUrl) {
       return fail("Please upload your payment receipt before placing the order.");
+    }
+
+    if (validatedReceipt) {
+      try {
+        const receiptExists = await verifyReceiptObjectExists(validatedReceipt);
+        if (!receiptExists) {
+          return fail("Please upload your payment receipt before placing the order.");
+        }
+      } catch (error) {
+        console.error("[Storefront] Receipt verification error:", error);
+        return fail(genericOrderError, 500);
+      }
     }
 
     const data = await readUrbanixStoreDataAsync();
@@ -348,7 +408,10 @@ export async function POST(request: Request) {
         payment_method_type: paymentMethodType || null,
         order_status: "pending",
         payment_status: "pending",
-        receipt_path: validatedReceiptPath,
+        receipt_bucket: validatedReceipt?.bucket ?? null,
+        receipt_path: validatedReceipt?.path ?? null,
+        receipt_public_url_legacy: validatedReceiptUrl,
+        receipt_uploaded_at: new Date().toISOString(),
         receipt_url: validatedReceiptUrl,
       })
       .select("id, order_number")

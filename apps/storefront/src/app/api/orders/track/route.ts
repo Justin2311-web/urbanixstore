@@ -16,6 +16,7 @@ type OrderRow = Pick<
   | "payment_status"
   | "tracking_number"
   | "courier"
+  | "receipt_path"
   | "receipt_url"
   | "subtotal"
   | "shipping_fee"
@@ -152,7 +153,7 @@ export async function GET(request: Request) {
 
     const { data: order, error: orderError } = await ordersTable
       .select(
-        "id, order_number, created_at, order_status, payment_status, tracking_number, courier, receipt_url, subtotal, shipping_fee, discount_amount, total_amount, customer_phone"
+        "id, order_number, created_at, order_status, payment_status, tracking_number, courier, receipt_path, receipt_url, subtotal, shipping_fee, discount_amount, total_amount, customer_phone"
       )
       .eq("order_number", orderNumber)
       .in("customer_phone", phones)
@@ -183,7 +184,7 @@ export async function GET(request: Request) {
         paymentStatus: order.payment_status,
         trackingNumber: order.tracking_number,
         courier: order.courier,
-        hasReceipt: Boolean(order.receipt_url),
+        hasReceipt: Boolean(order.receipt_path || order.receipt_url),
         subtotal: order.subtotal,
         shippingFee: order.shipping_fee,
         discountAmount: order.discount_amount,
