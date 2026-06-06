@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NeonDrive · 首页（手机 · 亮色）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F4FB;
+    --surface:#FFFFFF;
+    --surface-2:#F1ECFB;
+    --ink:#1A1830;
+    --ink-2:#6B6985;
+    --ink-3:#A6A2BD;
+    --purple:#7B5BFF;
+    --purple-2:#A968FF;
+    --mag:#FF3B9A;
+    --cyan:#22C8E8;
+    --price:#FF2C68;
+    --hot:#FF5C2D;
+    --new:#22C496;
+    --border:#E8E4F4;
+    --border-2:#DDD6F2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#EFEBF7;color:var(--ink);font-family:'Noto Sans SC',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  img{display:block;max-width:100%}
+  button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+
+  .device{max-width:430px;margin:24px auto;background:var(--bg);min-height:932px;border-radius:36px;overflow:hidden;border:1px solid var(--border);box-shadow:0 30px 80px rgba(123,91,255,0.18);position:relative;padding-bottom:80px}
+
+  /* header */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand-mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--purple),var(--mag));display:grid;place-items:center;color:#fff;font-weight:900;font-size:20px;box-shadow:0 6px 14px rgba(123,91,255,0.3)}
+  .brand-text{display:flex;flex-direction:column;line-height:1}
+  .brand-name{font-weight:900;font-size:20px;background:linear-gradient(90deg,var(--purple),var(--mag));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.01em}
+  .brand-tag{font-size:9.5px;color:var(--ink-2);margin-top:4px;letter-spacing:.25em}
+  .search{flex:1;margin:0 10px;display:flex;align-items:center;background:var(--surface);border:1.5px solid var(--purple);border-radius:999px;height:40px;padding:0 14px;font-size:13px;color:var(--ink-3);gap:8px;box-shadow:0 4px 10px rgba(123,91,255,0.08)}
+  .top-actions{display:flex;align-items:center;gap:8px}
+  .cart-btn{width:42px;height:42px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;position:relative}
+  .cart-btn .b{position:absolute;top:-4px;right:-4px;background:var(--mag);color:#fff;font-size:9px;font-weight:700;border-radius:999px;min-width:16px;height:16px;display:grid;place-items:center;padding:0 4px}
+  .menu-btn{width:42px;height:42px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--ink)}
+
+  /* hero */
+  .hero{position:relative;margin:8px 16px;height:330px;border-radius:18px;overflow:hidden;background:#1A1830;box-shadow:0 14px 30px rgba(123,91,255,0.15)}
+  .hero-bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1568098632049-23ec8c5fe79c?auto=format&fit=crop&w=900&q=80') center/cover}
+  .hero-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(40,10,80,0.35) 0%,rgba(20,0,50,0.5) 100%)}
+  .hero-content{position:relative;z-index:2;padding:24px 22px;height:100%;display:flex;flex-direction:column;color:#fff}
+  .hero h1{font-size:36px;font-weight:900;line-height:1.04;letter-spacing:-.02em;font-style:italic;color:#fff}
+  .hero .lead-chip{margin-top:14px;display:inline-block;background:linear-gradient(135deg,var(--purple),var(--mag));color:#fff;padding:7px 16px;border-radius:999px;font-size:12px;font-weight:600;width:fit-content;box-shadow:0 6px 14px rgba(255,59,154,0.32)}
+  .hero-feats{display:flex;gap:10px;margin-top:16px;font-size:11px;color:rgba(255,255,255,0.92)}
+  .hero-feats .f{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:999px;padding:4px 10px;backdrop-filter:blur(8px)}
+  .hero-cta{margin-top:18px;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--cyan),var(--purple) 60%,var(--mag));color:#fff;font-weight:700;font-size:14px;padding:11px 22px;border-radius:999px;width:fit-content;box-shadow:0 8px 22px rgba(34,200,232,0.32)}
+  .hero-dots{margin-top:auto;display:flex;gap:5px}
+  .hero-dots span{width:18px;height:3px;border-radius:3px;background:rgba(255,255,255,0.3)}
+  .hero-dots span.on{width:26px;background:#fff}
+
+  /* category grid 5 x 2 */
+  .cats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:16px;background:var(--surface);margin:0 16px;border-radius:18px;border:1px solid var(--border);margin-top:-22px;position:relative;z-index:3}
+  .cats .it{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:10px;position:relative}
+  .cats .it .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:#fff;font-size:18px}
+  .cats .it .lab{font-size:11px;color:var(--ink);font-weight:500;text-align:center;line-height:1.3}
+  .cats .it .badge{position:absolute;top:0;right:6px;font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;color:#fff;letter-spacing:.03em}
+  .b-hot{background:var(--hot)}
+  .ic-1{background:linear-gradient(135deg,#22C496,#22C8E8)}
+  .ic-2{background:linear-gradient(135deg,#1A1830,#3B395A)}
+  .ic-3{background:linear-gradient(135deg,#7B5BFF,#22C8E8)}
+  .ic-4{background:linear-gradient(135deg,#5B7BFF,#A968FF)}
+  .ic-5{background:linear-gradient(135deg,#2D2D55,#7B5BFF)}
+  .ic-6{background:linear-gradient(135deg,#A968FF,#FF3B9A)}
+  .ic-7{background:linear-gradient(135deg,#22C8E8,#7B5BFF)}
+  .ic-8{background:linear-gradient(135deg,#7B5BFF,#22C496)}
+  .ic-9{background:linear-gradient(135deg,#22C8E8,#A968FF)}
+  .ic-10{background:linear-gradient(135deg,#FF3B9A,#7B5BFF)}
+
+  /* sections */
+  .sec{padding:8px 16px}
+  .sec-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 12px}
+  .sec-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:var(--ink)}
+  .sec-title .spark{color:var(--purple);font-size:14px}
+  .sec-more{font-size:12px;color:var(--ink-2);display:inline-flex;align-items:center;gap:3px}
+
+  /* horizontal cards 2-col */
+  .prods-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pcard-h{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;height:120px;box-shadow:0 2px 6px rgba(123,91,255,0.05)}
+  .pcard-h .ph{width:120px;background:var(--surface-2);overflow:hidden;flex-shrink:0;position:relative}
+  .pcard-h .ph img{width:100%;height:100%;object-fit:cover}
+  .pcard-h .ph .tag{position:absolute;top:6px;left:6px;background:linear-gradient(135deg,var(--purple),var(--mag));color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px}
+  .pcard-h .info{padding:10px 12px;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+  .pcard-h .name{font-size:13px;color:var(--ink);font-weight:600;line-height:1.3}
+  .pcard-h .sub{font-size:11px;color:var(--ink-3);margin-top:3px}
+  .pcard-h .row{display:flex;justify-content:space-between;align-items:end;gap:4px}
+  .pcard-h .now{font-size:17px;font-weight:800;color:var(--price);font-family:'JetBrains Mono',monospace}
+  .pcard-h .rate{font-size:10.5px;color:var(--ink-2);display:inline-flex;align-items:center;gap:2px}
+  .pcard-h .add{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--purple),var(--mag));color:#fff;display:grid;place-items:center}
+  .star{color:#FFB020}
+
+  /* flash sale grid 4 */
+  .flash-head{display:flex;align-items:center;gap:8px;margin:14px 0 12px}
+  .countdown{display:flex;align-items:center;gap:4px}
+  .countdown .num{background:#1A1830;color:#fff;font-weight:700;font-size:11px;padding:3px 6px;border-radius:5px;font-family:'JetBrains Mono',monospace;min-width:24px;text-align:center}
+  .countdown .colon{color:var(--mag);font-weight:800}
+  .flash{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .fcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;box-shadow:0 1px 3px rgba(123,91,255,0.05)}
+  .fcard .ph{aspect-ratio:1/1;background:var(--surface-2);overflow:hidden;position:relative}
+  .fcard .ph img{width:100%;height:100%;object-fit:cover}
+  .fcard .disc{position:absolute;top:6px;left:6px;background:linear-gradient(135deg,var(--mag),var(--purple));color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px}
+  .fcard .info{padding:8px}
+  .fcard .name{font-size:11px;color:var(--ink);font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .fcard .now{font-size:14px;color:var(--price);font-weight:800;font-family:'JetBrains Mono',monospace;margin-top:3px}
+  .fcard .now .was{font-size:9.5px;color:var(--ink-3);text-decoration:line-through;margin-left:3px;font-weight:500;font-family:inherit}
+  .fcard .add{position:absolute;bottom:8px;right:8px;width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--mag),var(--purple));color:#fff;display:grid;place-items:center}
+
+  /* trust */
+  .trust{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 8px}
+  .trust .tc{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+  .trust .tc .ic{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(123,91,255,0.14),rgba(255,59,154,0.14));color:var(--purple);display:grid;place-items:center}
+  .trust .tc .t{font-size:11.5px;font-weight:600;color:var(--ink)}
+  .trust .tc .d{font-size:9.5px;color:var(--ink-2)}
+
+  /* reviews horizontal */
+  .reviews{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:10px;overflow-x:auto;padding-bottom:4px}
+  .rcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;min-width:0}
+  .rcard .top{display:flex;align-items:center;gap:8px}
+  .rcard .av{width:30px;height:30px;border-radius:50%;background:var(--surface-2);overflow:hidden}
+  .rcard .av img{width:100%;height:100%;object-fit:cover}
+  .rcard .nm{font-size:12px;color:var(--ink);font-weight:600}
+  .rcard .stars{color:#FFB020;font-size:10px;letter-spacing:.5px;margin-top:1px}
+  .rcard .txt{font-size:12px;color:var(--ink-2);line-height:1.5;margin-top:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:54px}
+  .rcard .pinfo{display:flex;align-items:center;gap:6px;margin-top:8px}
+  .rcard .pinfo .thumb{width:32px;height:32px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+  .rcard .pinfo .thumb img{width:100%;height:100%;object-fit:cover}
+  .rcard .date{font-size:10px;color:var(--ink-3);margin-top:4px}
+
+  /* tab bar */
+  .tabbar{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:8px 6px 14px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;font-size:10.5px;color:var(--ink-2);position:relative}
+  .tab.active{color:var(--mag)}
+  .tab .ic{width:24px;height:24px;display:grid;place-items:center}
+  .tab .b{position:absolute;top:0;right:18%;background:var(--mag);color:#fff;font-size:9px;font-weight:700;border-radius:999px;min-width:14px;height:14px;display:grid;place-items:center;padding:0 3px}
+</style>
+</head>
+<body>
+
+<div class="device">
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">N</div>
+      <div class="brand-text">
+        <span class="brand-name">NEONDRIVE</span>
+        <span class="brand-tag">点 亮 驾 驶 灵 感</span>
+      </div>
+    </div>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      搜索无线CarPlay、记录仪...
+    </div>
+    <div class="top-actions">
+      <button class="cart-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg><span class="b">0</span></button>
+      <button class="menu-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <h1>年轻人的<br/>车载黑科技</h1>
+      <span class="lead-chip">潮酷智能配件 · 点亮每一段旅程</span>
+      <div class="hero-feats">
+        <div class="f"><span style="color:var(--cyan)">⚡</span>智能互联</div>
+        <div class="f"><span style="color:var(--mag)">◉</span>安全出行</div>
+        <div class="f"><span style="color:#FFB44A">★</span>潮酷生活</div>
+      </div>
+      <a class="hero-cta">探索更多黑科技 →</a>
+      <div class="hero-dots"><span class="on"></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- CATEGORY GRID -->
+  <div class="cats">
+    <a class="it"><div class="ic ic-1">▶</div><div class="lab">无线CarPlay</div><span class="badge b-hot">HOT</span></a>
+    <a class="it"><div class="ic ic-2">⊙</div><div class="lab">行车记录仪</div></a>
+    <a class="it"><div class="ic ic-3">💡</div><div class="lab">氛围灯光</div></a>
+    <a class="it"><div class="ic ic-4">▭</div><div class="lab">手机支架</div></a>
+    <a class="it"><div class="ic ic-5">⌁</div><div class="lab">车载充电器</div></a>
+    <a class="it"><div class="ic ic-6">◐</div><div class="lab">胎压监测</div></a>
+    <a class="it"><div class="ic ic-7">◉</div><div class="lab">充气泵</div></a>
+    <a class="it"><div class="ic ic-8">◆</div><div class="lab">智能配件</div></a>
+    <a class="it"><div class="ic ic-9">✶</div><div class="lab">清洁美容</div></a>
+    <a class="it"><div class="ic ic-10">▦</div><div class="lab">全部分类</div></a>
+  </div>
+
+  <!-- HOT PRODUCTS -->
+  <section class="sec">
+    <div class="sec-head">
+      <div class="sec-title">精选推荐 <span class="spark">✦</span></div>
+      <a class="sec-more">查看更多 ›</a>
+    </div>
+    <div class="prods-2">
+      <div class="pcard-h">
+        <div class="ph"><span class="tag">热销</span><img src="https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=300&q=80"></div>
+        <div class="info">
+          <div><div class="name">无线CarPlay适配器</div><div class="sub">即插即用·无线互联</div></div>
+          <div class="row"><span class="now">¥299</span><button class="add"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button></div>
+        </div>
+      </div>
+      <div class="pcard-h">
+        <div class="ph"><span class="tag" style="background:linear-gradient(135deg,#22C8E8,#7B5BFF)">4K超清</span><img src="https://images.unsplash.com/photo-1565043666747-69f6646db940?auto=format&fit=crop&w=300&q=80"></div>
+        <div class="info">
+          <div><div class="name">4K超清行车记录仪</div><div class="sub">前后双录·夜视增强</div></div>
+          <div class="row"><span class="now">¥699</span><span class="rate"><span class="star">★</span>4.9</span><button class="add"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button></div>
+        </div>
+      </div>
+      <div class="pcard-h">
+        <div class="ph"><span class="tag">氛围灯</span><img src="https://images.unsplash.com/photo-1614026480209-cd3acdd34f88?auto=format&fit=crop&w=300&q=80"></div>
+        <div class="info">
+          <div><div class="name">RGB氛围灯带套装</div><div class="sub">多色可调·APP控制</div></div>
+          <div class="row"><span class="now">¥199</span><span class="rate"><span class="star">★</span>4.8</span><button class="add"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button></div>
+        </div>
+      </div>
+      <div class="pcard-h">
+        <div class="ph"><span class="tag">磁吸</span><img src="https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=300&q=80"></div>
+        <div class="info">
+          <div><div class="name">磁吸手机支架</div><div class="sub">强磁吸附·稳固不晃</div></div>
+          <div class="row"><span class="now">¥89</span><span class="rate"><span class="star">★</span>4.7</span><button class="add"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLASH -->
+  <section class="sec">
+    <div class="flash-head">
+      <div class="sec-title">限时秒杀</div>
+      <div class="countdown"><span class="num">02</span><span class="colon">:</span><span class="num">18</span><span class="colon">:</span><span class="num">39</span></div>
+      <div style="flex:1"></div>
+      <a class="sec-more">查看更多 ›</a>
+    </div>
+    <div class="flash">
+      <div class="fcard">
+        <div class="ph"><img src="https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=200&q=80"><span class="disc">7折</span></div>
+        <div class="info"><div class="name">无线CarPlay适配器</div><div class="now">¥279<span class="was">¥399</span></div></div>
+        <button class="add"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button>
+      </div>
+      <div class="fcard">
+        <div class="ph"><img src="https://images.unsplash.com/photo-1565043666747-69f6646db940?auto=format&fit=crop&w=200&q=80"><span class="disc">5.5折</span></div>
+        <div class="info"><div class="name">4K超清行车记录仪</div><div class="now">¥439<span class="was">¥799</span></div></div>
+        <button class="add"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button>
+      </div>
+      <div class="fcard">
+        <div class="ph"><img src="https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=200&q=80"><span class="disc">6折</span></div>
+        <div class="info"><div class="name">胎压监测仪</div><div class="now">¥179<span class="was">¥299</span></div></div>
+        <button class="add"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button>
+      </div>
+      <div class="fcard">
+        <div class="ph"><img src="https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=200&q=80"><span class="disc">6.5折</span></div>
+        <div class="info"><div class="name">磁吸手机支架</div><div class="now">¥84<span class="was">¥129</span></div></div>
+        <button class="add"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST -->
+  <div class="trust">
+    <div class="tc"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg></div><div class="t">正品保障</div><div class="d">官方正品·假一赔十</div></div>
+    <div class="tc"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-3-6.7"/></svg></div><div class="t">7天无理由退换</div><div class="d">不喜欢就退</div></div>
+    <div class="tc"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h13l5 5v5h-3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><div class="t">全国包邮</div><div class="d">全场商品·免费配送</div></div>
+    <div class="tc"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 0 1 18 0v6h-4v-7h4"/></svg></div><div class="t">售后无忧</div><div class="d">专业客服·快速响应</div></div>
+  </div>
+
+  <!-- REVIEWS -->
+  <section class="sec">
+    <div class="sec-head">
+      <div class="sec-title">用户真实评价 <span class="sub" style="font-size:11px;font-weight:400;color:var(--ink-2)">真实好评 20万+</span></div>
+      <a class="sec-more">查看更多评价 ›</a>
+    </div>
+    <div class="reviews">
+      <div class="rcard">
+        <div class="top"><div class="av"><img src="https://i.pravatar.cc/100?img=33"></div><div><div class="nm">极速少年JAY</div><div class="stars">★★★★★</div></div></div>
+        <p class="txt">无线CarPlay连接超稳定，上车自动连，太方便了！</p>
+        <div class="pinfo"><div class="thumb"><img src="https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=80&q=80"></div><div class="date">2天前</div></div>
+      </div>
+      <div class="rcard">
+        <div class="top"><div class="av"><img src="https://i.pravatar.cc/100?img=45"></div><div><div class="nm">小鹿爱车车</div><div class="stars">★★★★★</div></div></div>
+        <p class="txt">氛围灯效果绝了！晚上开车氛围感拉满，朋友都问链接~</p>
+        <div class="pinfo"><div class="thumb"><img src="https://images.unsplash.com/photo-1614026480209-cd3acdd34f88?auto=format&fit=crop&w=80&q=80"></div><div class="date">3天前</div></div>
+      </div>
+      <div class="rcard">
+        <div class="top"><div class="av"><img src="https://i.pravatar.cc/100?img=52"></div><div><div class="nm">酷酷的喵喵</div><div class="stars">★★★★★</div></div></div>
+        <p class="txt">记录仪4K画质很清晰，夜视也很棒，停车监控安心！</p>
+        <div class="pinfo"><div class="thumb"><img src="https://images.unsplash.com/photo-1565043666747-69f6646db940?auto=format&fit=crop&w=80&q=80"></div><div class="date">5天前</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB BAR -->
+  <nav class="tabbar">
+    <a class="tab active">
+      <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-7h6v7h6V10z"/></svg></span>
+      首页
+    </a>
+    <a class="tab">
+      <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      分类
+    </a>
+    <a class="tab">
+      <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 6-6 2 2-6 6-2z"/></svg></span>
+      发现
+    </a>
+    <a class="tab">
+      <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l3 12h12l2-8H7"/></svg></span>
+      购物车
+      <span class="b">0</span>
+    </a>
+    <a class="tab">
+      <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>
