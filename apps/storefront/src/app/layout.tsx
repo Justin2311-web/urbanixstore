@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Geist_Mono, Poppins } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { AnalyticsScripts } from "@/components/analytics/analytics-scripts";
 import { RouteEvents } from "@/components/analytics/route-events";
@@ -14,15 +14,21 @@ import { StorefrontFooter } from "@/components/storefront-footer";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const poppins = Poppins({
+// Inter — primary sans for EN / MS (full Latin + extended set for MS diacritics)
+const inter = Inter({
   variable: "--font-sans",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
+// JetBrains Mono — opt-in via .urbanix-tabular / font-mono utility only.
+// Used for prices, SKUs, order IDs, countdowns. NOT a body-text font.
+const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  weight: ["500", "700"],
+  display: "swap",
 });
 
 export const dynamic = "force-dynamic";
@@ -99,15 +105,27 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
-        {/* Inline blocking script: applies saved theme before first paint to prevent flash */}
+        {/* Inline blocking script: applies saved theme before first paint to prevent flash.
+            Phase A: dark-mode default switch is intentionally NOT enabled here —
+            ThemeProvider's React state must change in lockstep to avoid hydration
+            mismatch. Both will flip together in Phase B. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem('urbanix-theme');if(t==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
+        />
+        {/* Noto Sans SC — loaded via <link> so the browser can use CSS
+            unicode-range to only download CJK glyphs when actually rendered.
+            EN / MS users incur zero CJK font weight. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap"
         />
         {/* Phase 3C PR 1: GA4 base script. No-op when NEXT_PUBLIC_GA4_ID
             is unset — no script tag, no network request, no errors. */}
