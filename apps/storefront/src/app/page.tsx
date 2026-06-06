@@ -62,7 +62,7 @@ export default async function Home() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
                   className={buttonVariants({
-                    className: "rounded-full bg-linear-to-r from-primary via-[#14c8ff] to-[#7c3cff] text-white shadow-[0_16px_40px_rgba(26,86,219,0.28)] hover:scale-[1.02]",
+                    className: "urbanix-grad-cta rounded-full hover:scale-[1.02]",
                     size: "lg",
                   })}
                   href={data.homepage.heroButtonLink || "/products"}

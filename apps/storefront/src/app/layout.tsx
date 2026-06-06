@@ -109,13 +109,14 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Inline blocking script: applies saved theme before first paint to prevent flash.
-            Phase A: dark-mode default switch is intentionally NOT enabled here —
-            ThemeProvider's React state must change in lockstep to avoid hydration
-            mismatch. Both will flip together in Phase B. */}
+        {/* Inline blocking script: applies saved theme before first paint to
+            prevent flash. Phase B.1: dark is the default for new users.
+            Rule: stored='light' → light, otherwise (stored='dark' OR no
+            stored value) → dark. Matches ThemeProvider's useState initializer
+            so the two never disagree at hydration. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('urbanix-theme');if(t==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('urbanix-theme');if(t!=='light')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
         {/* Noto Sans SC — loaded via <link> so the browser can use CSS

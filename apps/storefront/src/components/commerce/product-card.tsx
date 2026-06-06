@@ -24,7 +24,7 @@ export function ProductCard({ compact = false, product }: ProductCardProps) {
   const hasReviewData = product.sold > 0 && product.rating > 0;
 
   return (
-    <article className="group relative overflow-hidden rounded-3xl border border-white/75 bg-card/92 p-2 shadow-[0_14px_38px_rgba(17,37,68,0.09)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/28 hover:shadow-[0_24px_60px_rgba(17,37,68,0.16)] dark:border-[rgba(59,158,255,0.14)] dark:bg-[rgba(11,21,40,0.86)] dark:shadow-[0_12px_34px_rgba(0,0,0,0.28)] dark:hover:border-[rgba(59,158,255,0.34)] dark:hover:shadow-[0_24px_60px_rgba(59,158,255,0.14)]">
+    <article className="group relative overflow-hidden rounded-3xl border border-white/75 bg-card/92 p-2 shadow-[0_14px_38px_rgba(17,37,68,0.09)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/28 hover:shadow-[0_24px_60px_rgba(17,37,68,0.16)] dark:border-border dark:shadow-[var(--shadow-md)] dark:hover:border-primary/40 dark:hover:shadow-[var(--shadow-neon-blue)]">
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent dark:via-[#8bdcff]/50" />
       <Link className="relative block" href={`/products/${product.slug}`}>
         <LocalizedProductVisual alt={product.name} product={product} tone={product.imageTone} />

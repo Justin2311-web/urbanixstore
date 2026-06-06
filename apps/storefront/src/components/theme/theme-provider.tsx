@@ -16,8 +16,13 @@ const TRANSITIONS_CLASS = "theme-transitions";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
-    return window.localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+    // Phase B.1: dark is the default for new users.
+    // Rule: stored='light' → light, otherwise (stored='dark' OR no stored
+    // value) → dark. This MUST match the inline pre-paint script in
+    // app/layout.tsx so the html.dark class added by that script lines up
+    // with React's first-render theme state, avoiding hydration mismatch.
+    if (typeof window === "undefined") return "dark";
+    return window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
   });
 
   useEffect(() => {
