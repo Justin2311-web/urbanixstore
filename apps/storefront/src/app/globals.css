@@ -66,7 +66,7 @@
   --accent: #6B3FFF;            /* cyber purple — gradient & secondary CTA */
   --accent-foreground: #FFFFFF;
   --coral: #FF2E9A;             /* neon magenta — sale / hot highlights */
-  --destructive: #FF3B6E;       /* price red — replaces flat #dc2626 */
+  --destructive: #E5375F;       /* price red — bumped from #FF3B6E for AA at 16px */
 
   /* ───── Brand gold preserved (Urbanix blue + gold identity) ───── */
   --warning: #F6A80B;
@@ -156,12 +156,25 @@ html.dark {
   --grad-glass: linear-gradient(135deg, rgba(18, 26, 46, 0.78), rgba(18, 26, 46, 0.45));
 }
 
-/* Dark body gradient — cyber-tuned, brand-blue anchored */
+/* Dark body gradient — cyber-tuned, brand-blue anchored.
+   Reduced from 3 radials to 2 for lower GPU cost on mid-range devices.
+   The top-left radial blends Urbanix blue → cyber purple via 2 color stops
+   in a SINGLE layer (visually equivalent to the previous blue + purple
+   pair). The bottom-right magenta is preserved (smaller, but the cyber
+   accent is the most missable piece if removed). */
 html.dark body {
   background-image:
-    radial-gradient(circle at 12% 6%, rgba(61, 139, 255, 0.28), transparent 34rem),
-    radial-gradient(circle at 86% 14%, rgba(139, 107, 255, 0.26), transparent 30rem),
-    radial-gradient(circle at 74% 64%, rgba(255, 79, 171, 0.16), transparent 28rem),
+    radial-gradient(
+      ellipse 40rem 32rem at 18% 8%,
+      rgba(61, 139, 255, 0.32) 0%,
+      rgba(139, 107, 255, 0.24) 45%,
+      transparent 72%
+    ),
+    radial-gradient(
+      circle at 82% 70%,
+      rgba(255, 79, 171, 0.18),
+      transparent 28rem
+    ),
     linear-gradient(
       180deg,
       rgba(5, 9, 22, 0.98),
@@ -297,8 +310,11 @@ html.theme-transitions li {
 
   .price-current {
     @apply font-bold text-destructive;
+    /* Scope: prices only. Body text, headings, descriptions stay on Inter. */
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+    letter-spacing: -0.01em;
   }
 
   .price-original {
