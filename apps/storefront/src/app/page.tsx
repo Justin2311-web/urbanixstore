@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Headphones, Sparkles, Truck, Zap } from "lucide-react";
+import { ArrowRight, BadgeCheck, Headphones, Lock, Mail, Send, ShieldCheck, Sparkles, Truck, Zap } from "lucide-react";
 import { formatCurrency } from "@ecommerce/shared";
 import { listActivePromotionBanners, listStorefrontCategories, listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import { CategoryCard } from "@/components/commerce/category-card";
@@ -18,7 +18,22 @@ export default async function Home() {
   const data = await readUrbanixStoreDataAsync();
   const categories = listStorefrontCategories(data);
   const products = listStorefrontProducts(data);
-  const featuredProducts = products.filter((product) => product.featured).slice(0, 4);
+
+  // Phase B.4: Featured grew 4 → 8. If catalog doesn't have 8 featured, top up
+  // with non-featured products (deterministic order by name) so the strip never
+  // looks half-empty when admin hasn't tagged enough featured products yet.
+  const flaggedFeatured = products.filter((p) => p.featured);
+  const featuredIds = new Set(flaggedFeatured.map((p) => p.id));
+  const fillFromCatalog = products.filter((p) => !featuredIds.has(p.id));
+  const bestSellers = [...flaggedFeatured, ...fillFromCatalog].slice(0, 8);
+
+  // Phase B.4: New Arrivals = remaining catalog after Best Sellers slot,
+  // capped at 4. Falls back to last 4 of the catalog if there's overlap, so
+  // the section is never empty when catalog ≥ 4 products.
+  const bestSellerIds = new Set(bestSellers.map((p) => p.id));
+  const newArrivalCandidates = products.filter((p) => !bestSellerIds.has(p.id));
+  const newArrivals = (newArrivalCandidates.length > 0 ? newArrivalCandidates : products).slice(0, 4);
+
   const featuredCategoryKeys = new Set(data.homepage.featuredCategoryCards ?? []);
   const configuredCategories = categories.filter(
     (category) =>
@@ -26,15 +41,16 @@ export default async function Home() {
       featuredCategoryKeys.has(category.slug ?? "") ||
       featuredCategoryKeys.has(category.name)
   );
-  const featuredCategories = (configuredCategories.length > 0 ? configuredCategories : categories).slice(0, 4);
+  const featuredCategories = (configuredCategories.length > 0 ? configuredCategories : categories).slice(0, 8);
   const promotionBanners = listActivePromotionBanners(data);
-  const visualProducts = featuredProducts.filter((product) => product.image || product.mainImageUrl || product.galleryImages?.[0]);
-  const heroProducts = (visualProducts.length >= 3 ? visualProducts : featuredProducts).slice(0, 3);
+  const visualProducts = bestSellers.filter((product) => product.image || product.mainImageUrl || product.galleryImages?.[0]);
+  const heroProducts = (visualProducts.length >= 3 ? visualProducts : bestSellers).slice(0, 3);
   const heroImage = data.homepage.heroImageUrl || data.homepage.heroImage || "";
   const hasHeroImage = /^https?:\/\//.test(heroImage) || heroImage.startsWith("/");
 
   return (
     <main className="pb-20 md:pb-0">
+      {/* 1 · HERO — single CTA, mobile-friendly */}
       {data.homepage.isActive !== false ? (
         <section className="urbanix-container pt-7 sm:pt-10">
           <div className="urbanix-hero-shell grid gap-7 p-5 sm:p-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:p-10">
@@ -47,7 +63,7 @@ export default async function Home() {
               />
             ) : null}
             <div className="relative z-10 flex flex-col gap-6">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-primary dark:border-[rgba(59,158,255,0.22)] dark:bg-[rgba(59,158,255,0.12)] dark:text-[#8bdcff]">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-primary dark:border-primary/30 dark:bg-primary/15">
                 <Sparkles className="size-3.5" />
                 Urban Lifestyle Tech
               </div>
@@ -59,7 +75,7 @@ export default async function Home() {
                   <LocalizedValue fallback={data.homepage.heroSubtitle} value={data.homepage.localizedHeroSubtitle} />
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   className={buttonVariants({
                     className: "urbanix-grad-cta rounded-full hover:scale-[1.02]",
@@ -69,29 +85,19 @@ export default async function Home() {
                 >
                   <LocalizedValue fallback={data.homepage.heroButtonText} value={data.homepage.localizedHeroButtonText} /> <ArrowRight />
                 </Link>
+                {/* Phase B.4: secondary CTA demoted to text link — single primary CTA per Hick's Law */}
                 <Link
-                  className={buttonVariants({
-                    className: "rounded-full border-primary/20 bg-white/65 text-primary backdrop-blur hover:bg-white dark:border-[rgba(59,158,255,0.22)] dark:bg-white/8 dark:text-[#c8eeff] dark:hover:bg-white/12",
-                    size: "lg",
-                    variant: "outline",
-                  })}
+                  className="text-sm font-semibold text-primary underline-offset-4 hover:underline dark:text-[#A6C2FF]"
                   href="/categories"
                 >
-                  Explore Categories
+                  <LocalizedText fallback="Browse all categories" k="home.browseCategories" /> →
                 </Link>
-              </div>
-              <div className="hidden max-w-xl grid-cols-3 gap-2 text-xs font-bold text-muted-foreground sm:grid">
-                {["Premium Feel", "Fast Order", "Youth Picks"].map((item) => (
-                  <div className="rounded-2xl border border-border/60 bg-card/70 px-3 py-2 dark:border-[rgba(59,158,255,0.12)] dark:bg-white/5" key={item}>
-                    {item}
-                  </div>
-                ))}
               </div>
             </div>
             <div className="relative z-10 grid gap-3 self-start sm:grid-cols-3 lg:grid-cols-2">
               {heroProducts.map((product, index) => (
                 <Link
-                  className={`group overflow-hidden rounded-3xl border border-white/75 bg-white/70 p-2 shadow-[0_18px_50px_rgba(17,37,68,0.12)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-primary/30 dark:border-[rgba(59,158,255,0.16)] dark:bg-white/8 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)] ${
+                  className={`group overflow-hidden rounded-3xl border border-white/75 bg-white/70 p-2 shadow-[0_18px_50px_rgba(17,37,68,0.12)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-primary/30 dark:border-border dark:bg-card/60 dark:shadow-[var(--shadow-md)] ${
                     index === 0 ? "sm:col-span-3 lg:col-span-2" : ""
                   }`}
                   href={`/products/${product.slug}`}
@@ -114,7 +120,7 @@ export default async function Home() {
                             {formatCurrency(product.originalPrice)}
                           </p>
                         ) : null}
-                        <p className="text-base font-black text-primary dark:text-[#ffd166]">
+                        <p className="text-base font-black text-destructive">
                           {formatCurrency(product.price)}
                         </p>
                       </div>
@@ -130,51 +136,74 @@ export default async function Home() {
         </section>
       ) : null}
 
+      {/* 2 · TRUST MICRO-BAR — visible on mobile, before any product surface */}
+      <TrustMicroBar />
+
+      {/* 3 · CATEGORY CHIPS — horizontal scroll on mobile, grid on desktop */}
+      <section className="urbanix-container urbanix-section pt-0">
+        <SectionHeader
+          action="/categories"
+          subtitle="Car holders, car scents, cooling essentials, and daily urban accessories."
+          subtitleKey="home.categoryCaption"
+          title="Shop by Category"
+          titleKey="home.shopByCategory"
+        />
+        {/* Mobile: horizontal scroll-snap. md+: 4-col grid. Keeps real category
+            data (admin-managed) and grows automatically as more are added. */}
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 md:grid-cols-4">
+          {featuredCategories.map((category) => (
+            <div className="w-[78%] shrink-0 snap-start sm:w-auto" key={category.id}>
+              <CategoryCard category={category} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4 · BEST SELLERS — renamed from "Featured Picks", 8 slots */}
+      <section className="urbanix-container urbanix-section pt-0">
+        <SectionHeader
+          action="/products"
+          subtitle="Clean product cards, quick actions, and mobile-first shopping."
+          subtitleKey="home.featuredCaption"
+          title="Best Sellers"
+          titleKey="home.bestSellers"
+        />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {bestSellers.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
+
+      {/* 5 · PROMO BANNER — moved down per Phase B.4 reorder */}
       <PromotionBannerCarousel
         banners={promotionBanners}
         fallback={data.homepage}
         freeShippingText={data.settings.freeShippingText}
       />
 
-      <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/categories" subtitle="Car holders, car scents, cooling essentials, and daily urban accessories." subtitleKey="home.categoryCaption" title="Shop by Category" titleKey="home.shopByCategory" />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {featuredCategories.map((category) => (
-            <CategoryCard category={category} key={category.id} />
-          ))}
-        </div>
-      </section>
-
-      <section className="urbanix-container urbanix-section">
-        <SectionHeader action="/products" subtitle="Clean product cards, quick actions, and mobile-first shopping." subtitleKey="home.featuredCaption" title="Featured Picks" titleKey="home.featuredPicks" />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
-      {/* Phase 3B Review Wall — hand-curated social proof between
-          Featured Picks and the promo strip. Static data, no DB. */}
+      {/* 6 · REVIEWS */}
       <ReviewWall />
 
-      <section className="urbanix-container urbanix-section pt-0">
-        <div className="urbanix-hero-shell grid gap-5 p-5 text-foreground sm:p-6 md:grid-cols-[auto_1fr_auto] md:items-center">
-          <div className="relative z-10 flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-[#14c8ff] text-white shadow-[0_14px_32px_rgba(26,86,219,0.28)]">
-            <Zap className="size-7" />
+      {/* 7 · NEW ARRIVALS — fresh from the catalog */}
+      {newArrivals.length > 0 ? (
+        <section className="urbanix-container urbanix-section pt-0">
+          <SectionHeader
+            action="/products"
+            subtitle="Just landed in our Malaysian warehouse."
+            subtitleKey="home.newArrivalsCaption"
+            title="New Arrivals"
+            titleKey="home.newArrivals"
+          />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {newArrivals.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
-          <div className="relative z-10">
-            <h2 className="text-2xl font-black sm:text-3xl">Urban Drive Sale</h2>
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">
-              <LocalizedValue fallback={data.homepage.promotionStripText} value={data.homepage.localizedPromoStripText} /> | Up to 30% off selected accessories.
-            </p>
-          </div>
-          <Link className={buttonVariants({ className: "relative z-10 rounded-full", variant: "secondary" })} href="/products">
-            Shop Deals
-          </Link>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
+      {/* 8 · WHY URBANIX — long-form trust as scroll reward */}
       <section className="urbanix-container urbanix-section pt-0">
         <SectionHeader action="/our-story" subtitle="Built for everyday Malaysia: practical, premium, and trend-aware." title="Why Urbanix" titleKey="home.whyShop" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -216,7 +245,7 @@ export default async function Home() {
             },
           ].map(({ icon: Icon, text, textKey, title, titleKey }) => (
             <article className="urbanix-glass p-4" key={title}>
-              <div className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-[rgba(59,158,255,0.12)] dark:text-[#8bdcff]">
+              <div className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-primary/15">
                 <Icon className="size-5" />
               </div>
               <h3 className="text-sm font-extrabold">
@@ -230,6 +259,10 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* 9 · NEWSLETTER — mailto handoff to store contact email; visual only,
+            no backend / API / database. Uses existing settings.contactEmail. */}
+      <NewsletterOptIn contactEmail={data.settings.contactEmail} />
+
     </main>
   );
 }
@@ -238,19 +271,101 @@ function SectionHeader({ action, subtitle, subtitleKey, title, titleKey }: { tit
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-2xl font-black uppercase tracking-wide text-primary dark:text-[#8bdcff] sm:text-3xl">
+        <h2 className="text-2xl font-black uppercase tracking-wide text-primary dark:text-[#A6C2FF] sm:text-3xl">
           <LocalizedText fallback={title} k={titleKey} />
         </h2>
         {subtitle ? <p className="max-w-xl text-sm text-muted-foreground">{subtitleKey ? <LocalizedText fallback={subtitle} k={subtitleKey} /> : subtitle}</p> : null}
-        <div className="h-0.5 w-8 rounded-full bg-primary/40 dark:bg-[rgba(59,158,255,0.4)]" />
+        <div className="h-0.5 w-8 rounded-full bg-primary/40" />
       </div>
       <Link
-        className="flex items-center gap-1 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-bold text-primary transition hover:bg-primary/8 dark:border-[rgba(59,158,255,0.2)] dark:text-[#3b9eff] dark:hover:bg-[rgba(59,158,255,0.08)]"
+        className="flex items-center gap-1 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-bold text-primary transition hover:bg-primary/8 dark:border-primary/35 dark:hover:bg-primary/10"
         href={action}
       >
         <LocalizedText fallback="View all" k="home.viewAll" />
         <ArrowRight className="size-3" />
       </Link>
     </div>
+  );
+}
+
+// Phase B.4: Trust micro-bar — sits directly under hero, visible on mobile.
+// 4 chips: Free Shipping RM50+ · Secure Checkout · Malaysia Warranty · Fast Delivery.
+// Uses Phase A token-driven styling. No new tokens, no new utilities.
+function TrustMicroBar() {
+  const items = [
+    { icon: Truck, title: "Free Shipping", subtitle: "RM50+", titleKey: "home.trustMicro.freeShipping.title", subtitleKey: "home.trustMicro.freeShipping.subtitle" },
+    { icon: Lock, title: "Secure Checkout", subtitle: "SSL encrypted", titleKey: "home.trustMicro.secureCheckout.title", subtitleKey: "home.trustMicro.secureCheckout.subtitle" },
+    { icon: ShieldCheck, title: "Malaysia Warranty", subtitle: "Local support", titleKey: "home.trustMicro.warranty.title", subtitleKey: "home.trustMicro.warranty.subtitle" },
+    { icon: Zap, title: "Fast Delivery", subtitle: "Nationwide", titleKey: "home.trustMicro.fastDelivery.title", subtitleKey: "home.trustMicro.fastDelivery.subtitle" },
+  ];
+
+  return (
+    <section className="urbanix-container pt-5 sm:pt-7">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+        {items.map(({ icon: Icon, title, subtitle, titleKey, subtitleKey }) => (
+          <div
+            className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/85 p-3 backdrop-blur-sm transition hover:border-primary/35 dark:border-border dark:bg-card/60"
+            key={title}
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15 dark:bg-primary/15 dark:ring-primary/25">
+              <Icon className="size-4.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-extrabold leading-tight text-foreground sm:text-sm">
+                <LocalizedText fallback={title} k={titleKey} />
+              </div>
+              <div className="text-[0.68rem] font-semibold leading-tight text-muted-foreground">
+                <LocalizedText fallback={subtitle} k={subtitleKey} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// Phase B.4: Newsletter opt-in. Mailto handoff — uses existing settings.contactEmail
+// so there's no new API, no new database, no auth. Pure visual + native email
+// client handoff. When admin wires a real list provider later, swap the form
+// action without changing this component's surface.
+function NewsletterOptIn({ contactEmail }: { contactEmail?: string }) {
+  const subject = encodeURIComponent("Subscribe me to Urbanix updates");
+  const body = encodeURIComponent("Hi Urbanix team,\n\nPlease add this email to your newsletter list.\n\nThanks!");
+  const href = contactEmail
+    ? `mailto:${contactEmail}?subject=${subject}&body=${body}`
+    : "/contact-us";
+
+  return (
+    <section className="urbanix-container urbanix-section pt-0">
+      <div className="urbanix-hero-shell flex flex-col items-start gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div className="relative z-10 flex items-start gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30">
+            <Mail className="size-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black sm:text-2xl">
+              <LocalizedText fallback="Stay in the Loop" k="home.newsletter.title" />
+            </h2>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              <LocalizedText
+                fallback="New drops, member-only deals, and Malaysia shipping perks — straight to your inbox."
+                k="home.newsletter.subtitle"
+              />
+            </p>
+          </div>
+        </div>
+        <Link
+          className={buttonVariants({
+            className: "urbanix-grad-cta relative z-10 rounded-full",
+            size: "lg",
+          })}
+          href={href}
+        >
+          <Send className="size-4" />
+          <LocalizedText fallback="Get Updates" k="home.newsletter.cta" />
+        </Link>
+      </div>
+    </section>
   );
 }
