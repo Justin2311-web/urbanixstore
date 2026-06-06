@@ -70,16 +70,19 @@ export async function StorefrontFooter() {
   const categories = listStorefrontCategories(data);
 
   return (
-    <footer className="relative mt-8 overflow-hidden bg-[#06101f] pb-[calc(14rem+env(safe-area-inset-bottom))] text-[#c8d8ef] dark:bg-[#030913] md:pb-0">
-      {/* Subtle top gradient accent */}
-      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-[rgba(59,158,255,0.3)] to-transparent" />
-      <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-[rgba(59,158,255,0.04)] to-transparent" />
+    <footer className="relative mt-8 overflow-hidden bg-[#0A0F1F] pb-[calc(14rem+env(safe-area-inset-bottom))] text-[#E5ECF7] dark:bg-[#050913] md:pb-0">
+      {/* Cyber grid background — very subtle Phase A token-driven texture */}
+      <div className="urbanix-grid-bg pointer-events-none absolute inset-0 opacity-30" />
+      {/* Subtle top accent: 3-stop gradient picks up Urbanix blue + a hint of brand gold center */}
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-[rgba(61,139,255,0.5)] to-transparent" />
+      <div className="absolute inset-x-1/3 top-0 h-px bg-linear-to-r from-transparent via-[rgba(255,192,102,0.45)] to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-[rgba(61,139,255,0.06)] to-transparent" />
 
-      <div className="urbanix-container relative grid gap-8 py-10 md:grid-cols-[1.3fr_2fr_1.3fr]">
+      <div className="urbanix-container relative z-10 grid gap-8 py-10 md:grid-cols-[1.3fr_2fr_1.3fr]">
         {/* Brand column */}
         <div className="flex flex-col gap-4">
           <BrandLogo inverse logoUrl={settings.logoUrl} storeName={settings.storeName} />
-          <p className="max-w-xs text-sm text-[#7a95b5]">
+          <p className="max-w-xs text-sm text-[#8290AD]">
             <LocalizedValue fallback={settings.storeTagline} value={data.footer.store_tagline} />{" "}
             <LocalizedValue fallback="Curated essentials for small everyday wins." value={data.footer.tagline_extra} />
           </p>
@@ -89,7 +92,7 @@ export async function StorefrontFooter() {
             {settings.contactEmail ? (
               <a
                 aria-label="Email"
-                className="flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff]"
+                className="flex size-8 items-center justify-center rounded-full border border-[rgba(61,139,255,0.18)] bg-[rgba(61,139,255,0.08)] text-[#8290AD] transition hover:border-[rgba(61,139,255,0.4)] hover:bg-[rgba(61,139,255,0.16)] hover:text-[#3D8BFF]"
                 href={`mailto:${settings.contactEmail}`}
               >
                 <AtSign className="size-3.5" />
@@ -105,7 +108,7 @@ export async function StorefrontFooter() {
               href && hrefMatchesPlatform(href, expectHost) ? (
                 <a
                   aria-label={label}
-                  className="flex size-8 items-center justify-center rounded-full border border-[rgba(59,158,255,0.15)] bg-[rgba(59,158,255,0.07)] text-[#7a95b5] transition hover:border-[rgba(59,158,255,0.35)] hover:bg-[rgba(59,158,255,0.15)] hover:text-[#3b9eff] overflow-hidden"
+                  className="flex size-8 items-center justify-center rounded-full border border-[rgba(61,139,255,0.18)] bg-[rgba(61,139,255,0.08)] text-[#8290AD] transition hover:border-[rgba(61,139,255,0.4)] hover:bg-[rgba(61,139,255,0.16)] hover:text-[#3D8BFF] overflow-hidden"
                   href={href}
                   key={label}
                   rel="noreferrer"
@@ -162,19 +165,19 @@ export async function StorefrontFooter() {
 
         {/* Contact column */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[#dde6f5]">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[#E5ECF7]">
             <LocalizedValue fallback="Contact" value={data.footer.contact_title} />
           </h2>
-          <p className="text-sm text-[#7a95b5]">
+          <p className="text-sm text-[#8290AD]">
             <LocalizedValue fallback="Need help choosing? Talk to us directly." value={data.footer.need_help} />
           </p>
-          <div className="grid gap-1 text-xs font-semibold text-[#6b8db5]">
-            {settings.contactEmail ? <a className="hover:text-[#3b9eff] transition-colors" href={`mailto:${settings.contactEmail}`}>{settings.contactEmail}</a> : null}
-            {settings.contactPhone ? <a className="hover:text-[#3b9eff] transition-colors" href={`tel:${settings.contactPhone}`}>{settings.contactPhone}</a> : null}
+          <div className="grid gap-1 text-xs font-semibold text-[#A6B0C8]">
+            {settings.contactEmail ? <a className="hover:text-[#3D8BFF] transition-colors" href={`mailto:${settings.contactEmail}`}>{settings.contactEmail}</a> : null}
+            {settings.contactPhone ? <a className="hover:text-[#3D8BFF] transition-colors" href={`tel:${settings.contactPhone}`}>{settings.contactPhone}</a> : null}
           </div>
           {settings.whatsappNumber && (
             <a
-              className="text-xs font-semibold text-[#6b8db5] hover:text-[#3b9eff] transition-colors"
+              className="text-xs font-semibold text-[#A6B0C8] hover:text-[#3D8BFF] transition-colors"
               href={`https://wa.me/${getWhatsAppNumber(settings)}`}
               rel="noreferrer"
               target="_blank"
@@ -185,9 +188,11 @@ export async function StorefrontFooter() {
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-[rgba(59,158,255,0.1)]">
-        <div className="urbanix-container flex flex-col items-center justify-between gap-2 py-4 text-xs text-[#4a6a8a] sm:flex-row">
+      {/* Bottom bar — Urbanix gold hairline accent (warning token) gives the
+          blue+gold brand pairing a subtle anchor without making the footer
+          feel poster-like */}
+      <div className="relative z-10 border-t border-warning/20">
+        <div className="urbanix-container flex flex-col items-center justify-between gap-2 py-4 text-xs text-[#5E6C82] sm:flex-row">
           <span>© {new Date().getFullYear()} {settings.storeName}. All rights reserved.</span>
           <span>Powered by Urbanix Commerce</span>
         </div>
@@ -209,11 +214,11 @@ function FooterGroup({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-[#dde6f5]">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-[#E5ECF7]">
         {titleValue ? <LocalizedValue fallback={title} value={titleValue} /> : <LocalizedText fallback={title} k={titleKey ?? title} />}
       </h2>
       {links.map((link) => (
-        <Link className="text-xs text-[#7a95b5] transition-colors hover:text-[#3b9eff]" href={link.href} key={link.label}>
+        <Link className="text-xs text-[#8290AD] transition-colors hover:text-[#3D8BFF]" href={link.href} key={link.label}>
           {link.localizedLabel ? (
             <LocalizedValue fallback={link.label} value={link.localizedLabel} />
           ) : (

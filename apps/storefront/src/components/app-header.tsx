@@ -44,7 +44,7 @@ export async function AppHeader() {
       ) : null}
 
       {/* Sticky header */}
-      <header className="sticky top-0 z-40 border-b border-white/70 bg-card/82 shadow-[0_12px_36px_rgba(17,37,68,0.09)] backdrop-blur-xl dark:border-[rgba(59,158,255,0.12)] dark:bg-[rgba(7,16,34,0.88)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.42)]">
+      <header className="sticky top-0 z-40 border-b border-white/70 bg-card/82 shadow-[0_12px_36px_rgba(17,37,68,0.09)] backdrop-blur-xl dark:border-border dark:bg-card/82 dark:shadow-[var(--shadow-lg)]">
         <div className="urbanix-container flex h-16 items-center justify-between gap-4">
           <Link className="shrink-0" href="/">
             <BrandLogo logoUrl={settings.logoUrl} storeName={settings.storeName} />
@@ -71,7 +71,7 @@ export async function AppHeader() {
             <ThemeToggle />
             <Link
               className={buttonVariants({
-                className: "hidden rounded-full bg-linear-to-r from-primary to-[#14c8ff] text-white shadow-[0_12px_28px_rgba(26,86,219,0.22)] hover:opacity-92 lg:inline-flex",
+                className: "urbanix-grad-cta hidden rounded-full hover:opacity-92 lg:inline-flex",
                 size: "sm",
               })}
               href={`https://wa.me/${getWhatsAppNumber(settings)}`}
@@ -137,7 +137,7 @@ function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-white/60 bg-card/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_36px_rgba(17,37,68,0.14)] backdrop-blur-xl dark:border-[rgba(59,158,255,0.12)] dark:bg-[rgba(7,16,34,0.95)] dark:shadow-[0_-12px_36px_rgba(0,0,0,0.46)] md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-white/60 bg-card/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_36px_rgba(17,37,68,0.14)] backdrop-blur-xl dark:border-border dark:bg-card/95 dark:shadow-[var(--shadow-lg)] md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
 
