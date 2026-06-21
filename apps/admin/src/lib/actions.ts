@@ -804,6 +804,10 @@ export async function saveHomepage(formData: FormData) {
   return saveCmsBanner(formData, "/homepage");
 }
 
+export async function saveBannersHeroBanner(formData: FormData) {
+  return saveCmsBanner(formData, "/banners");
+}
+
 export async function saveCmsBanner(formData: FormData, redirectBase = "/cms") {
   const sb = createAdminClient();
   const { data: existingBanner } = await sb.from("banners").select("*").eq("id", true).maybeSingle();

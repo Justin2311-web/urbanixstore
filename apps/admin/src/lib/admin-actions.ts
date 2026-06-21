@@ -454,11 +454,11 @@ export async function savePromotionBanners(formData: FormData) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[Admin] savePromotionBanners failed:", message);
-    redirect(`/cms?saveError=${encodeURIComponent(message)}`);
+    redirect(`/banners?saveError=${encodeURIComponent(message)}`);
   }
   await revalidateStorefront();
   revalidatePath("/", "layout");
-  redirect("/cms?saved=1");
+  redirect("/banners?saved=1");
 }
 
 export async function saveOrderStatuses(formData: FormData) {

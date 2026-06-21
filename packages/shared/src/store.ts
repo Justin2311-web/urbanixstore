@@ -1747,10 +1747,14 @@ export async function updatePaymentSettings(payments: PaymentSettings) {
 
 export async function upsertPromotionBanners(banners: PromotionBanner[], deletedIds: string[] = []) {
   const supabase = createSupabaseStoreClient({ admin: true });
+  const bannersWithIds = banners.map((banner) => ({
+    ...banner,
+    id: banner.id?.trim() || crypto.randomUUID(),
+  }));
 
   if (!supabase) {
     const data = readUrbanixStoreData();
-    data.promotionBanners = banners
+    data.promotionBanners = bannersWithIds
       .filter((b) => !deletedIds.includes(b.id))
       .toSorted((a, b) => a.sortOrder - b.sortOrder);
     writeUrbanixStoreData(data);
@@ -1762,10 +1766,10 @@ export async function upsertPromotionBanners(banners: PromotionBanner[], deleted
     if (del.error) throw del.error;
   }
 
-  if (banners.length === 0) return;
+  if (bannersWithIds.length === 0) return;
 
   const result = await supabase.from("promotion_banners").upsert(
-    banners.map((banner, index) => ({
+    bannersWithIds.map((banner, index) => ({
       cta_text: banner.localizedCtaText?.en ?? banner.buttonText?.en ?? banner.ctaText,
       cta_text_en: banner.localizedCtaText?.en ?? banner.buttonText?.en ?? banner.ctaText,
       cta_text_ms: banner.localizedCtaText?.ms ?? banner.buttonText?.bm ?? null,
@@ -1773,7 +1777,7 @@ export async function upsertPromotionBanners(banners: PromotionBanner[], deleted
       button_enabled: banner.buttonEnabled,
       button_position: banner.buttonPosition ?? "bottom-left",
       desktop_image_url: banner.desktopImageUrl || null,
-      id: banner.id || undefined,
+      id: banner.id,
       is_active: banner.isActive,
       mobile_image_url: banner.mobileImageUrl || null,
       sort_order: banner.sortOrder || index + 1,
