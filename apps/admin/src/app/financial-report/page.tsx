@@ -102,6 +102,7 @@ type RevenueRow = {
   currency: string;
   id: string;
   notes: string | null;
+  platform_order_id: string | null;
   related_order_id: string | null;
   revenue_date: string;
   source: string;
@@ -244,13 +245,14 @@ function buildCsv({
     ...Object.entries(summary).map(([key, value]) => [key, value]),
     [],
     ["Revenue"],
-    ["Date", "Title", "Source", "Amount", "Related Order", "Notes"],
+    ["Date", "Title", "Source", "Amount", "Related Website Order", "Platform Order ID", "Notes"],
     ...websiteRevenue.map((order) => [
       order.created_at.slice(0, 10),
       `Website order ${order.order_number}`,
       "Website",
       order.total_amount,
       order.order_number,
+      "",
       "",
     ]),
     ...manualRevenue.map((item) => [
@@ -259,6 +261,7 @@ function buildCsv({
       item.source,
       item.amount,
       item.related_order_id ?? "",
+      item.platform_order_id ?? "",
       item.notes ?? "",
     ]),
     [],
@@ -326,9 +329,9 @@ function buildExcel({
   const html = `
     <html><body>
       ${table("Summary", ["Metric", "Value"], Object.entries(summary))}
-      ${table("Revenue", ["Date", "Title", "Source", "Amount"], [
-        ...websiteRevenue.map((order) => [order.created_at.slice(0, 10), `Website order ${order.order_number}`, "Website", order.total_amount]),
-        ...manualRevenue.map((item) => [item.revenue_date, item.title, item.source, item.amount]),
+      ${table("Revenue", ["Date", "Title", "Source", "Amount", "Related Website Order", "Platform Order ID"], [
+        ...websiteRevenue.map((order) => [order.created_at.slice(0, 10), `Website order ${order.order_number}`, "Website", order.total_amount, order.order_number, ""]),
+        ...manualRevenue.map((item) => [item.revenue_date, item.title, item.source, item.amount, item.related_order_id ?? "", item.platform_order_id ?? ""]),
       ])}
       ${table("Expenses", ["Date", "Title", "Category", "Amount"], expenses.map((item) => [item.expense_date, item.title, item.category, item.amount]))}
       ${table("Product Costs", ["Product", "SKU", "Cost", "Selling Price"], productCosts.map((item) => [item.product_name, item.sku, productUnitCost(item, { startup_capital: 0, default_shipping_cost: 0, default_packaging_cost: 0, currency: "MYR" }), item.selling_price]))}
@@ -740,7 +743,8 @@ export default async function FinancialReportPage({
               </select>
               <input className="field-input" min="0" name="amount" placeholder="Amount" required step="0.01" type="number" defaultValue={editRevenue?.amount ?? ""} />
               <input className="field-input" name="revenue_date" required type="date" defaultValue={editRevenue?.revenue_date ?? isoDate(new Date())} />
-              <input className="field-input" name="related_order_id" placeholder="Related order ID (optional)" defaultValue={editRevenue?.related_order_id ?? ""} />
+              <input className="field-input" name="platform_order_id" placeholder="Platform order ID, e.g. Shopee ID" defaultValue={editRevenue?.platform_order_id ?? ""} />
+              <input className="field-input" name="related_order_id" placeholder="Website order UUID (optional)" defaultValue={editRevenue?.related_order_id ?? ""} />
             </div>
             <textarea className="field-textarea" name="notes" placeholder="Notes" defaultValue={editRevenue?.notes ?? ""} />
             <div className="flex gap-2">
@@ -894,6 +898,7 @@ export default async function FinancialReportPage({
                   <th className="table-th">Date</th>
                   <th className="table-th">Title</th>
                   <th className="table-th">Source</th>
+                  <th className="table-th">Platform Order</th>
                   <th className="table-th">Amount</th>
                   <th className="table-th">Actions</th>
                 </tr>
@@ -907,12 +912,13 @@ export default async function FinancialReportPage({
                       <p className="text-xs text-gray-400">Automatic order revenue</p>
                     </td>
                     <td className="table-td">Website</td>
+                    <td className="table-td">-</td>
                     <td className="table-td font-semibold text-emerald-700">{formatCurrency(Number(order.total_amount))}</td>
                     <td className="table-td"><Link className="btn-secondary px-3 py-1.5 text-xs" href={`/orders/${order.id}`}>Order</Link></td>
                   </tr>
                 ))}
                 {manualRevenue.length === 0 && websiteOrders.length === 0 ? (
-                  <tr><td className="table-td py-8 text-center text-gray-400" colSpan={5}>No revenue found.</td></tr>
+                  <tr><td className="table-td py-8 text-center text-gray-400" colSpan={6}>No revenue found.</td></tr>
                 ) : manualRevenue.map((item) => (
                   <tr key={item.id}>
                     <td className="table-td whitespace-nowrap">{formatDate(item.revenue_date)}</td>
@@ -921,6 +927,7 @@ export default async function FinancialReportPage({
                       {item.notes ? <p className="text-xs text-gray-400">{item.notes}</p> : null}
                     </td>
                     <td className="table-td">{item.source}</td>
+                    <td className="table-td font-mono text-xs">{item.platform_order_id ?? "-"}</td>
                     <td className="table-td font-semibold text-emerald-700">{formatCurrency(Number(item.amount))}</td>
                     <td className="table-td">
                       <div className="flex gap-2">
