@@ -64,6 +64,7 @@ export type Database = {
           currency: string;
           id: string;
           notes: string | null;
+          platform_order_id: string | null;
           related_order_id: string | null;
           revenue_date: string;
           source: string;
@@ -76,6 +77,7 @@ export type Database = {
           currency?: string;
           id?: string;
           notes?: string | null;
+          platform_order_id?: string | null;
           related_order_id?: string | null;
           revenue_date: string;
           source: string;

@@ -625,6 +625,14 @@ function financeAmount(formData: FormData, key: string) {
   return value;
 }
 
+function optionalUuid(value: string, label: string) {
+  if (!value) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+    financeRedirect(`${label} must be a website order UUID. Use Platform order ID for Shopee, Lazada, or TikTok Shop order numbers.`);
+  }
+  return value;
+}
+
 export async function saveFinanceExpense(formData: FormData) {
   const sb = createAdminClient();
   const id = fd(formData, "id");
@@ -682,17 +690,20 @@ export async function saveFinanceRevenue(formData: FormData) {
   const source = fd(formData, "source");
   const amount = financeAmount(formData, "amount");
   const revenue_date = fd(formData, "revenue_date");
-  const related_order_id = fd(formData, "related_order_id");
+  const related_order_id = optionalUuid(fd(formData, "related_order_id"), "Related website order ID");
+  const platform_order_id = fd(formData, "platform_order_id");
 
   if (!title) financeRedirect("Revenue title is required");
   if (!revenueSources.has(source)) financeRedirect("Revenue source is required");
   if (!revenue_date) financeRedirect("Revenue date is required");
+  if (platform_order_id.length > 120) financeRedirect("Platform order ID must be 120 characters or less");
 
   const payload = {
     amount,
     currency: fd(formData, "currency") || "MYR",
     notes: fd(formData, "notes") || null,
-    related_order_id: related_order_id || null,
+    platform_order_id: platform_order_id || null,
+    related_order_id,
     revenue_date,
     source,
     title,
