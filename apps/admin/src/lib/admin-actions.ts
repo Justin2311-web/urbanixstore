@@ -88,6 +88,9 @@ function jsonStringArray(formData: FormData, key: string) {
 
 type BannerLang = "en" | "zh" | "ms";
 const bannerLangs: BannerLang[] = ["en", "zh", "ms"];
+type BannerSlot = "desktop" | "mobile";
+
+const cloudinaryBannerRoot = "urbanix/banners";
 
 function encodeLocalizedImages(images: Record<BannerLang, string>) {
   const fallback = images.en || images.zh || images.ms || "";
@@ -102,6 +105,115 @@ function fileValues(formData: FormData, key: string) {
   return formData
     .getAll(key)
     .filter((value): value is File => value instanceof File && value.size > 0);
+}
+
+function requireCloudinaryEnv() {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error("Missing Cloudinary env vars for promotion banner uploads.");
+  }
+
+  return { apiKey, apiSecret, cloudName };
+}
+
+function cloudinarySignature(params: Record<string, string>, apiSecret: string) {
+  const payload = Object.entries(params)
+    .filter(([, value]) => value !== "")
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
+  return crypto.subtle
+    .digest("SHA-1", new TextEncoder().encode(`${payload}${apiSecret}`))
+    .then((hash) => Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join(""));
+}
+
+function timestampSegment() {
+  return new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+}
+
+function cloudinaryBannerPublicId({
+  bannerId,
+  hasExistingUrl,
+  lang,
+  slot,
+}: {
+  bannerId: string;
+  hasExistingUrl: boolean;
+  lang: BannerLang;
+  slot: BannerSlot;
+}) {
+  const base = `${cloudinaryBannerRoot}/${bannerId}/${slot}/${lang}`;
+  return hasExistingUrl ? `${base}/v-${timestampSegment()}` : base;
+}
+
+async function uploadPromotionBannerToCloudinary({
+  bannerId,
+  existingUrl,
+  file,
+  lang,
+  slot,
+}: {
+  bannerId: string;
+  existingUrl: string;
+  file: File;
+  lang: BannerLang;
+  slot: BannerSlot;
+}) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error(`Promotion banner upload must be an image: ${file.name}`);
+  }
+
+  const { apiKey, apiSecret, cloudName } = requireCloudinaryEnv();
+  const publicId = cloudinaryBannerPublicId({
+    bannerId,
+    hasExistingUrl: Boolean(existingUrl),
+    lang,
+    slot,
+  });
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const params = {
+    overwrite: "false",
+    public_id: publicId,
+    timestamp,
+    unique_filename: "false",
+  };
+  const signature = await cloudinarySignature(params, apiSecret);
+  const body = new FormData();
+  body.set("file", file);
+  body.set("api_key", apiKey);
+  body.set("public_id", publicId);
+  body.set("timestamp", timestamp);
+  body.set("signature", signature);
+  body.set("overwrite", "false");
+  body.set("unique_filename", "false");
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    body,
+    method: "POST",
+  });
+  const result = await response.json().catch(() => null) as {
+    error?: { message?: string };
+    public_id?: string;
+    secure_url?: string;
+  } | null;
+
+  if (!response.ok) {
+    throw new Error(result?.error?.message ?? `Cloudinary upload failed with status ${response.status}.`);
+  }
+
+  if (result?.public_id !== publicId) {
+    throw new Error(`Cloudinary public_id mismatch. Expected ${publicId}, got ${result?.public_id ?? "missing"}.`);
+  }
+
+  if (!result.secure_url?.startsWith(`https://res.cloudinary.com/${cloudName}/`)) {
+    throw new Error("Cloudinary upload response did not include a valid secure_url.");
+  }
+
+  return result.secure_url;
 }
 
 async function getProductImageUrls(formData: FormData, slug: string, existingImages: string[]) {
@@ -409,19 +521,33 @@ export async function savePromotionBanners(formData: FormData) {
       continue;
     }
 
-    const folder = id || slugify(title) || `banner-${index + 1}`;
+    const bannerId = id || crypto.randomUUID();
     const desktopImages = { en: "", zh: "", ms: "" };
     const mobileImages = { en: "", zh: "", ms: "" };
 
     for (const lang of bannerLangs) {
       const desktopFile = fileValues(formData, `${key}-desktopFile-${lang}`)[0];
       const mobileFile = fileValues(formData, `${key}-mobileFile-${lang}`)[0];
+      const desktopExistingUrl = text(formData, `${key}-desktopImageUrl-${lang}`);
+      const mobileExistingUrl = text(formData, `${key}-mobileImageUrl-${lang}`);
       desktopImages[lang] = desktopFile
-        ? await uploadUrbanixAsset(desktopFile, "banners", `${folder}/desktop-${lang}`)
-        : text(formData, `${key}-desktopImageUrl-${lang}`);
+        ? await uploadPromotionBannerToCloudinary({
+          bannerId,
+          existingUrl: desktopExistingUrl,
+          file: desktopFile,
+          lang,
+          slot: "desktop",
+        })
+        : desktopExistingUrl;
       mobileImages[lang] = mobileFile
-        ? await uploadUrbanixAsset(mobileFile, "banners", `${folder}/mobile-${lang}`)
-        : text(formData, `${key}-mobileImageUrl-${lang}`);
+        ? await uploadPromotionBannerToCloudinary({
+          bannerId,
+          existingUrl: mobileExistingUrl,
+          file: mobileFile,
+          lang,
+          slot: "mobile",
+        })
+        : mobileExistingUrl;
     }
 
     banners.push({
@@ -435,7 +561,7 @@ export async function savePromotionBanners(formData: FormData) {
       },
       ctaText: localizedCtaText.en,
       desktopImageUrl: encodeLocalizedImages(desktopImages),
-      id,
+      id: bannerId,
       imageClickUrl: text(formData, `${key}-targetUrl`) || "/products",
       isActive: formData.get(`${key}-isActive`) === "on",
       localizedCtaText,
