@@ -25,6 +25,7 @@ import {
   type UrbanixProduct,
   type UrbanixStoreData,
 } from "./index";
+import { supabaseAssetMap } from "./supabase-asset-map";
 
 type SupabaseStoreClient = SupabaseClient;
 type StoreReadOptions = {
@@ -77,6 +78,28 @@ function mergeStoreData(data: Partial<UrbanixStoreData>): UrbanixStoreData {
   };
 }
 
+function mirrorAssetUrl(value: string) {
+  return supabaseAssetMap[value] ?? value;
+}
+
+function mirrorStoreAssets<T>(value: T): T {
+  if (typeof value === "string") {
+    return mirrorAssetUrl(value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => mirrorStoreAssets(item)) as T;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, mirrorStoreAssets(item)])
+    ) as T;
+  }
+
+  return value;
+}
+
 export function readUrbanixStoreData(): UrbanixStoreData {
   try {
     if (!existsSync(urbanixDataPath)) {
@@ -88,9 +111,9 @@ export function readUrbanixStoreData(): UrbanixStoreData {
       }
     }
 
-    return mergeStoreData(JSON.parse(readFileSync(urbanixDataPath, "utf8")) as Partial<UrbanixStoreData>);
+    return mirrorStoreAssets(mergeStoreData(JSON.parse(readFileSync(urbanixDataPath, "utf8")) as Partial<UrbanixStoreData>));
   } catch {
-    return defaultUrbanixStoreData;
+    return mirrorStoreAssets(defaultUrbanixStoreData);
   }
 }
 
@@ -1100,7 +1123,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     // No Supabase configured — try Google Sheets, then local fallback.
     try {
       const googleSheetData = await readGoogleSheetStoreData();
-      if (googleSheetData) return googleSheetData;
+      if (googleSheetData) return mirrorStoreAssets(googleSheetData);
     } catch (error) {
       console.error("[Urbanix] Google Sheet CMS unavailable, falling back to static data.", error);
     }
@@ -1166,7 +1189,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     console.error("[Urbanix] Supabase read failed entirely, falling back to Google Sheets/static.");
     try {
       const googleSheetData = await readGoogleSheetStoreData();
-      if (googleSheetData) return googleSheetData;
+      if (googleSheetData) return mirrorStoreAssets(googleSheetData);
     } catch {
       // ignore
     }
@@ -1237,7 +1260,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
 
   const qrMethods = (qrMethodsResult.data ?? []).map(mapQrPaymentMethod);
 
-  return mergeStoreData({
+  return mirrorStoreAssets(mergeStoreData({
     categories,
     homepage: mapHomepage(bannersResult.data),
     orders,
@@ -1246,7 +1269,7 @@ export async function readUrbanixStoreDataAsync(options: StoreReadOptions = {}):
     promotionBanners: (promotionBannersResult.data ?? []).map(mapPromotionBanner),
     qrMethods,
     settings: mapStoreSettings(settingsResult.data),
-  });
+  }));
 }
 
 export function listStorefrontProducts(data = readUrbanixStoreData()) {
