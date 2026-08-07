@@ -11,6 +11,7 @@ import {
 } from "@ecommerce/shared";
 import { listStorefrontProducts, readUrbanixStoreDataAsync } from "@ecommerce/shared/store";
 import type { Database } from "@ecommerce/database";
+import { evaluatePromotion, type AppliedPromotion } from "@/lib/promotion-service";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ type CreateOrderPayload = {
   };
   paymentMethod: "manual" | "whatsapp";
   paymentMethodType?: string | null;
+  promoCode?: string;
   // Preferred: private storage metadata returned by /api/signed-upload.
   receiptBucket?: string;
   receiptPath?: string;
@@ -260,6 +262,7 @@ export async function POST(request: Request) {
       orderNumber,
       paymentMethod,
       paymentMethodType,
+      promoCode,
       receiptBucket,
       receiptPath,
       receiptUrl,
@@ -372,9 +375,23 @@ export async function POST(request: Request) {
       });
     }
 
-    // No automatic discount yet. A promotion engine (codes / campaigns) is pending.
-    // Keep this at 0 so the server total matches calculateOrderTotals on the client.
-    const serverDiscountAmount = 0;
+    let appliedPromotion: AppliedPromotion | null = null;
+    if (promoCode?.trim()) {
+      try {
+        appliedPromotion = await evaluatePromotion({
+          code: promoCode,
+          customerPhone,
+          items: items.map((item) => ({
+            productId: item.productId ?? "",
+            quantity: item.quantity,
+            selectedVariants: item.selectedVariants,
+          })),
+        });
+      } catch (error) {
+        return fail(error instanceof Error ? error.message : "Unable to apply promo code.");
+      }
+    }
+    const serverDiscountAmount = appliedPromotion?.discountAmount ?? 0;
     const shipping = calculateShippingFee({
       settings: data.settings,
       state: validState,
@@ -403,6 +420,11 @@ export async function POST(request: Request) {
         free_shipping_threshold: shipping.freeShippingThreshold ?? null,
         is_free_shipping_applied: shipping.isFreeShippingApplied,
         discount_amount: serverDiscountAmount,
+        promotion_id: appliedPromotion?.promotionId ?? null,
+        promo_code: appliedPromotion?.promoCode ?? null,
+        campaign_name: appliedPromotion?.campaignName ?? null,
+        promotion_rule_snapshot: appliedPromotion?.ruleSnapshot ?? null,
+        discount_breakdown: appliedPromotion?.breakdown ?? null,
         total_amount: serverTotalAmount,
         payment_method: paymentMethod,
         payment_method_type: paymentMethodType || null,

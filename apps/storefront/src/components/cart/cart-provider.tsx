@@ -20,15 +20,18 @@ export type CartItem = {
 type CartContextValue = {
   items: CartItem[];
   count: number;
+  promoCode: string;
   addItem: (productId: string, quantity?: number, selectedVariants?: Record<string, string>) => void;
   clearCart: () => void;
   decrementItem: (cartKey: string) => void;
   removeItem: (cartKey: string) => void;
   setItemQuantity: (cartKey: string, quantity: number) => void;
+  setPromoCode: (code: string) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 const storageKey = "urbanix-cart";
+const promoStorageKey = "urbanix-promo-code";
 
 /** Generates a stable cart key from productId + optional selected variants. */
 export function makeCartKey(productId: string, selectedVariants?: Record<string, string>): string {
@@ -59,6 +62,7 @@ function migrateStoredCart(raw: unknown): CartItem[] {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<CartItem[]>([]);
+  const [promoCode, setPromoCodeState] = useState("");
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -67,6 +71,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (storedCart) {
           setItems(migrateStoredCart(JSON.parse(storedCart)));
         }
+        setPromoCodeState(window.localStorage.getItem(promoStorageKey) ?? "");
       } finally {
         setHydrated(true);
       }
@@ -77,6 +82,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     window.localStorage.setItem(storageKey, JSON.stringify(items));
   }, [hydrated, items]);
+
+  const setPromoCode = useCallback((code: string) => {
+    const normalized = code.trim().toUpperCase();
+    setPromoCodeState(normalized);
+    if (normalized) window.localStorage.setItem(promoStorageKey, normalized);
+    else window.localStorage.removeItem(promoStorageKey);
+  }, []);
 
   const addItem = useCallback((productId: string, quantity = 1, selectedVariants?: Record<string, string>) => {
     const cartKey = makeCartKey(productId, selectedVariants);
@@ -116,6 +128,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
+    setPromoCodeState("");
+    window.localStorage.removeItem(promoStorageKey);
   }, []);
 
   const value = useMemo(
@@ -125,10 +139,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       count: items.reduce((total, item) => total + item.quantity, 0),
       decrementItem,
       items,
+      promoCode,
       removeItem,
       setItemQuantity,
+      setPromoCode,
     }),
-    [addItem, clearCart, decrementItem, items, removeItem, setItemQuantity]
+    [addItem, clearCart, decrementItem, items, promoCode, removeItem, setItemQuantity, setPromoCode]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

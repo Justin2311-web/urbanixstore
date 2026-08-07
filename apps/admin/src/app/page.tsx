@@ -80,7 +80,7 @@ export default async function DashboardPage() {
   const quickLinks = [
     { href: "/products/new", label: "Add Product", icon: "➕" },
     { href: "/categories", label: "Manage Categories", icon: "🗂️" },
-    { href: "/promotions", label: "Promotion Banners", icon: "🎯" },
+    { href: "/promotions", label: "Promo Codes", icon: "🎯" },
     { href: "/inventory", label: "Update Inventory", icon: "🏷️" },
     { href: "/homepage", label: "Edit Homepage", icon: "🏠" },
     { href: "/settings", label: "Store Settings", icon: "⚙️" },

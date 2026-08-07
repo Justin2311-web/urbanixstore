@@ -10,6 +10,7 @@ const links = [
   { href: "/products", label: "Products", icon: "PK" },
   { href: "/categories", label: "Categories", icon: "CT" },
   { href: "/banners", label: "Banners", icon: "BN" },
+  { href: "/promotions", label: "Promo Codes", icon: "PC" },
   { href: "/inventory", label: "Inventory", icon: "IV" },
   { href: "/orders", label: "Orders", icon: "OR" },
   { href: "/financial-report", label: "Financial Report", icon: "RM" },

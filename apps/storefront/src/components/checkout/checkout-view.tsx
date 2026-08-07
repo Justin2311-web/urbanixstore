@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircle, ShieldCheck, Upload, X } from "lucide-react";
 import type { CheckoutCustomer, PaymentSettings, QrPaymentMethod, StoreSettings, UrbanixOrder, UrbanixProduct } from "@ecommerce/shared";
@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/commerce/empty-state";
 import { FreeShippingProgress } from "@/components/commerce/free-shipping-progress";
 import { OrderProcessInfo } from "@/components/checkout/order-process-info";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
+import { PromotionCodeCard } from "@/components/commerce/promotion-code-card";
+import type { AppliedPromotion } from "@/lib/promotion-service";
 import { ShippingFeeBreakdown } from "@/components/commerce/shipping-fee-breakdown";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { Button } from "@/components/ui/button";
@@ -58,7 +60,9 @@ export function CheckoutView({
   const supportWhatsAppNumber = settings.whatsappNumber ? getWhatsAppNumber(settings) : null;
   const router = useRouter();
   const { t } = useLanguage();
-  const { clearCart, items } = useCart();
+  const { clearCart, items, promoCode } = useCart();
+  const [promotion, setPromotion] = useState<AppliedPromotion | null>(null);
+  const handlePromotionChange = useCallback((next: AppliedPromotion | null) => setPromotion(next), []);
   const [customer, setCustomer] = useState(initialCustomer);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -80,7 +84,7 @@ export function CheckoutView({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const lines = buildCartLines(items, products);
-  const totals = calculateOrderTotals(lines, settings, customer.state);
+  const totals = calculateOrderTotals(lines, settings, customer.state, promotion?.discountAmount ?? 0);
   const shippingText = freeShippingCopy(settings);
 
   useEffect(() => {
@@ -267,6 +271,7 @@ export function CheckoutView({
         totalAmount: totals.total,
         paymentMethod: "manual" as const,
         paymentMethodType: selectedMethod?.displayName ?? selectedMethodId ?? null,
+        promoCode: promoCode || undefined,
         receiptBucket: finalReceipt?.bucket,
         receiptPath: finalReceipt?.path,
         items: lines.map((line) => ({
@@ -490,6 +495,7 @@ export function CheckoutView({
               recomputes against the correct West/East threshold and stays
               in sync with the OrderSummaryCard below (same shipping fn). */}
           <FreeShippingProgress settings={settings} subtotal={totals.subtotal} state={customer.state} />
+          <PromotionCodeCard customerPhone={customer.phone} lines={lines} onPromotionChange={handlePromotionChange} />
           <OrderSummaryCard lines={lines} showItems totals={totals} />
 
           <div className="rounded-2xl border border-accent/20 bg-cream p-4 text-sm font-bold text-primary">
