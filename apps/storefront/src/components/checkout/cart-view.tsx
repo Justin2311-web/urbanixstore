@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import {
@@ -13,6 +14,8 @@ import { CartItemCard } from "@/components/commerce/cart-item-card";
 import { EmptyState } from "@/components/commerce/empty-state";
 import { FreeShippingProgress } from "@/components/commerce/free-shipping-progress";
 import { OrderSummaryCard } from "@/components/commerce/order-summary-card";
+import { PromotionCodeCard } from "@/components/commerce/promotion-code-card";
+import type { AppliedPromotion } from "@/lib/promotion-service";
 import { ShippingFeeBreakdown } from "@/components/commerce/shipping-fee-breakdown";
 import { LocalizedValue } from "@/components/i18n/localized-value";
 import { useLanguage } from "@/components/i18n/language-provider";
@@ -28,8 +31,10 @@ export function CartView({
 }) {
   const { t } = useLanguage();
   const { count, items } = useCart();
+  const [promotion, setPromotion] = useState<AppliedPromotion | null>(null);
+  const handlePromotionChange = useCallback((next: AppliedPromotion | null) => setPromotion(next), []);
   const lines = buildCartLines(items, products);
-  const totals = calculateOrderTotals(lines, settings);
+  const totals = calculateOrderTotals(lines, settings, null, promotion?.discountAmount ?? 0);
   const shippingText = freeShippingCopy(settings);
 
   if (lines.length === 0) {
@@ -71,6 +76,7 @@ export function CartView({
               at checkout, which is when the free-shipping threshold becomes
               region-aware (West vs East). */}
           <FreeShippingProgress settings={settings} subtotal={totals.subtotal} />
+          <PromotionCodeCard lines={lines} onPromotionChange={handlePromotionChange} />
           <OrderSummaryCard lines={lines} totals={totals} />
           <Link
             className={buttonVariants({

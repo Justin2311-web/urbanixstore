@@ -974,12 +974,13 @@ export function calculateShippingFee({
 export function calculateOrderTotals(
   lines: CartLine[],
   settings: StoreSettings = defaultStoreSettings,
-  state?: string | null
+  state?: string | null,
+  promotionDiscount = 0
 ): OrderTotals {
   const subtotal = lines.reduce((total, line) => total + line.lineTotal, 0);
-  // No automatic discount. Promotion engine (codes / campaigns) is pending —
-  // keep this 0 so the cart/checkout matches what /api/orders calculates.
-  const discount = 0;
+  // Shipping remains based on the same pre-discount subtotal as before.
+  // The order API independently recalculates the promotion discount.
+  const discount = Math.min(subtotal, Math.max(0, promotionDiscount));
   const shipping = calculateShippingFee({ settings, state, subtotal });
 
   return {

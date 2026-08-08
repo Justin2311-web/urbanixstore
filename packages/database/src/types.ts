@@ -285,6 +285,7 @@ export type Database = {
       };
       orders: {
         Row: {
+          campaign_name: string | null;
           courier: string | null;
           created_at: string;
           customer_email: string | null;
@@ -292,12 +293,16 @@ export type Database = {
           customer_phone: string;
           delivery_note: string | null;
           discount_amount: number;
+          discount_breakdown: Json | null;
           id: string;
           order_number: string;
           order_status: "pending" | "processing" | "shipped" | "completed" | "cancelled";
           payment_method: "manual" | "whatsapp";
           payment_method_type: string | null;
           payment_status: "pending" | "unpaid" | "paid" | "failed" | "refunded";
+          promo_code: string | null;
+          promotion_id: string | null;
+          promotion_rule_snapshot: Json | null;
           receipt_bucket: string | null;
           receipt_path: string | null;
           receipt_public_url_legacy: string | null;
@@ -314,6 +319,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          campaign_name?: string | null;
           courier?: string | null;
           created_at?: string;
           customer_email?: string | null;
@@ -321,12 +327,16 @@ export type Database = {
           customer_phone: string;
           delivery_note?: string | null;
           discount_amount?: number;
+          discount_breakdown?: Json | null;
           id?: string;
           order_number: string;
           order_status?: "pending" | "processing" | "shipped" | "completed" | "cancelled";
           payment_method?: "manual" | "whatsapp";
           payment_method_type?: string | null;
           payment_status?: "pending" | "unpaid" | "paid" | "failed" | "refunded";
+          promo_code?: string | null;
+          promotion_id?: string | null;
+          promotion_rule_snapshot?: Json | null;
           receipt_bucket?: string | null;
           receipt_path?: string | null;
           receipt_public_url_legacy?: string | null;
@@ -370,6 +380,67 @@ export type Database = {
           selected_variants?: Json | null;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
+      };
+      promotions: {
+        Row: {
+          allocation: "cart_order" | "cheapest_first" | "most_expensive_first";
+          campaign_name: string;
+          code: string;
+          created_at: string;
+          eligible_category_ids: Json;
+          eligible_product_ids: Json;
+          eligible_variant_keys: Json;
+          eligibility_type: "entire_store" | "selected_products" | "selected_categories" | "selected_variants";
+          ends_at: string | null;
+          excluded_category_ids: Json;
+          excluded_product_ids: Json;
+          excluded_variant_keys: Json;
+          id: string;
+          maximum_discount_per_order: number | null;
+          minimum_quantity: number;
+          minimum_subtotal: number | null;
+          per_customer_usage_limit: number | null;
+          promotion_type: "multi_item_sequence";
+          repeat_sequence: boolean;
+          sequence_rules: Json;
+          stack_with_product_promotions: boolean;
+          stack_with_promo_codes: boolean;
+          stack_with_shipping_promotions: boolean;
+          starts_at: string | null;
+          status: "draft" | "scheduled" | "active" | "expired" | "disabled";
+          total_usage_limit: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          allocation?: "cart_order" | "cheapest_first" | "most_expensive_first";
+          campaign_name: string;
+          code: string;
+          created_at?: string;
+          eligible_category_ids?: Json;
+          eligible_product_ids?: Json;
+          eligible_variant_keys?: Json;
+          eligibility_type?: "entire_store" | "selected_products" | "selected_categories" | "selected_variants";
+          ends_at?: string | null;
+          excluded_category_ids?: Json;
+          excluded_product_ids?: Json;
+          excluded_variant_keys?: Json;
+          id?: string;
+          maximum_discount_per_order?: number | null;
+          minimum_quantity?: number;
+          minimum_subtotal?: number | null;
+          per_customer_usage_limit?: number | null;
+          promotion_type?: "multi_item_sequence";
+          repeat_sequence?: boolean;
+          sequence_rules?: Json;
+          stack_with_product_promotions?: boolean;
+          stack_with_promo_codes?: boolean;
+          stack_with_shipping_promotions?: boolean;
+          starts_at?: string | null;
+          status?: "draft" | "scheduled" | "active" | "expired" | "disabled";
+          total_usage_limit?: number | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["promotions"]["Insert"]>;
       };
       store_settings: {
         Row: {

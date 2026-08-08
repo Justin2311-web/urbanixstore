@@ -1067,6 +1067,62 @@ export async function saveQrPaymentMethod(formData: FormData) {
 
 // ─── STORE SETTINGS ───────────────────────────────────────────────────────────
 
+export async function savePromotion(formData: FormData) {
+  const sb = createAdminClient();
+  const id = fd(formData, "id");
+  const campaign_name = fd(formData, "campaign_name");
+  const code = fd(formData, "code").toUpperCase();
+  const types = formData.getAll("sequence_type").map(String);
+  const values = formData.getAll("sequence_value").map((value) => Number(value));
+  const sequence_rules = types.map((discountType, index) => ({ position: index + 1, discountType, discountValue: values[index] }));
+  const validRules = sequence_rules.length > 0 && sequence_rules.every((rule) =>
+    (rule.discountType === "percentage" || rule.discountType === "fixed_amount") &&
+    Number.isFinite(rule.discountValue) && rule.discountValue > 0 &&
+    (rule.discountType !== "percentage" || rule.discountValue <= 100)
+  );
+  if (!campaign_name || !code || !validRules) redirect("/promotions?saveError=Campaign%2C+code%2C+and+valid+sequence+rules+are+required");
+
+  const optionalNumber = (name) => {
+    const raw = fd(formData, name);
+    return raw === "" ? null : Number(raw);
+  };
+  const payload = {
+    campaign_name,
+    code,
+    status: fd(formData, "status") || "draft",
+    promotion_type: "multi_item_sequence",
+    starts_at: fd(formData, "starts_at") || null,
+    ends_at: fd(formData, "ends_at") || null,
+    sequence_rules,
+    repeat_sequence: fdBool(formData, "repeat_sequence"),
+    allocation: fd(formData, "allocation") || "cart_order",
+    eligibility_type: fd(formData, "eligibility_type") || "entire_store",
+    eligible_product_ids: formData.getAll("eligible_product_ids").map(String),
+    eligible_category_ids: formData.getAll("eligible_category_ids").map(String),
+    eligible_variant_keys: formData.getAll("eligible_variant_keys").map(String),
+    excluded_product_ids: formData.getAll("excluded_product_ids").map(String),
+    excluded_category_ids: formData.getAll("excluded_category_ids").map(String),
+    excluded_variant_keys: formData.getAll("excluded_variant_keys").map(String),
+    minimum_quantity: Math.max(1, fdNum(formData, "minimum_quantity") || 1),
+    minimum_subtotal: optionalNumber("minimum_subtotal"),
+    total_usage_limit: optionalNumber("total_usage_limit"),
+    per_customer_usage_limit: optionalNumber("per_customer_usage_limit"),
+    maximum_discount_per_order: optionalNumber("maximum_discount_per_order"),
+    stack_with_promo_codes: fdBool(formData, "stack_with_promo_codes"),
+    stack_with_product_promotions: fdBool(formData, "stack_with_product_promotions"),
+    stack_with_shipping_promotions: fdBool(formData, "stack_with_shipping_promotions"),
+  };
+  const query = id ? sb.from("promotions").update(payload).eq("id", id) : sb.from("promotions").insert(payload);
+  const { error } = await query;
+  if (error) {
+    console.error("[Admin] savePromotion error:", error);
+    redirect(`/promotions?saveError=${encodeURIComponent(error.message)}`);
+  }
+  revalidateAll();
+  await revalidateStorefront();
+  redirect("/promotions?saved=1");
+}
+
 export async function saveStoreSettings(formData: FormData) {
   const sb = createAdminClient();
 
