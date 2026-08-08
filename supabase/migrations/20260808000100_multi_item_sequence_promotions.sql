@@ -113,7 +113,7 @@ insert into public.promotions (
   stack_with_shipping_promotions
 )
 values (
-  'Urbanix Malaysia National Day / Merdeka Promotion 2026',
+  'Urbanix Merdeka 2026',
   'MERDEKA31',
   'active',
   'multi_item_sequence',
