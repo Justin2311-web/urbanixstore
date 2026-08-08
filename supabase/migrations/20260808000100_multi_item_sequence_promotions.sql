@@ -115,7 +115,7 @@ insert into public.promotions (
 values (
   'Urbanix Merdeka 2026',
   'MERDEKA31',
-  'active',
+  'disabled',
   'multi_item_sequence',
   '[{"position":1,"discountType":"percentage","discountValue":8},{"position":2,"discountType":"percentage","discountValue":31}]'::jsonb,
   true,
