@@ -103,7 +103,7 @@ export async function evaluatePromotion({
   const normalizedCode = code.trim().toUpperCase();
   if (!normalizedCode) throw new Error("Enter a promo code.");
   const sb = createPromotionClient();
-  const { data, error } = await sb.from("promotions").select("*").ilike("code", normalizedCode).maybeSingle();
+  const { data, error } = await sb.from("promotions").select("*").eq("code", normalizedCode).maybeSingle();
   if (error) throw new Error("Unable to validate promo code.");
   if (!data) throw new Error("Invalid promo code.");
   const promotion = data as PromotionRecord;

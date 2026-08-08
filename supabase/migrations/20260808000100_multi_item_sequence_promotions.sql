@@ -32,7 +32,8 @@ create table if not exists public.promotions (
   updated_at timestamptz not null default now(),
   constraint promotions_window_check check (starts_at is null or ends_at is null or ends_at >= starts_at),
   constraint promotions_sequence_rules_check check (jsonb_typeof(sequence_rules) = 'array'),
-  constraint promotions_code_not_blank check (length(btrim(code)) > 0)
+  constraint promotions_code_not_blank check (length(btrim(code)) > 0),
+  constraint promotions_code_normalized_check check (code = upper(btrim(code)))
 );
 
 create unique index if not exists promotions_code_upper_unique_idx on public.promotions (upper(btrim(code)));
@@ -89,6 +90,8 @@ begin
   return new;
 end;
 $$;
+
+revoke all on function public.enforce_promotion_usage_limits() from public, anon, authenticated;
 
 drop trigger if exists orders_enforce_promotion_usage_limits on public.orders;
 create trigger orders_enforce_promotion_usage_limits
